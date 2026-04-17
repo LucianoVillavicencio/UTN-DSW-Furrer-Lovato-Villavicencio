@@ -21,7 +21,7 @@ Regularidad:
 | Req| Detalle |
 | :--- | :--- |
 | CRUD simple | 1. CRUD Cliente <br> 2. CRUD tipoClase <br> 3. CRUD Plan |
-| CRUD dependiente | 1. CRUD TurnoClase {depende de} CRUD Clase 2. CRUD Clase {depende de} CRUD tipoClase |
+| CRUD dependiente | 1. CRUD TurnoClase {depende de} CRUD Clase <br> 2. CRUD Clase {depende de} CRUD tipoClase |
 | Listado + detalle | 1. Filtrado por fecha o tipoClase. Al seleccionar uno, muestra los alumnos inscriptos y el cupo restante. <br> 2. Filtrado por nombre o email. Al seleccionar uno, muestra su historial de inscripciones y estado de suscripción. |
 | CUU/Epic | 1. Registrar cliente |
 
