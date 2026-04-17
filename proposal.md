@@ -5,8 +5,8 @@
 * 52200 - Lovato, Gabriel
 * 52118 - Villavicencio, Luciano
 ### Repositorios
-*[front](https://github.com/Luchov21/dsw-frontend)
-*[back](https://github.com/Luchov21/dsw-backend)
+* [frontend app](https://github.com/Luchov21/dsw-frontend)
+* [backend app](https://github.com/Luchov21/dsw-backend)
 ## Tema
 ### Descripcion
 Plataforma de gestión integral para un gimnasio ("FLG gym"). El sistema permite a los administradores gestionar la oferta de actividades, membresías y horarios, mientras que los socios pueden visualizar clases disponibles, reservar turnos, realizar el seguimiento de su plan de entrenamiento y abonar su cuota.
