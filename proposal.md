@@ -12,7 +12,7 @@
 Plataforma de gestión integral para un gimnasio ("FLG gym"). El sistema permite a los administradores gestionar la oferta de actividades, membresías y horarios, mientras que los socios pueden visualizar clases disponibles, reservar turnos, realizar el seguimiento de su plan de entrenamiento y abonar su cuota.
 
 ### Modelo 
-<img width="722" height="908" alt="Modelo de dominio drawio" src="https://github.com/LucianoVillavicencio/UTN-DSW-Furrer-Lovato-Villavicencio/blob/main/assets/MD.png?raw=true" />
+<img width="722" height="908" alt="Modelo de dominio drawio" src="https://github.com/LucianoVillavicencio/UTN-DSW-Furrer-Lovato-Villavicencio/blob/main/assets/MD.drawio.png?raw=true" />
 https://drive.google.com/file/d/1EZ-wqlKdT2rGOhtkX18ta1ObDnXsWP4Q/view
 
 ## Alcance Funcional
