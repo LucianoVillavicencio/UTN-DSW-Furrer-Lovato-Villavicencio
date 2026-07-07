@@ -19,11 +19,11 @@ export class UsersDto{
     @IsNotEmpty()
     surname!: string;
 
-    @IsNumber()
+    @IsString()
     @IsNotEmpty()
     phone!: string;
 
-    @IsNumber()
+    @IsString()
     @IsNotEmpty()
     password! : string;
 
