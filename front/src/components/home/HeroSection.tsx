@@ -8,7 +8,7 @@ const stast = [
   { value: "24/7+", label: "Acceso" },
 ];
 
-const Hero = () => {
+const HeroSection = () => {
   return (
     <section className="relative overflow-hidden bg-background py-20">
       <Container className="grid grid-cols-1 items-center gap-20 lg:grid-cols-2">
@@ -82,4 +82,4 @@ const Hero = () => {
   );
 };
 
-export default Hero;
+export default HeroSection;
