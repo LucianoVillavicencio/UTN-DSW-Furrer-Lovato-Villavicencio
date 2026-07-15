@@ -5,10 +5,10 @@ import Button from "../common/Button";
 
 const navLinks = [
   { label: "Inicio", href: "/" },
-  { label: "Programas", href: "/programs" },
+  { label: "Clases", href: "/class" },
   { label: "Entrenadores", href: "/trainers" },
+  { label: "Planes", href: "/membership" },
   { label: "Reseñas", href: "/reviews" },
-  { label: "Suscripciones", href: "/membership" },
   { label: "Sobre nosotros", href: "/about" },
   { label: "Contacto", href: "/contact" },
 ];
