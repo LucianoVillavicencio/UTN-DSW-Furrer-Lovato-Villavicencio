@@ -1,5 +1,5 @@
 import Card from "../common/Card";
-import StarRating from "../common/starRating";
+import StarRating from "../common/StarRating";
 import Avatar from "../common/Avatar";
 
 interface TestimonialCardProps {
