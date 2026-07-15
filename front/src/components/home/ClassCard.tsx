@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import Card from "../common/Card";
 
-interface ProgramCardProps {
+interface ClassCardProps {
     icon: LucideIcon;
     title: string,
     descripcion: string
@@ -9,7 +9,7 @@ interface ProgramCardProps {
 }
 
 
-const ProgramCard = ({icon: Icon, title, descripcion }:ProgramCardProps) => {
+const ClassCard = ({icon: Icon, title, descripcion }:ClassCardProps) => {
   return (
 
     <Card className="text-center">
@@ -27,4 +27,4 @@ const ProgramCard = ({icon: Icon, title, descripcion }:ProgramCardProps) => {
   );
 }
 
-export default ProgramCard;
+export default ClassCard;
