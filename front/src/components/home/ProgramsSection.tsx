@@ -26,7 +26,7 @@ const programs = [
   },
 ];
 
-const ProgramSection = () => {
+const ProgramsSection = () => {
   return (
     <section className="bg-background py-20">
       <Container>
@@ -57,4 +57,4 @@ const ProgramSection = () => {
   );
 };
 
-export default ProgramSection;
+export default ProgramsSection;
