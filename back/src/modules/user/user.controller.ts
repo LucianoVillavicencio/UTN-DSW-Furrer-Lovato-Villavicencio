@@ -1,52 +1,58 @@
-
-import { Controller , Body , Post , Get ,Param } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  Get,
+  Param,
+  Put,
+  Delete,
+  Patch,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { UsersDto } from './dto/users-dto';
 
-
-
 @Controller('api/v1/user')
 @ApiTags('Usuarios')
 export class UserController {
+  constructor(private userService: UserService) {}
 
-    constructor(private userService:UserService){}
+  //create user
+  @Post()
+  createUsers(@Body() user: UsersDto) {
+    return this.userService.createUsers(user);
+  }
 
-    //create user
-    @Post()
-    createUsers(@Body() user: UsersDto){
+  //get one user
+  @Get('/:dni')
+  getUserById(@Param('dni') dni: number) {
+    return this.userService.findUser(dni);
+  }
 
-        return this.userService.createUsers(user);
+  //get all user
+  @Get()
+  getUsers() {
+    return this.userService.findAll();
+  }
 
-    }
+  //get deleted user
+  @Get('filter/deleted')
+  getUsersDeleted() {
+    return this.userService.findAllDeleted();
+  }
 
-    //get one user
-    @Get('/:id')
-    getUserById(@Param('id') idUsuario: number){
+  @Put()
+  updateUsers(@Body() user: UsersDto) {
+    return this.userService.updateUsers(user);
+  }
 
-        return this.userService.findUser(idUsuario);
-    }
+  @Delete()
+  deleteUsers(@Param('dni') dni: number) {
+    return this.userService.deleteUsers(dni);
+  }
 
-    //get all user
-    @Get()
-    getUsers(){
-
-        return this.userService.findAll();
-    }
-    
-
-    //get deleted user
-    @Get('filter/deleted')
-    getUsersDeleted(){
-        return this.userService.findAllDeleted();
-    }
-
-
-
-
-
-
-
-
+  @Patch('/restore/:dni')
+  restoreUsers(@Param('dni') dni: number) {
+    return this.userService.restoreUsers(dni);
+  }
 }
-

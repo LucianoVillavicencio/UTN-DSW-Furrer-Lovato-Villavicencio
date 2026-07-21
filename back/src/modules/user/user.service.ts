@@ -1,44 +1,87 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from "./entity/users.entity";
+import { Users } from './entity/users.entity';
 import { Repository } from 'typeorm';
 import { UsersDto } from './dto/users-dto';
+import { UpdateResult } from 'typeorm/browser';
 
 @Injectable()
 export class UserService {
+  constructor(
+    @InjectRepository(Users) private usersRepository: Repository<Users>,
+  ) {}
 
-    constructor(@InjectRepository(Users) private usersRepository:Repository <Users>) {}
+  async createUsers(user: UsersDto) {
+    const userExists = await this.findUser(user.dni);
 
-    async createUsers(user : UsersDto){
+    if (userExists) {
+      throw new ConflictException(
+        'El usuario con DNI: ' + user.dni + 'existe.',
+      );
+    } else {
+      return await this.usersRepository.save(user);
+    }
+  }
 
-        const userExists = await this.findUser(user.idUsuario);
+  // Find One User
 
-        if(userExists){
+  async findUser(dni: number) {
+    return await this.usersRepository.findOne({ where: { dni } });
+  }
 
-            throw new ConflictException('El usuario con ID: ' + user.idUsuario + 'existe.')
-        } else {
-            return await this.usersRepository.save(user);
-        }
+  // Find all User
 
+  async findAll() {
+    return await this.usersRepository.find({ where: { deleted: false } });
+  }
+
+  // Get Users deleted
+  async findAllDeleted() {
+    return await this.usersRepository.find({ where: { deleted: true } });
+  }
+
+  // Update User
+  async updateUsers(user: UsersDto) {
+    return await this.usersRepository.save(user);
+  }
+
+  // Delete User
+  async deleteUsers(dni: number) {
+    const userExists = await this.findUser(dni);
+
+    if (!userExists) {
+      throw new ConflictException(`El usuario con DNI : ${dni} no existe.`);
     }
 
-    async findUser(idUsuario: number){
-
-        return await this.usersRepository.findOne({ where: {idUsuario}});
-
+    if (userExists.deleted) {
+      throw new ConflictException(`El usuario ya esta eliminado.`);
     }
 
-    async findAll(){
+    const rows: UpdateResult = await this.usersRepository.update(
+      { dni },
+      { deleted: true },
+    );
 
-        return await this.usersRepository.find({where : {deleted : false}});
+    return rows.affected == 1;
+  }
 
+  // Restore User
+  async restoreUsers(dni: number) {
+    const userExists = await this.findUser(dni);
+
+    if (!userExists) {
+      throw new ConflictException(`El usuario con DNI: ${dni} no existe`);
     }
 
-
-    // Users deleted
-    async findAllDeleted(){ 
-
-        return await this.usersRepository.find({where : {deleted : true}});
-        
+    if (!userExists.deleted) {
+      throw new ConflictException(`El usuario no esta borrado`);
     }
+
+    const rows: UpdateResult = await this.usersRepository.update(
+      { dni },
+      { deleted: false },
+    );
+
+    return rows.affected == 1;
+  }
 }
