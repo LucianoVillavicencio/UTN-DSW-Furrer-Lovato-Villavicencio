@@ -43,7 +43,7 @@ const Navbar = () => {
 
         {/* CTA desktop */}
         <div className="hidden lg:block">
-          <Button href="/register" size="sm">
+          <Button href="/login" size="sm">
             Ingresar
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +91,7 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <Button href="/register" size="sm" className="mt-2 w-full">
+            <Button href="/login" size="sm" className="mt-2 w-full">
               Ingresar
             </Button>
           </Container>
