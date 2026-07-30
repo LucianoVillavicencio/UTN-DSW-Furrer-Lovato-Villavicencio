@@ -1,15 +1,10 @@
-// front/src/services/auth.service.ts
+import type { RegisterUserData, AuthResponse } from '../types/user';
 
-export interface RegisterUserData {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-}
+const API_URL = 'http://localhost:3000/api/v1/user';
 
-export const loginUser = async (email: string, password: string) => {
+export const loginUser = async (email: string, password: string): Promise<AuthResponse> => {
   try {
-    const response = await fetch('http://localhost:3000/api/auth/login', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17,11 +12,12 @@ export const loginUser = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Credenciales inválidas');
+      throw new Error(data.message || 'Credenciales inválidas');
     }
 
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error("Error en el login:", error);
@@ -31,7 +27,7 @@ export const loginUser = async (email: string, password: string) => {
 
 export const registerUser = async (userData: RegisterUserData) => {
   try {
-    const response = await fetch('http://localhost:3000/api/auth/register', {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,11 +35,13 @@ export const registerUser = async (userData: RegisterUserData) => {
       body: JSON.stringify(userData),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('No se pudo registrar el usuario. El correo puede estar en uso.');
+      const errorMsg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+      throw new Error(errorMsg || 'No se pudo registrar el usuario.');
     }
 
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error("Error en el registro:", error);

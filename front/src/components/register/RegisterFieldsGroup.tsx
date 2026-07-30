@@ -1,11 +1,15 @@
-import { User, Mail, Phone } from "lucide-react";
+import { User, Mail, Phone, IdCard } from "lucide-react";
 import InputField from "../common/InputField";
 import PasswordField from "../common/PasswordField";
 import PasswordStrengthMeter from "./PasswordStrengthMeter";
 
 interface RegisterFieldsGroupProps {
+  dni: string;
+  setDni: (v: string) => void;
   name: string;
   setName: (v: string) => void;
+  surname: string;
+  setSurname: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
   phone: string;
@@ -17,8 +21,12 @@ interface RegisterFieldsGroupProps {
 }
 
 const RegisterFieldsGroup = ({
+  dni,
+  setDni,
   name,
   setName,
+  surname,
+  setSurname,
   email,
   setEmail,
   phone,
@@ -30,16 +38,38 @@ const RegisterFieldsGroup = ({
 }: RegisterFieldsGroupProps) => {
   return (
     <div className="space-y-3">
-      {/* Personal Info */}
+      {/* DNI */}
       <InputField
-        label="Nombre completo"
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Juan Pérez"
+        label="DNI"
+        type="number"
+        value={dni}
+        onChange={(e) => setDni(e.target.value)}
+        placeholder="12345678"
         required
-        icon={<User className="h-4 w-4" />}
+        icon={<IdCard className="h-4 w-4" />}
       />
+
+      {/* Name and Surname Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <InputField
+          label="Nombre"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Juan"
+          required
+          icon={<User className="h-4 w-4" />}
+        />
+        <InputField
+          label="Apellido"
+          type="text"
+          value={surname}
+          onChange={(e) => setSurname(e.target.value)}
+          placeholder="Pérez"
+          required
+          icon={<User className="h-4 w-4" />}
+        />
+      </div>
 
       <InputField
         label="Correo electrónico"
