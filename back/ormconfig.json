@@ -4,7 +4,7 @@
     "port": 3306,
     "username": "root",
     "password": "root",
-    "datebase": "flg",
+    "database": "flg",
     "entities": ["dist/**/*.entity{.ts, .js}"],
     "synchronize":true
 

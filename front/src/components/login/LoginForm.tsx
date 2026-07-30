@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { Mail } from "lucide-react";
 import InputField from "../common/InputField";
 import PasswordField from "../common/PasswordField";
@@ -8,6 +9,7 @@ import LoginSubmitButton from "./LoginSubmitButton";
 import { loginUser } from "../../services/auth.service";
 
 const LoginForm = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -29,8 +31,14 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      await loginUser(email, password);
-      setSuccess("¡Inicio de sesión exitoso! Redirigiendo...");
+      const response = await loginUser(email, password);
+      if (response && response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
+      setSuccess("¡Inicio de sesión exitoso! Redirigiendo al inicio...");
+      setTimeout(() => {
+        navigate("/");
+      }, 800);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al iniciar sesión";
       setError(message === "Failed to fetch" 
