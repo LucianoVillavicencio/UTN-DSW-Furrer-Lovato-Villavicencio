@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import FormAlert from "../common/FormAlert";
 import GoogleAuthButton from "../common/GoogleAuthButton";
 import RegisterFieldsGroup from "./RegisterFieldsGroup";
@@ -6,7 +7,10 @@ import RegisterSubmitButton from "./RegisterSubmitButton";
 import { registerUser } from "../../services/auth.service";
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
+  const [dni, setDni] = useState("");
   const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -21,8 +25,14 @@ const RegisterForm = () => {
     setError(null);
     setSuccess(null);
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (!dni || !name || !surname || !email || !phone || !password || !confirmPassword) {
       setError("Por favor completa todos los campos.");
+      return;
+    }
+
+    const numericDni = Number(dni);
+    if (isNaN(numericDni) || numericDni <= 0) {
+      setError("Por favor ingresa un número de DNI válido.");
       return;
     }
 
@@ -39,8 +49,29 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      await registerUser({ name, email, phone, password });
-      setSuccess("¡Registro completado con éxito! Redirigiendo...");
+      const registeredUser = await registerUser({
+        dni: numericDni,
+        name,
+        surname,
+        email,
+        phone,
+        password,
+      });
+
+      // Automatically log the user in after registration
+      const userPayload = registeredUser?.user || {
+        dni: numericDni,
+        name,
+        surname,
+        email,
+        phone,
+      };
+      localStorage.setItem("user", JSON.stringify(userPayload));
+
+      setSuccess("¡Cuenta creada con éxito! Sesión iniciada. Redirigiendo al inicio...");
+      setTimeout(() => {
+        navigate("/");
+      }, 800);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al registrar la cuenta";
       setError(message === "Failed to fetch" 
@@ -58,8 +89,12 @@ const RegisterForm = () => {
       <FormAlert type="success" message={success} />
 
       <RegisterFieldsGroup
+        dni={dni}
+        setDni={setDni}
         name={name}
         setName={setName}
+        surname={surname}
+        setSurname={setSurname}
         email={email}
         setEmail={setEmail}
         phone={phone}
