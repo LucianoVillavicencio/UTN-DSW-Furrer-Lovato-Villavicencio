@@ -10,7 +10,7 @@ const testimonials = [
     quote: "FLG es good",
     avatarSrc:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-    name: "Sarah burrows",
+    name: "Jane Doe",
     memberSince: "2023",
   },
   {
