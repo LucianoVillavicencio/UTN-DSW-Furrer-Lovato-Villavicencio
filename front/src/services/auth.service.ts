@@ -49,7 +49,25 @@ export const registerUser = async (userData: RegisterUserData) => {
   }
 };
 
-export const loginWithGoogle = () => {
-  // Redirige al flujo de OAuth de Google del backend
-  window.location.href = 'http://localhost:3000/api/auth/google';
-};
+export const loginWithGoogleApi = async (idToken: string): Promise<AuthResponse> => {
+  try {
+    const response = await fetch(`${API_URL}/google-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en la autenticación con Google');
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error en el login de Google:", error);
+    throw error;
+  }
+};
