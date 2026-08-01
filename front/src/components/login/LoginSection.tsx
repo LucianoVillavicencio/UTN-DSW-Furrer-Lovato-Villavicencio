@@ -21,7 +21,7 @@ const LoginSection = () => {
                   <Dumbbell className="h-6 w-6" />
                 </div>
                 <span className="font-display text-2xl font-bold tracking-tight text-text">
-                  FLG<span className="text-primary">.fit</span>
+                  FLG
                 </span>
               </div>
               <h2 className="mt-8 font-display text-2xl font-bold leading-tight text-text">
