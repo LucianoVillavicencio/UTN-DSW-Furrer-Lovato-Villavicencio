@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { LoginDto, UsersDto } from './dto/users-dto';
+import { GoogleLoginDto, LoginDto, UsersDto } from './dto/users-dto';
 
 @Controller('api/v1/user')
 @ApiTags('Usuarios')
@@ -28,6 +28,13 @@ export class UserController {
   loginUser(@Body() loginDto: LoginDto) {
     return this.userService.loginUser(loginDto);
   }
+
+  //google login
+  @Post('/google-login')
+  googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.userService.googleLogin(googleLoginDto);
+  }
+
 
   //get one user
   @Get('/:dni')
