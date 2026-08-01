@@ -9,7 +9,7 @@ const RegisterSection = () => {
       <div className="mx-auto max-w-5xl">
         <Card className="grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden p-0 sm:p-2 border-border/80 shadow-2xl">
           {/* Left Side: Brand Perks Highlight (Desktop) */}
-          <div className="relative hidden lg:flex lg:col-span-5 flex-col justify-between rounded-xl bg-gradient-to-br from-surface to-background p-8 border-r border-border/50 overflow-hidden">
+          <div className="relative hidden lg:flex lg:col-span-5 flex-col justify-between rounded-xl bg-linear-to-br from-surface to-background p-8 border-r border-border/50 overflow-hidden">
             {/* Background glow */}
             <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
             <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
