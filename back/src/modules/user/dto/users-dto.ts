@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
@@ -34,6 +35,23 @@ export class UsersDto {
   password!: string;
 
   @IsBoolean()
-  @IsNotEmpty()
-  deleted!: boolean;
+  @IsOptional()
+  deleted?: boolean;
 }
+
+export class LoginDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+}
+
+export class GoogleLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  idToken!: string;
+}
+

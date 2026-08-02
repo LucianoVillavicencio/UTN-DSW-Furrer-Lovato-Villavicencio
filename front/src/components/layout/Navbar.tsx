@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Dumbbell, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Dumbbell, Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import Container from "../common/Container";
 import Button from "../common/Button";
 
@@ -15,6 +15,24 @@ const navLinks = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/";
+  };
 
   return (
     // Define header
@@ -43,23 +61,36 @@ const Navbar = () => {
 
         {/* CTA desktop */}
         <div className="hidden lg:block">
-          <Button href="/login" size="sm">
-            Ingresar
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              className="h-4 w-4 ml-1 "
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-              />
-            </svg>
-          </Button>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="font-body text-sm font-semibold text-text flex items-center gap-1.5 bg-surface px-3 py-1.5 rounded-md border border-border">
+                <UserIcon className="h-4 w-4 text-primary" />
+                Hola, {user.name}
+              </span>
+              <Button onClick={handleLogout} variant="secondary" size="sm" className="flex items-center gap-1">
+                <LogOut className="h-4 w-4" />
+                Salir
+              </Button>
+            </div>
+          ) : (
+            <Button href="/login" size="sm">
+              Ingresar
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+                className="h-4 w-4 ml-1 "
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
+              </svg>
+            </Button>
+          )}
         </div>
 
         {/* Three-line button (mobile) */}
@@ -91,9 +122,21 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <Button href="/login" size="sm" className="mt-2 w-full">
-              Ingresar
-            </Button>
+            {user ? (
+              <div className="flex flex-col gap-2 pt-2 border-t border-border">
+                <span className="font-body text-sm font-semibold text-text flex items-center gap-2">
+                  <UserIcon className="h-4 w-4 text-primary" />
+                  Hola, {user.name}
+                </span>
+                <Button onClick={handleLogout} variant="secondary" size="sm" className="w-full">
+                  Cerrar sesión
+                </Button>
+              </div>
+            ) : (
+              <Button href="/login" size="sm" className="mt-2 w-full">
+                Ingresar
+              </Button>
+            )}
           </Container>
         </div>
       )}

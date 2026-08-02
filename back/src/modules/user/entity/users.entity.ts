@@ -5,21 +5,28 @@ export class Users {
   @PrimaryGeneratedColumn()
   dni!: number;
 
-  @Column({ type: String, nullable: false, length: 30 })
+  @Column({ type: String, nullable: false, length: 100 })
   email!: string;
 
-  @Column({ type: String, nullable: false, length: 20 })
+  @Column({ type: String, nullable: false, length: 100 })
   name!: string;
 
-  @Column({ type: String, nullable: false, length: 20 })
-  surname!: string;
+  @Column({ type: String, nullable: true, length: 100 })
+  surname?: string | null;
 
-  @Column({ type: String, nullable: false, length: 20 })
-  phone!: string;
+  @Column({ type: String, nullable: true, length: 50 })
+  phone?: string | null;
 
-  @Column({ type: String, nullable: false, length: 30 })
-  password!: string;
+  @Column({ type: String, nullable: true, length: 255 })
+  password?: string | null;
+
+  @Column({ type: String, nullable: true, length: 100 })
+  googleId?: string | null;
+
+  @Column({ type: String, nullable: true })
+  picture?: string | null;
 
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }
+
