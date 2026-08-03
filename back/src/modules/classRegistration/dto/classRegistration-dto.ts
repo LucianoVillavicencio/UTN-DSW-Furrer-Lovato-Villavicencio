@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -7,28 +8,28 @@ import {
   IsString,
 } from 'class-validator';
 
-export class PlanDto {
+export class ClassRegistrationDto {
   @IsNumber()
   @IsOptional()
   id?: number;
 
-  @IsString()
+  @IsNumber()
+  @IsPositive()
   @IsNotEmpty()
-  name!: string;
+  userDni!: number;
+
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
+  classSessionId!: number;
+
+  @IsDateString()
+  @IsOptional()
+  date?: string;
 
   @IsString()
   @IsOptional()
-  description?: string;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  price!: number;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  numDays!: number;
+  state?: string;
 
   @IsBoolean()
   @IsOptional()

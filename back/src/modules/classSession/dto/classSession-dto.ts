@@ -1,34 +1,34 @@
 import {
   IsBoolean,
+  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
-  IsString,
 } from 'class-validator';
 
-export class PlanDto {
+export class ClassSessionDto {
   @IsNumber()
   @IsOptional()
   id?: number;
 
-  @IsString()
+  @IsNumber()
+  @IsPositive()
   @IsNotEmpty()
-  name!: string;
+  classId!: number;
 
-  @IsString()
+  @IsDateString()
+  @IsNotEmpty()
+  dateTime!: string;
+
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
+  maxCapacity!: number;
+
+  @IsNumber()
   @IsOptional()
-  description?: string;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  price!: number;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  numDays!: number;
+  availableSpots?: number;
 
   @IsBoolean()
   @IsOptional()

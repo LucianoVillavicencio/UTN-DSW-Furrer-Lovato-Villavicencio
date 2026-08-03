@@ -2,7 +2,7 @@ import type { Plan } from '../types/plan';
 
 const API_URL = 'http://localhost:3000/api/v1/plan';
 
-export const getPlanes = async (): Promise<Plan[]> => {
+export const getPlans = async (): Promise<Plan[]> => {
   const response = await fetch(API_URL);
   if (!response.ok) {
     throw new Error('Error al obtener lista de planes');

@@ -1,8 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('users')
 export class Users {
-  @PrimaryGeneratedColumn()
+  @PrimaryColumn({ type: 'int' })
   dni!: number;
 
   @Column({ type: String, nullable: false, length: 100 })
@@ -29,4 +29,3 @@ export class Users {
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }
-

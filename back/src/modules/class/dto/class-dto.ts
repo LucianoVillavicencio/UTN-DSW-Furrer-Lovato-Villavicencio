@@ -7,7 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class PlanDto {
+export class ClassDto {
   @IsNumber()
   @IsOptional()
   id?: number;
@@ -23,12 +23,12 @@ export class PlanDto {
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  price!: number;
+  typeClassId!: number;
 
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  numDays!: number;
+  trainerDni!: number;
 
   @IsBoolean()
   @IsOptional()

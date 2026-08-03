@@ -3,11 +3,10 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPositive,
   IsString,
 } from 'class-validator';
 
-export class PlanDto {
+export class TypeClassDto {
   @IsNumber()
   @IsOptional()
   id?: number;
@@ -19,16 +18,6 @@ export class PlanDto {
   @IsString()
   @IsOptional()
   description?: string;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  price!: number;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  numDays!: number;
 
   @IsBoolean()
   @IsOptional()

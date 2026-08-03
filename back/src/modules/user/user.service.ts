@@ -75,25 +75,31 @@ export class UserService {
   // Google OAuth Login / Register
   async googleLogin(googleLoginDto: GoogleLoginDto) {
     const rawClientId = process.env.GOOGLE_CLIENT_ID;
-    const clientId = rawClientId ? rawClientId.replace(/['"]/g, '').trim() : undefined;
+    const clientId = rawClientId
+      ? rawClientId.replace(/['"]/g, '').trim()
+      : undefined;
     let payload;
 
     try {
       const client = new OAuth2Client(clientId);
-      const isConfigured = clientId && clientId !== 'your-google-client-id.apps.googleusercontent.com';
+      const isConfigured =
+        clientId &&
+        clientId !== 'your-google-client-id.apps.googleusercontent.com';
       const ticket = await client.verifyIdToken({
         idToken: googleLoginDto.idToken,
         audience: isConfigured ? clientId : undefined,
       });
       payload = ticket.getPayload();
     } catch (error: any) {
-      console.error('Error al verificar Google ID token:', error?.message || error);
+      console.error(
+        'Error al verificar Google ID token:',
+        error?.message || error,
+      );
       const errorMessage = error?.message || 'Token inválido';
       throw new UnauthorizedException(
         `Token de Google no válido: ${errorMessage}`,
       );
     }
-
 
     if (!payload || !payload.email) {
       throw new BadRequestException(
@@ -105,7 +111,9 @@ export class UserService {
 
     if (user) {
       if (user.deleted) {
-        throw new UnauthorizedException('El usuario se encuentra dado de baja.');
+        throw new UnauthorizedException(
+          'El usuario se encuentra dado de baja.',
+        );
       }
 
       // Actualizar Google ID y Foto si no los tenía asignados
@@ -145,7 +153,6 @@ export class UserService {
     };
   }
 
-
   // Find all Users
   async findAll() {
     return await this.usersRepository.find({ where: { deleted: false } });
@@ -158,6 +165,15 @@ export class UserService {
 
   // Update User
   async updateUsers(user: UsersDto) {
+    if (!user.dni) {
+      throw new ConflictException(
+        'El DNI del usuario es obligatorio para actualizar.',
+      );
+    }
+    const exists = await this.findUser(user.dni);
+    if (!exists) {
+      throw new NotFoundException(`El usuario con DNI: ${user.dni} no existe.`);
+    }
     return await this.usersRepository.save(user);
   }
 
@@ -178,9 +194,12 @@ export class UserService {
       { deleted: true },
     );
 
-    return rows.affected === 1;
-  }
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo eliminar el usuario `);
+    }
 
+    return { message: `Eliminado correctamente` };
+  }
   // Restore User
   async restoreUsers(dni: number) {
     const userExists = await this.findUser(dni);
@@ -198,6 +217,10 @@ export class UserService {
       { deleted: false },
     );
 
-    return rows.affected === 1;
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo restaurar el usuario `);
+    }
+
+    return { message: `Restaurado correctamente` };
   }
 }

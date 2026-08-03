@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEmail,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -7,28 +8,31 @@ import {
   IsString,
 } from 'class-validator';
 
-export class PlanDto {
+export class TrainerDto {
   @IsNumber()
-  @IsOptional()
-  id?: number;
+  @IsNotEmpty()
+  @IsPositive()
+  dni!: number;
 
   @IsString()
   @IsNotEmpty()
   name!: string;
 
   @IsString()
+  @IsNotEmpty()
+  surname!: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
   @IsOptional()
-  description?: string;
+  phone?: string;
 
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  price!: number;
-
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  numDays!: number;
+  @IsString()
+  @IsOptional()
+  speciality?: string;
 
   @IsBoolean()
   @IsOptional()
