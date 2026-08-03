@@ -37,7 +37,9 @@ export class PlanService {
 
   async updatePlan(planDto: PlanDto) {
     if (!planDto.id) {
-      throw new ConflictException('El ID del plan es obligatorio para actualizar.');
+      throw new ConflictException(
+        'El ID del plan es obligatorio para actualizar.',
+      );
     }
     const exists = await this.findPlan(planDto.id);
     if (!exists) {
@@ -58,7 +60,11 @@ export class PlanService {
       { id },
       { deleted: true },
     );
-    return rows.affected === 1;
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo eliminar el plan`);
+    }
+
+    return { message: `Eliminado correctamente` };
   }
 
   async restorePlan(id: number) {
@@ -73,6 +79,10 @@ export class PlanService {
       { id },
       { deleted: false },
     );
-    return rows.affected === 1;
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo restaurar el plan`);
+    }
+
+    return { message: `Restaurado correctamente` };
   }
 }

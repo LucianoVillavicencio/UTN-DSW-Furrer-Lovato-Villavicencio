@@ -24,12 +24,12 @@ export class PlanController {
   }
 
   @Get()
-  getPlanes() {
+  getPlans() {
     return this.planService.findAll();
   }
 
   @Get('filter/deleted')
-  getPlanesDeleted() {
+  getPlansDeleted() {
     return this.planService.findAllDeleted();
   }
 

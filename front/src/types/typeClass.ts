@@ -1,8 +1,6 @@
-export interface Plan {
+export interface TypeClass {
   id?: number;
   name: string;
   description?: string | null;
-  price: number;
-  numDays: number;
   deleted?: boolean;
 }
