@@ -11,13 +11,22 @@
   --color-text: #ffffff;
   --color-text-muted: #a3a3a3;
   --color-star: #facc15;
+  --color-bg-secondary:#000a04;
+
+
+
+/* Badge */
+--color-badge-green-text: #4ade80;
+--color-badge-green-bg: rgba(34, 197, 94, 0.1);
+--color-badge-green-border: rgba(34, 197, 94, 0.25);
+
 
   --font-display: "Poppins", sans-serif;
   --font-body: "Inter", sans-serif;
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+
 }
+
+
 
 body {
   background-color: var(--color-background);

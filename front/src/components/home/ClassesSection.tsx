@@ -1,8 +1,8 @@
 import { Bike, Dumbbell, Flame } from "lucide-react";
 import Container from "../common/Container";
 import SectionTitle from "../common/SectionTitle";
-import ClassCard from "./ClassCard";
 import Button from "../common/Button";
+import IconFeatureCard from "../common/IconFeatureCard";
 
 const classes = [
   {
@@ -28,7 +28,7 @@ const classes = [
 
 const ClassesSection = () => {
   return (
-    <section className="bg-background py-20">
+    <section className="bg-black py-20">
       <Container>
         <SectionTitle
           badge="Algunas clases"
@@ -38,11 +38,11 @@ const ClassesSection = () => {
 
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {classes.map((classItem) => (
-            <ClassCard
+            <IconFeatureCard
               key={classItem.title}
               icon={classItem.icon}
               title={classItem.title}
-              descripcion={classItem.descripcion}
+              description={classItem.descripcion}
             />
           ))}
         </div>
