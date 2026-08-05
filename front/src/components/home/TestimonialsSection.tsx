@@ -25,7 +25,7 @@ const testimonials = [
 
 const TestimonialsSection = () => {
   return (
-    <section className="bg-neutral-900/30 py-20">
+    <section className="py-20">
       <Container>
         <SectionTitle
           badge="Historias de Exito"
