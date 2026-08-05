@@ -1,6 +1,6 @@
 import { Bike, Dumbbell, Flame, Zap, Heart, Wind } from "lucide-react";
 import Container from "../common/Container";
-import ClassCard from "../home/ClassCard";
+import IconFeatureCard from "../common/IconFeatureCard";
 
 const allClasses = [
   {
@@ -47,11 +47,11 @@ const AllClassesSection = () => {
       <Container>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {allClasses.map((classItem) => (
-            <ClassCard
+            <IconFeatureCard
               key={classItem.title}
               icon={classItem.icon}
               title={classItem.title}
-              descripcion={classItem.descripcion}
+              description={classItem.descripcion}
             />
           ))}
         </div>
