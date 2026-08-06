@@ -35,7 +35,6 @@ export class UserController {
     return this.userService.googleLogin(googleLoginDto);
   }
 
-
   //get one user
   @Get('/:dni')
   getUserById(@Param('dni') dni: number) {

@@ -2,15 +2,18 @@ import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { loginWithGoogleApi } from "../../services/auth.service";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface GoogleAuthButtonProps {
   label?: string;
+  disabled?: boolean;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
 const GoogleAuthButton = ({
   label = "Continuar con Google",
+  disabled = false,
   onSuccess,
   onError,
 }: GoogleAuthButtonProps) => {
@@ -55,7 +58,7 @@ const GoogleAuthButton = ({
   };
 
   const handleGoogleError = () => {
-    const msg = "La autenticación con Google ha fallado o fue cancelada.";
+    const msg = "La autenticación con Google ha fallado o fue cancelada por el usuario.";
     setLocalError(msg);
     onError?.(msg);
   };
@@ -65,15 +68,16 @@ const GoogleAuthButton = ({
       <div className="w-full space-y-2">
         <button
           type="button"
+          disabled={disabled || loading}
           onClick={() => {
             const msg =
-              "Por favor configura tu GOOGLE_CLIENT_ID en los archivos .env del proyecto.";
+              "Por favor configura tu GOOGLE_CLIENT_ID en el archivo .env de la aplicación.";
             setLocalError(msg);
             onError?.(msg);
           }}
-          className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface py-3.5 px-4 font-body text-sm font-semibold text-text hover:bg-surface-hover transition-all opacity-90 cursor-pointer"
+          className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-primary/40 py-3 px-4 font-body text-sm font-semibold text-text shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
         >
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -91,10 +95,10 @@ const GoogleAuthButton = ({
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          {label}
+          <span>{label}</span>
         </button>
         {localError && (
-          <p className="text-xs text-amber-500 text-center font-body">
+          <p className="text-xs text-amber-400 text-center font-body animate-fadeIn">
             {localError}
           </p>
         )}
@@ -105,11 +109,12 @@ const GoogleAuthButton = ({
   return (
     <div className="w-full flex flex-col items-center justify-center gap-2">
       {loading ? (
-        <div className="flex items-center justify-center py-2 text-sm text-text-muted font-body">
-          Iniciando sesión con Google...
+        <div className="w-full flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface text-sm text-text-muted font-body gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span>Iniciando sesión con Google...</span>
         </div>
       ) : (
-        <div className="w-full flex justify-center">
+        <div className={`w-full flex justify-center ${disabled ? "pointer-events-none opacity-50" : ""}`}>
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
@@ -122,12 +127,10 @@ const GoogleAuthButton = ({
         </div>
       )}
       {localError && (
-        <p className="text-xs text-red-500 text-center font-body">{localError}</p>
+        <p className="text-xs text-red-400 text-center font-body animate-fadeIn">{localError}</p>
       )}
     </div>
   );
 };
 
-
 export default GoogleAuthButton;
-

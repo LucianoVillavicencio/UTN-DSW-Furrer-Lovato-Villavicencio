@@ -8,15 +8,17 @@ import AboutCTASection from "../../components/about/AboutCTASection";
 
 function About() {
   return (
-    <>
+    <div className="flex min-h-screen flex-col bg-background text-text selection:bg-primary selection:text-background">
       <Navbar />
-      <AboutHeroSection />
-      <AboutMissionSection />
-      <AboutImpactSection />
-      <AboutFacilitiesSection />
-      <AboutCTASection />
+      <main className="flex-1 overflow-x-hidden">
+        <AboutHeroSection />
+        <AboutMissionSection />
+        <AboutImpactSection />
+        <AboutFacilitiesSection />
+        <AboutCTASection />
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }
 

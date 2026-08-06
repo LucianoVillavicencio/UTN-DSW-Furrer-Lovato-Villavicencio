@@ -7,17 +7,13 @@ const LoginSection = () => {
   return (
     <Container className="py-6 sm:py-12">
       <div className="mx-auto max-w-5xl">
-        <Card className="grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden p-0 sm:p-2 border-border/80 shadow-2xl">
+        <Card className="grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden p-0 sm:p-2 border-border/80 bg-surface shadow-xl">
           {/* Left Side: Brand & Feature Highlights (Desktop) */}
-          <div className="relative hidden lg:flex lg:col-span-5 flex-col justify-between rounded-xl bg-linear-to-br from-surface to-background p-8 border-r border-border/50 overflow-hidden">
-            {/* Decorative background glow */}
-            <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
-            <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
-
+          <div className="relative hidden lg:flex lg:col-span-5 flex-col justify-between rounded-2xl bg-surface p-8 border-r border-border/50 overflow-hidden">
             {/* Header / Logo */}
             <div className="relative z-10">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
                   <Dumbbell className="h-6 w-6" />
                 </div>
                 <span className="font-display text-2xl font-bold tracking-tight text-text">
@@ -27,15 +23,15 @@ const LoginSection = () => {
               <h2 className="mt-8 font-display text-2xl font-bold leading-tight text-text">
                 Bienvenido de nuevo a tu comunidad de entrenamiento
               </h2>
-              <p className="mt-3 font-body text-sm text-text-muted">
+              <p className="mt-3 font-body text-sm text-text-muted leading-relaxed">
                 Accede a tu panel personalizado, reserva tus clases y sigue tus progresos diarios.
               </p>
             </div>
 
             {/* Bullet features */}
             <div className="relative z-10 my-8 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="flex items-start gap-3 group">
+                <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-background transition-all duration-300">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
@@ -44,8 +40,8 @@ const LoginSection = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="flex items-start gap-3 group">
+                <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-background transition-all duration-300">
                   <Zap className="h-4 w-4" />
                 </div>
                 <div>
@@ -54,8 +50,8 @@ const LoginSection = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="flex items-start gap-3 group">
+                <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-background transition-all duration-300">
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
