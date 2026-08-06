@@ -28,7 +28,7 @@ const facilityList: FacilityItem[] = [
     icon: Wind,
     title: "Zona Cardio Interactiva",
     badge: "Alta Tecnología",
-    image: "https://images.unsplash.com/photo-1576678927484-cc909957088c?auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80",
     description:
       "Cintas de correr, elípticas, remadoras y bicicletas de spinning equipadas con pantallas táctiles y métricas en tiempo real.",
     features: ["Pantallas HD integradas", "Simuladores de ruta", "Monitoreo cardíaco Bluetooth"],

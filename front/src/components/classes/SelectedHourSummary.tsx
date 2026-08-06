@@ -1,6 +1,6 @@
 import { Clock, CheckCircle2, UserCheck, AlertCircle } from "lucide-react";
 import Button from "../common/Button";
-import type { TurnoClase } from "../../types/turno-clase";
+import type { TurnoClase } from "../../types/classSession";
 import type { User } from "../../types/user";
 
 interface SelectedHourSummaryProps {

@@ -1,5 +1,5 @@
 import { Search, Filter, X } from "lucide-react";
-import type { TipoClase } from "../../types/tipo-clase";
+import type { TipoClase } from "../../types/typeClass";
 
 interface ClassFilterBarProps {
   searchQuery: string;

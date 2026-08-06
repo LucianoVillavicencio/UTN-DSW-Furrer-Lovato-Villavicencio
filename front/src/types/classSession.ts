@@ -2,10 +2,18 @@ import type { Class } from "./class";
 
 export interface ClassSession {
   id?: number;
-  claseId: number;
+  claseId?: number;
+  classId?: number;
   class?: Class;
-  dateTime: string;
-  maxCapacity: number;
+  clase?: any;
+  dateTime?: string;
+  fechaHora?: string | any;
+  maxCapacity?: number;
+  cupoMaximo?: number;
   availableSpots?: number;
+  cupoDisponible?: number;
   deleted?: boolean;
 }
+
+export type TurnoClase = ClassSession;
+
