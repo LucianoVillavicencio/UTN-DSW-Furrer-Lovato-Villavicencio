@@ -132,7 +132,14 @@ export class UserService {
       }
     } else {
       // Registrar un nuevo usuario autenticado con Google
+      // Generar un DNI único numérico para la clave primaria no nula del usuario
+      let generatedDni = Math.floor(10000000 + Math.random() * 89999999);
+      while (await this.findUser(generatedDni)) {
+        generatedDni = Math.floor(10000000 + Math.random() * 89999999);
+      }
+
       const newUser = this.usersRepository.create({
+        dni: generatedDni,
         email: payload.email,
         name: payload.given_name || payload.name || 'Usuario',
         surname: payload.family_name || '',
