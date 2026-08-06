@@ -6,6 +6,7 @@ import Home from "../pages/Home/Home";
 import Classes from "../pages/Classes/Classes";
 import About from "../pages/About/About";
 import Contact from "../pages/Contact/Contact";
+import Plan from "../pages/Plan/Plan";
 import NotFound from "../pages/NotFound/NotFound";
 import Trainer from "../pages/trainers/trainers";
 
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
     element: <Contact />,
   },
   {
+    path: "/membership",
+    element: <Plan />,
+  },
+  {
     path: "/trainers",
     element: <Trainer />,
   },
@@ -46,4 +51,4 @@ export const router = createBrowserRouter([
     path: "*",
     element: <NotFound />,
   },
-]);
+]);
