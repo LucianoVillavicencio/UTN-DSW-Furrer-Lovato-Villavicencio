@@ -1,3 +1,4 @@
+import Badge from "../common/badge/Badge";
 import Button from "../common/Button";
 import Container from "../common/Container";
 import { CheckCircle } from "lucide-react";
@@ -10,12 +11,10 @@ const stast = [
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-background py-20">
+    <section className="relative overflow-hidden bg-bg-secondary py-20">
       <Container className="grid grid-cols-1 items-center gap-20 lg:grid-cols-2">
         <div>
-          <span className="inline-block rounded-full border border-border bg-surface px-4 py-1.5 text-sm text-primary">
-            1° Fitness App
-          </span>
+          <Badge variant="accent">1° Fitness App</Badge>
 
           <h1 className="mt-6 text-5xl font-bold leading-tight sm:text-6xl lg:text-6xl">
             Transforma tu cuerpo,{" "}

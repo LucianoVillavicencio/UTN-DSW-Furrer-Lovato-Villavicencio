@@ -14,21 +14,21 @@ export class PlanDto {
 
   @IsString()
   @IsNotEmpty()
-  nombre!: string;
+  name!: string;
 
   @IsString()
   @IsOptional()
-  descripcion?: string;
+  description?: string;
 
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  precio!: number;
+  price!: number;
 
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  duracionDias!: number;
+  numDays!: number;
 
   @IsBoolean()
   @IsOptional()

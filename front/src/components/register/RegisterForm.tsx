@@ -6,6 +6,8 @@ import RegisterFieldsGroup from "./RegisterFieldsGroup";
 import RegisterSubmitButton from "./RegisterSubmitButton";
 import { registerUser } from "../../services/auth.service";
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const RegisterForm = () => {
   const navigate = useNavigate();
   const [dni, setDni] = useState("");
@@ -15,34 +17,92 @@ const RegisterForm = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string | null> = {};
+    let isValid = true;
+    setError(null);
+
+    // DNI check
+    const cleanDni = dni.trim();
+    const numericDni = Number(cleanDni);
+    if (!cleanDni) {
+      newErrors.dni = "El DNI es requerido.";
+      isValid = false;
+    } else if (isNaN(numericDni) || numericDni <= 0 || cleanDni.length < 6) {
+      newErrors.dni = "Ingresa un número de DNI válido.";
+      isValid = false;
+    }
+
+    // Name check
+    if (!name.trim()) {
+      newErrors.name = "El nombre es requerido.";
+      isValid = false;
+    }
+
+    // Surname check
+    if (!surname.trim()) {
+      newErrors.surname = "El apellido es requerido.";
+      isValid = false;
+    }
+
+    // Email check
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      newErrors.email = "El correo electrónico es requerido.";
+      isValid = false;
+    } else if (!EMAIL_REGEX.test(cleanEmail)) {
+      newErrors.email = "Ingresa un correo electrónico válido (ej. usuario@dominio.com).";
+      isValid = false;
+    }
+
+    // Phone check
+    const cleanPhone = phone.trim();
+    if (!cleanPhone) {
+      newErrors.phone = "El teléfono es requerido.";
+      isValid = false;
+    } else if (cleanPhone.length < 6) {
+      newErrors.phone = "Ingresa un número de teléfono válido.";
+      isValid = false;
+    }
+
+    // Password check
+    if (!password) {
+      newErrors.password = "La contraseña es requerida.";
+      isValid = false;
+    } else if (password.length < 6) {
+      newErrors.password = "La contraseña debe tener al menos 6 caracteres.";
+      isValid = false;
+    }
+
+    // Confirm password check
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Las contraseñas no coinciden.";
+      isValid = false;
+    }
+
+    // Terms & Conditions check
+    if (!acceptTerms) {
+      setError("Debes aceptar los términos y condiciones para crear tu cuenta.");
+      isValid = false;
+    }
+
+    setFieldErrors(newErrors);
+    return isValid;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    if (!dni || !name || !surname || !email || !phone || !password || !confirmPassword) {
-      setError("Por favor completa todos los campos.");
-      return;
-    }
-
-    const numericDni = Number(dni);
-    if (isNaN(numericDni) || numericDni <= 0) {
-      setError("Por favor ingresa un número de DNI válido.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (!validateForm()) {
       return;
     }
 
@@ -50,60 +110,111 @@ const RegisterForm = () => {
 
     try {
       const registeredUser = await registerUser({
-        dni: numericDni,
-        name,
-        surname,
-        email,
-        phone,
+        dni: Number(dni.trim()),
+        name: name.trim(),
+        surname: surname.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
         password,
       });
 
-      // Automatically log the user in after registration
       const userPayload = registeredUser?.user || {
-        dni: numericDni,
-        name,
-        surname,
-        email,
-        phone,
+        dni: Number(dni.trim()),
+        name: name.trim(),
+        surname: surname.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
       };
+
+      if (registeredUser?.token) {
+        localStorage.setItem("accessToken", registeredUser.token);
+      }
       localStorage.setItem("user", JSON.stringify(userPayload));
 
       setSuccess("¡Cuenta creada con éxito! Sesión iniciada. Redirigiendo al inicio...");
       setTimeout(() => {
         navigate("/");
-      }, 800);
-    } catch (err) {
+      }, 1000);
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al registrar la cuenta";
-      setError(message === "Failed to fetch" 
-        ? "No se pudo conectar con el servidor. Verifica tu conexión o intenta más tarde." 
-        : message
-      );
+      
+      if (message.includes("409") || message.toLowerCase().includes("registrado") || message.toLowerCase().includes("ya existe")) {
+        setError("El correo electrónico o DNI ya se encuentra registrado en nuestra plataforma.");
+      } else {
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-4">
+    <form onSubmit={handleSubmit} className="w-full space-y-4" noValidate>
       <FormAlert type="error" message={error} />
       <FormAlert type="success" message={success} />
 
       <RegisterFieldsGroup
         dni={dni}
-        setDni={setDni}
+        setDni={(v) => {
+          setDni(v);
+          if (fieldErrors.dni) setFieldErrors((prev) => ({ ...prev, dni: null }));
+        }}
         name={name}
-        setName={setName}
+        setName={(v) => {
+          setName(v);
+          if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));
+        }}
         surname={surname}
-        setSurname={setSurname}
+        setSurname={(v) => {
+          setSurname(v);
+          if (fieldErrors.surname) setFieldErrors((prev) => ({ ...prev, surname: null }));
+        }}
         email={email}
-        setEmail={setEmail}
+        setEmail={(v) => {
+          setEmail(v);
+          if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
+        }}
         phone={phone}
-        setPhone={setPhone}
+        setPhone={(v) => {
+          setPhone(v);
+          if (fieldErrors.phone) setFieldErrors((prev) => ({ ...prev, phone: null }));
+        }}
         password={password}
-        setPassword={setPassword}
+        setPassword={(v) => {
+          setPassword(v);
+          if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: null }));
+        }}
         confirmPassword={confirmPassword}
-        setConfirmPassword={setConfirmPassword}
+        setConfirmPassword={(v) => {
+          setConfirmPassword(v);
+          if (fieldErrors.confirmPassword) setFieldErrors((prev) => ({ ...prev, confirmPassword: null }));
+        }}
+        disabled={isLoading}
+        errors={fieldErrors}
       />
+
+      {/* Terms & Conditions Checkbox */}
+      <div className="flex items-start gap-2.5 pt-1">
+        <input
+          id="accept-terms"
+          name="acceptTerms"
+          type="checkbox"
+          checked={acceptTerms}
+          disabled={isLoading}
+          onChange={(e) => setAcceptTerms(e.target.checked)}
+          className="w-4 h-4 mt-0.5 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background cursor-pointer accent-primary shrink-0 disabled:opacity-50"
+        />
+        <label htmlFor="accept-terms" className="text-xs text-text-muted leading-snug cursor-pointer select-none">
+          Acepto los{" "}
+          <a href="/terms" className="text-primary hover:underline font-medium">
+            términos y condiciones
+          </a>{" "}
+          y la{" "}
+          <a href="/privacy" className="text-primary hover:underline font-medium">
+            política de privacidad
+          </a>.
+        </label>
+      </div>
 
       <RegisterSubmitButton isLoading={isLoading} />
 
@@ -117,7 +228,11 @@ const RegisterForm = () => {
         </span>
       </div>
 
-      <GoogleAuthButton label="Registrarse con Google" />
+      <GoogleAuthButton
+        label="Registrarse con Google"
+        disabled={isLoading}
+        onError={(errMsg) => setError(errMsg)}
+      />
 
       <p className="text-center font-body text-sm text-text-muted pt-1">
         ¿Ya tienes una cuenta?{" "}

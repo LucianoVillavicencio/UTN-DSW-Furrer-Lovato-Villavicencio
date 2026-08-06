@@ -1,8 +1,8 @@
 export interface Plan {
   id?: number;
-  nombre: string;
-  descripcion?: string | null;
-  precio: number;
-  duracionDias: number;
+  name: string;
+  description?: string | null;
+  price: number;
+  numDays: number;
   deleted?: boolean;
 }
