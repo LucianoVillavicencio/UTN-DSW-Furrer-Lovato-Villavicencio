@@ -63,3 +63,10 @@ export const restoreClassSession = async (id: number): Promise<boolean> => {
   }
   return await response.json();
 };
+
+export const getTurnosClase = getClassSession;
+export const getTurnoClaseById = getClassSessionById;
+export const createTurnoClase = createClassSession;
+export const updateTurnoClase = updateClassSession;
+export const deleteTurnoClase = deleteClassSession;
+

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Mail } from "lucide-react";
 import InputField from "../common/InputField";
 import PasswordField from "../common/PasswordField";
@@ -8,8 +8,16 @@ import GoogleAuthButton from "../common/GoogleAuthButton";
 import LoginSubmitButton from "./LoginSubmitButton";
 import { loginUser } from "../../services/auth.service";
 
+// Simple RFC 5322 regex for client-side email format validation
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const LoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine redirect target (fallback to home /)
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -17,58 +25,102 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+    setEmailError(null);
+    setPasswordError(null);
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setEmailError("El correo electrónico es requerido.");
+      isValid = false;
+    } else if (!EMAIL_REGEX.test(cleanEmail)) {
+      setEmailError("Ingresa un correo electrónico válido (ej. usuario@dominio.com).");
+      isValid = false;
+    }
+
+    if (!password) {
+      setPasswordError("La contraseña es requerida.");
+      isValid = false;
+    } else if (password.length < 6) {
+      setPasswordError("La contraseña debe tener al menos 6 caracteres.");
+      isValid = false;
+    }
+
+    return isValid;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    if (!email || !password) {
-      setError("Por favor completa todos los campos.");
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await loginUser(email, password);
-      if (response && response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
+      await loginUser(email, password);
+      
+      setSuccess("¡Inicio de sesión exitoso! Redirigiendo...");
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email.trim());
+      } else {
+        localStorage.removeItem("rememberedEmail");
       }
-      setSuccess("¡Inicio de sesión exitoso! Redirigiendo al inicio...");
+
       setTimeout(() => {
-        navigate("/");
+        navigate(from, { replace: true });
       }, 800);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al iniciar sesión";
-      setError(message === "Failed to fetch" 
-        ? "No se pudo conectar con el servidor. Verifica tu conexión o intenta más tarde." 
-        : message
-      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo iniciar sesión. Por favor verifica tus credenciales.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-4">
+    <form onSubmit={handleSubmit} className="w-full space-y-4" noValidate>
       <FormAlert type="error" message={error} />
       <FormAlert type="success" message={success} />
 
       <InputField
+        id="login-email"
+        name="email"
         label="Correo electrónico"
         type="email"
+        autoComplete="email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          if (emailError) setEmailError(null);
+        }}
         placeholder="tu@email.com"
         required
+        disabled={isLoading}
+        error={emailError}
         icon={<Mail className="h-4 w-4" />}
       />
 
       <PasswordField
+        id="login-password"
+        name="password"
         label="Contraseña"
+        autoComplete="current-password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          if (passwordError) setPasswordError(null);
+        }}
+        disabled={isLoading}
+        error={passwordError}
       />
 
       <div className="flex items-center justify-between text-sm pt-1">
@@ -76,8 +128,9 @@ const LoginForm = () => {
           <input
             type="checkbox"
             checked={rememberMe}
+            disabled={isLoading}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background"
+            className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background disabled:opacity-50 accent-primary"
           />
           <span className="font-body text-xs sm:text-sm">Recordarme</span>
         </label>
@@ -101,8 +154,12 @@ const LoginForm = () => {
         </span>
       </div>
 
-      {/* Google Login Button (Placed Below Email & Password) */}
-      <GoogleAuthButton label="Continuar con Google" />
+      {/* Google Login Button */}
+      <GoogleAuthButton
+        label="Continuar con Google"
+        disabled={isLoading}
+        onError={(errMsg) => setError(errMsg)}
+      />
 
       <p className="text-center font-body text-sm text-text-muted pt-2">
         ¿No tienes una cuenta aún?{" "}

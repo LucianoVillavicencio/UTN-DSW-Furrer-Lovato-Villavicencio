@@ -1,12 +1,13 @@
+import { Link } from "react-router-dom";
 import { Dumbbell } from "lucide-react";
 import Container from "../common/Container";
 
 const footerLinks = {
   class: [
-    { label: "Entrenamiento Fuerza", href: "/class/strength" },
-    { label: "HIIT", href: "/class/hiit" },
-    { label: "Yoga & Wellness", href: "/class/yoga" },
-    { label: "Spinning", href: "/class/personal" },
+    { label: "Entrenamiento Fuerza", href: "/class" },
+    { label: "HIIT", href: "/class" },
+    { label: "Yoga & Wellness", href: "/class" },
+    { label: "Spinning", href: "/class" },
   ],
   company: [
     { label: "Sobre nosotros", href: "/about" },
@@ -27,12 +28,18 @@ const Footer = () => {
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
           {/* Logo + tagline */}
           <div>
-            <a href="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-primary" strokeWidth={2.5} />
               <span className="font-display text-xl font-bold text-text">
                 FLG
               </span>
-            </a>
+            </Link>
+            <p className="mt-3 text-xs text-text-muted leading-relaxed">
+              Zeballos 1341, Rosario, Santa Fe
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Tel: +54 9 341 272-4611
+            </p>
           </div>
 
           {/* Columna class */}
@@ -41,14 +48,14 @@ const Footer = () => {
               Clases
             </h4>
             <ul className="mt-4 flex flex-col gap-3">
-              {footerLinks.class.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
+              {footerLinks.class.map((link, idx) => (
+                <li key={`${link.label}-${idx}`}>
+                  <Link
+                    to={link.href}
                     className="font-body text-sm text-text-muted transition-colors duration-200 hover:text-primary"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -57,17 +64,17 @@ const Footer = () => {
           {/* Columna Company */}
           <div>
             <h4 className="font-display text-sm font-semibold text-text">
-              Compañia
+              Compañía
             </h4>
             <ul className="mt-4 flex flex-col gap-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="font-body text-sm text-text-muted transition-colors duration-200 hover:text-primary"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -86,3 +93,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

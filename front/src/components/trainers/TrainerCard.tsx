@@ -25,6 +25,9 @@ const TrainerCard = ({
   description,
   certifications,
 }: TrainerCardProps) => {
+  const isUserLoggedIn = Boolean(localStorage.getItem("user"));
+  const bookingHref = isUserLoggedIn ? "/class" : "/login";
+
   return (
     <Card className="flex h-full flex-col overflow-hidden p-0">
       <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-lg">
@@ -72,7 +75,7 @@ const TrainerCard = ({
           </div>
         </div>
 
-        <Button href="/book" size="sm" className="mt-6 w-full">
+        <Button href={bookingHref} size="sm" className="mt-6 w-full">
           Reservar sesión
         </Button>
       </div>
@@ -81,3 +84,4 @@ const TrainerCard = ({
 };
 
 export default TrainerCard;
+
