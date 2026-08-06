@@ -7,8 +7,8 @@ import {
   Wind, 
   Sparkles 
 } from "lucide-react";
-import type { TurnoClase } from "../../types/turno-clase";
-import type { TipoClase } from "../../types/tipo-clase";
+import type { TurnoClase } from "../../types/classSession";
+import type { TipoClase } from "../../types/typeClass";
 
 export interface MasterClassData {
   id: number;

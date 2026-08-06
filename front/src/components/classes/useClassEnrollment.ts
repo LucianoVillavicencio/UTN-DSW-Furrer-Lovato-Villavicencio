@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { TurnoClase } from "../../types/turno-clase";
-import type { TipoClase } from "../../types/tipo-clase";
+import type { TurnoClase } from "../../types/classSession";
+import type { TipoClase } from "../../types/typeClass";
 import type { User } from "../../types/user";
-import type { InscripcionClase } from "../../types/inscripcion-clase";
+import type { InscripcionClase } from "../../types/classRegistration";
 
-import { getTurnosClase } from "../../services/turno-clase.service";
-import { getTiposClase } from "../../services/tipo-clase.service";
+import { getTurnosClase } from "../../services/classSession.service";
+import { getTiposClase } from "../../services/typeClass.service";
 import { 
   createInscripcionClase, 
   getInscripcionesClase, 
   deleteInscripcionClase 
-} from "../../services/inscripcion-clase.service";
+} from "../../services/classRegistration.service";
 
 import { 
   MASTER_CLASSES, 
@@ -224,7 +224,7 @@ export const useClassEnrollment = () => {
       );
 
       if (selectedHourTurno && Number(selectedHourTurno.id) === turnoIdNum) {
-        setSelectedHourTurno((prev) =>
+        setSelectedHourTurno((prev: TurnoClase | null) =>
           prev ? { ...prev, cupoDisponible: Math.max(0, (prev.cupoDisponible ?? 1) - 1) } : null
         );
       }
@@ -264,14 +264,14 @@ export const useClassEnrollment = () => {
       setTurnos((prev) =>
         prev.map((t) =>
           Number(t.id) === turnoIdNum
-            ? { ...t, cupoDisponible: Math.min(t.cupoMaximo, (t.cupoDisponible ?? 0) + 1) }
+            ? { ...t, cupoDisponible: Math.min(t.cupoMaximo || 20, (t.cupoDisponible ?? 0) + 1) }
             : t
         )
       );
 
       if (selectedHourTurno && Number(selectedHourTurno.id) === turnoIdNum) {
-        setSelectedHourTurno((prev) =>
-          prev ? { ...prev, cupoDisponible: Math.min(prev.cupoMaximo, (prev.cupoDisponible ?? 0) + 1) } : null
+        setSelectedHourTurno((prev: TurnoClase | null) =>
+          prev ? { ...prev, cupoDisponible: Math.min(prev.cupoMaximo || 20, (prev.cupoDisponible ?? 0) + 1) } : null
         );
       }
 

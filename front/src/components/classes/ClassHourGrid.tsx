@@ -1,5 +1,5 @@
 import { CheckCircle2, AlertTriangle, Users } from "lucide-react";
-import type { TurnoClase } from "../../types/turno-clase";
+import type { TurnoClase } from "../../types/classSession";
 
 interface ClassHourGridProps {
   turnosForActiveExpandedDay: TurnoClase[];

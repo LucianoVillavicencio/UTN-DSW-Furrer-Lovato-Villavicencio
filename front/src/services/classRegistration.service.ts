@@ -87,3 +87,10 @@ export const restoreClassRegistration = async (id: number): Promise<boolean> => 
   return await response.json();
 };
 
+export const getInscripcionesClase = getClassRegistration;
+export const getInscripcionClaseById = getClassRegistrationById;
+export const createInscripcionClase = createClassRegistration;
+export const updateInscripcionClase = updateClassRegistration;
+export const deleteInscripcionClase = deleteClassRegistration;
+
+

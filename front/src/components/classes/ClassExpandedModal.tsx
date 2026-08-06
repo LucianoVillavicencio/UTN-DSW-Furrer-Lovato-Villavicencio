@@ -5,7 +5,7 @@ import ClassDaySelector from "./ClassDaySelector";
 import ClassHourGrid from "./ClassHourGrid";
 import SelectedHourSummary from "./SelectedHourSummary";
 
-import type { TurnoClase } from "../../types/turno-clase";
+import type { TurnoClase } from "../../types/classSession";
 import type { User } from "../../types/user";
 
 interface ClassExpandedModalProps {

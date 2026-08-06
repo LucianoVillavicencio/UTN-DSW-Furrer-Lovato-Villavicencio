@@ -62,3 +62,10 @@ export const restoreTypeClass = async (id: number): Promise<boolean> => {
   }
   return await response.json();
 };
+
+export const getTiposClase = getTypeClass;
+export const getTipoClaseById = getTypeClassById;
+export const createTipoClase = createTypeClass;
+export const updateTipoClase = updateTypeClass;
+export const deleteTipoClase = deleteTypeClass;
+
