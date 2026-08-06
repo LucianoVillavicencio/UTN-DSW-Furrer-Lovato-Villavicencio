@@ -5,7 +5,11 @@ const API_URL = 'http://localhost:3000/api/v1/inscripcion-clase';
 export const getInscripcionesClase = async (): Promise<InscripcionClase[]> => {
   const response = await fetch(API_URL);
   if (!response.ok) {
-    throw new Error('Error al obtener inscripciones');
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : 'Error al obtener inscripciones';
+    throw new Error(message);
   }
   return await response.json();
 };
@@ -13,7 +17,11 @@ export const getInscripcionesClase = async (): Promise<InscripcionClase[]> => {
 export const getInscripcionClaseById = async (id: number): Promise<InscripcionClase> => {
   const response = await fetch(`${API_URL}/${id}`);
   if (!response.ok) {
-    throw new Error(`Error al obtener inscripción ${id}`);
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : `Error al obtener inscripción ${id}`;
+    throw new Error(message);
   }
   return await response.json();
 };
@@ -27,7 +35,11 @@ export const createInscripcionClase = async (
     body: JSON.stringify(inscripcion),
   });
   if (!response.ok) {
-    throw new Error('Error al registrar inscripción');
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : 'Error al registrar inscripción';
+    throw new Error(message);
   }
   return await response.json();
 };
@@ -41,7 +53,11 @@ export const updateInscripcionClase = async (
     body: JSON.stringify(inscripcion),
   });
   if (!response.ok) {
-    throw new Error('Error al actualizar inscripción');
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : 'Error al actualizar inscripción';
+    throw new Error(message);
   }
   return await response.json();
 };
@@ -49,7 +65,11 @@ export const updateInscripcionClase = async (
 export const deleteInscripcionClase = async (id: number): Promise<boolean> => {
   const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
   if (!response.ok) {
-    throw new Error(`Error al eliminar inscripción ${id}`);
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : `Error al eliminar inscripción ${id}`;
+    throw new Error(message);
   }
   return await response.json();
 };
@@ -57,7 +77,12 @@ export const deleteInscripcionClase = async (id: number): Promise<boolean> => {
 export const restoreInscripcionClase = async (id: number): Promise<boolean> => {
   const response = await fetch(`${API_URL}/restore/${id}`, { method: 'PATCH' });
   if (!response.ok) {
-    throw new Error(`Error al restaurar inscripción ${id}`);
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.message
+      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
+      : `Error al restaurar inscripción ${id}`;
+    throw new Error(message);
   }
   return await response.json();
 };
+

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { InscripcionClase } from './entity/inscripcion-clase.entity';
+import { TurnoClase } from '../turno-clase/entity/turno-clase.entity';
 import { InscripcionClaseDto } from './dto/inscripcion-clase-dto';
 
 @Injectable()
@@ -13,9 +14,32 @@ export class InscripcionClaseService {
   constructor(
     @InjectRepository(InscripcionClase)
     private inscripcionClaseRepository: Repository<InscripcionClase>,
+    @InjectRepository(TurnoClase)
+    private turnoClaseRepository: Repository<TurnoClase>,
   ) {}
 
   async createInscripcionClase(inscripcionDto: InscripcionClaseDto) {
+    const existing = await this.inscripcionClaseRepository.findOne({
+      where: {
+        userDni: inscripcionDto.userDni,
+        turnoClaseId: inscripcionDto.turnoClaseId,
+        deleted: false,
+      },
+    });
+    if (existing) {
+      throw new ConflictException('Ya estás inscripto a esta clase.');
+    }
+
+    const turno = await this.turnoClaseRepository.findOne({
+      where: { id: inscripcionDto.turnoClaseId, deleted: false },
+    });
+    if (!turno) {
+      throw new NotFoundException('El turno de clase especificado no existe.');
+    }
+    if (turno.cupoDisponible <= 0) {
+      throw new ConflictException('No quedan cupos disponibles para esta clase.');
+    }
+
     const newInscripcion = this.inscripcionClaseRepository.create({
       ...inscripcionDto,
       fechaInscripcion: inscripcionDto.fechaInscripcion
@@ -24,7 +48,13 @@ export class InscripcionClaseService {
       estado: inscripcionDto.estado ?? 'confirmada',
       deleted: inscripcionDto.deleted ?? false,
     });
-    return await this.inscripcionClaseRepository.save(newInscripcion);
+
+    const savedInscripcion = await this.inscripcionClaseRepository.save(newInscripcion);
+
+    turno.cupoDisponible = Math.max(0, turno.cupoDisponible - 1);
+    await this.turnoClaseRepository.save(turno);
+
+    return savedInscripcion;
   }
 
   async findInscripcionClase(id: number) {
@@ -73,6 +103,15 @@ export class InscripcionClaseService {
     if (exists.deleted) {
       throw new ConflictException(`La inscripción ya está eliminada.`);
     }
+
+    const turno = await this.turnoClaseRepository.findOne({
+      where: { id: exists.turnoClaseId },
+    });
+    if (turno) {
+      turno.cupoDisponible = Math.min(turno.cupoMaximo, turno.cupoDisponible + 1);
+      await this.turnoClaseRepository.save(turno);
+    }
+
     const rows: UpdateResult = await this.inscripcionClaseRepository.update(
       { id },
       { deleted: true },
@@ -95,3 +134,4 @@ export class InscripcionClaseService {
     return rows.affected === 1;
   }
 }
+
