@@ -1,4 +1,5 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
+import { ScrollToTop } from "../components/common/ScrollToTop"; // Importamos tu componente
 
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
@@ -10,45 +11,61 @@ import Plan from "../pages/Plan/Plan";
 import NotFound from "../pages/NotFound/NotFound";
 import Trainer from "../pages/trainers/trainers";
 
+// 1. Creamos el Layout principal
+const RootLayout = () => {
+  return (
+    <>
+      <ScrollToTop />
+      <Outlet />
+    </>
+  );
+};
+
+// 2. Envolvemos todas las rutas existentes dentro de los 'children' del Layout
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Home />,
+    element: <RootLayout />,
+    children: [
+      {
+        path: "/",
+        element: <Home />,
+      },
+      {
+        path: "/login",
+        element: <Login />,
+      },
+      {
+        path: "/register",
+        element: <Register />,
+      },
+      {
+        path: "/class",
+        element: <Classes />,
+      },
+      {
+        path: "/about",
+        element: <About />,
+      },
+      {
+        path: "/contact",
+        element: <Contact />,
+      },
+      {
+        path: "/contacto",
+        element: <Contact />, 
+      },
+      {
+        path: "/membership",
+        element: <Plan />,
+      },
+      {
+        path: "/trainers",
+        element: <Trainer />,
+      },
+      {
+        path: "*",
+        element: <NotFound />,
+      },
+    ],
   },
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/class",
-    element: <Classes />,
-  },
-  {
-    path: "/about",
-    element: <About />,
-  },
-  {
-    path: "/contact",
-    element: <Contact />,
-  },
-  {
-    path: "/contacto",
-    element: <Contact />,
-  },
-  {
-    path: "/membership",
-    element: <Plan />,
-  },
-  {
-    path: "/trainers",
-    element: <Trainer />,
-  },
-  {
-    path: "*",
-    element: <NotFound />,
-  },
-]);
+]);
