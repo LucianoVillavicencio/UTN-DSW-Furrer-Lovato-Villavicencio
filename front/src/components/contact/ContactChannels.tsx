@@ -1,4 +1,10 @@
-import { Clock, MapPin, Phone, MessageCircle, ArrowUpRight } from "lucide-react";
+import {
+  Clock,
+  MapPin,
+  Phone,
+  MessageCircle,
+  ArrowUpRight,
+} from "lucide-react";
 
 const InstagramIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg
@@ -39,7 +45,8 @@ const ContactChannels = () => {
           Canales de Atención Directa
         </h2>
         <p className="font-body text-xs text-text-muted mb-6">
-          ¿Querés una respuesta más rápida? Contactanos a través de nuestras redes sociales o chat directo.
+          ¿Querés una respuesta más rápida? Contactanos a través de nuestras
+          redes sociales o chat directo.
         </p>
 
         <div className="space-y-4">
@@ -57,7 +64,9 @@ const ContactChannels = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-text text-base group-hover:text-emerald-400 transition-colors">WhatsApp</span>
+                  <span className="font-display font-bold text-text text-base group-hover:text-emerald-400 transition-colors">
+                    WhatsApp
+                  </span>
                   <span className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
                     Atención Rápida
                   </span>
@@ -84,7 +93,9 @@ const ContactChannels = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-text text-base group-hover:text-pink-400 transition-colors">Instagram</span>
+                  <span className="font-display font-bold text-text text-base group-hover:text-pink-400 transition-colors">
+                    Instagram
+                  </span>
                   <span className="bg-pink-500/20 text-pink-400 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-pink-500/30">
                     @flg_gym
                   </span>
@@ -103,14 +114,18 @@ const ContactChannels = () => {
       <div className="bg-surface/90 border border-border/80 rounded-2xl p-6 shadow-xl space-y-4 backdrop-blur-md">
         <h3 className="font-display text-base font-bold text-text border-b border-border pb-3 flex items-center justify-between">
           <span>Información de FLG Gym</span>
-          <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-body">Abierto hoy</span>
+          <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md font-body">
+            Abierto hoy
+          </span>
         </h3>
 
         <div className="space-y-3.5 font-body text-xs text-text-muted">
           <div className="flex items-start gap-3">
             <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <strong className="text-text block mb-0.5 font-medium">Horarios de Atención:</strong>
+              <strong className="text-text block mb-0.5 font-medium">
+                Horarios de Atención:
+              </strong>
               <span>Lunes a Viernes: 06:00 hs - 23:00 hs</span>
               <br />
               <span>Sábados: 08:00 hs - 20:00 hs</span>
@@ -120,7 +135,9 @@ const ContactChannels = () => {
           <div className="flex items-start gap-3">
             <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <strong className="text-text block mb-0.5 font-medium">Sede Principal:</strong>
+              <strong className="text-text block mb-0.5 font-medium">
+                Sede Principal:
+              </strong>
               <span>Zeballos 1341, Rosario, Santa Fe</span>
             </div>
           </div>
@@ -128,7 +145,9 @@ const ContactChannels = () => {
           <div className="flex items-start gap-3">
             <Phone className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <strong className="text-text block mb-0.5 font-medium">Atención Telefónica:</strong>
+              <strong className="text-text block mb-0.5 font-medium">
+                Atención Telefónica:
+              </strong>
               <span>+54 9 341 272-4611</span>
             </div>
           </div>

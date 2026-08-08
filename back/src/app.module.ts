@@ -11,6 +11,8 @@ import { TypeClassModule } from './modules/typeClass/typeClass.module';
 import { classRegistrationModule } from './modules/classRegistration/classRegistration.module';
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { ContactModule } from './modules/contact/contact.module';
+
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { SubscriptionModule } from './modules/subscription/subscription.module';
     SubscriptionModule,
     PaymentModule,
     classRegistrationModule,
+    ContactModule,
   ],
   controllers: [],
   providers: [],
