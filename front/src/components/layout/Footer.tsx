@@ -13,7 +13,6 @@ const footerLinks = {
     { label: "Sobre nosotros", href: "/about" },
     { label: "Clases", href: "/class" },
     { label: "Entrenadores", href: "/trainers" },
-    { label: "Reseñas", href: "/reviews" },
     { label: "Planes", href: "/plan" },
     { label: "Contacto", href: "/contact" },
   ],
