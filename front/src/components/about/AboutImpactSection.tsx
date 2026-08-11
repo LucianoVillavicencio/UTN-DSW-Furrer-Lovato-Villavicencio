@@ -28,7 +28,7 @@ const metrics = [
     icon: Smile,
     value: "98%",
     label: "Satisfacción garantizada",
-    subtext: "Reseñas 5 estrellas",
+    subtext: "Clientes satisfechos",
   },
 ];
 
