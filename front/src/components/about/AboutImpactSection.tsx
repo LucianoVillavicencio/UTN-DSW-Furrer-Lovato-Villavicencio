@@ -36,7 +36,7 @@ const AboutImpactSection = () => {
   return (
     <section
       aria-labelledby="impact-heading"
-      className="relative bg-background py-20 lg:py-28"
+      className="relative bg-bg-terciary py-20 lg:py-28"
     >
       <Container>
         <div className="text-center max-w-3xl mx-auto">
