@@ -4,9 +4,11 @@ import AboutHeroSection from "../../components/about/AboutHeroSection";
 import AboutMissionSection from "../../components/about/AboutMissionSection";
 import AboutImpactSection from "../../components/about/AboutImpactSection";
 import AboutFacilitiesSection from "../../components/about/AboutFacilitiesSection";
-import AboutCTASection from "../../components/about/AboutCTASection";
+import CTASection from "../../components/common/CTASection";
 
 function About() {
+  const isLoggedIn = Boolean(localStorage.getItem("user"));
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-text selection:bg-primary selection:text-background">
       <Navbar />
@@ -15,7 +17,14 @@ function About() {
         <AboutMissionSection />
         <AboutImpactSection />
         <AboutFacilitiesSection />
-        <AboutCTASection />
+        <CTASection
+          title="¿Listo para dar el paso y alcanzar tu mejor versión?"
+          subtitle="El primer paso empieza con una decisión. Únete a la comunidad FitCore hoy mismo y accede a instalaciones de primera clase, entrenadores expertos y soporte continuo."
+          primaryButton={{
+            label: isLoggedIn ? "Ver planes" : "Obtener membresía",
+            href: isLoggedIn ? "/membership" : "/login",
+          }}
+        />
       </main>
       <Footer />
     </div>
