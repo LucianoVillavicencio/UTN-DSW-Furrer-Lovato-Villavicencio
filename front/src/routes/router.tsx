@@ -9,7 +9,7 @@ import About from "../pages/About/About";
 import Contact from "../pages/Contact/Contact";
 import Plan from "../pages/Plan/Plan";
 import NotFound from "../pages/NotFound/NotFound";
-import Trainer from "../pages/trainers/trainers";
+import Trainers from "../pages/Trainers/Trainers";
 
 // 1. Creamos el Layout principal
 const RootLayout = () => {
@@ -60,7 +60,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/trainers",
-        element: <Trainer />,
+        element: <Trainers />,
       },
       {
         path: "*",

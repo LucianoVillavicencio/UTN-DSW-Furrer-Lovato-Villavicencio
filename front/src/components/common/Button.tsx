@@ -40,7 +40,7 @@ const variantStyles: Record<ButtonVariant, string> = { // Record ensures it is e
   primary:
     "bg-primary text-background hover:bg-primary-hover",
   secondary:
-    "bg-transparent text-text border border-border hover:border-primary hover:text-primary",
+    "bg-transparent text-text border border-border-button hover:border-primary hover:text-primary",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

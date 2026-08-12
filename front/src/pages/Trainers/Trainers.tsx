@@ -5,6 +5,7 @@ import CTASection from "../../components/common/CTASection";
 import TrainerCard from "../../components/trainers/TrainerCard";
 import WhyChooseUsSection from "../../components/trainers/WhyChooseUsSection";
 import Container from "../../components/common/Container";
+import { UserCheck } from "lucide-react";
 
 const trainers = [
   {
@@ -100,6 +101,7 @@ function Trainers() {
       <main className="flex-1">
         <PageHeader
           badge="Nuestro equipo"
+          icon={UserCheck}
           title={
             <>
               Conocé a nuestros{" "}
@@ -109,7 +111,7 @@ function Trainers() {
           subtitle="Nuestros profesionales certificados están para guiarte, motivarte y acompañarte en cada paso. Cada entrenador aporta su propia experiencia y pasión para ayudarte a alcanzar tus objetivos."
         />
 
-        <section className="bg-black py-20">
+        <section className="bg-background py-20">
           <Container>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {trainers.map((trainer) => (

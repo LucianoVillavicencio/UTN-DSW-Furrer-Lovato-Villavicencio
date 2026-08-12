@@ -28,7 +28,7 @@ const classes = [
 
 const ClassesSection = () => {
   return (
-    <section className="bg-black py-20">
+    <section className="bg-background py-20">
       <Container>
         <SectionTitle
           badge="Algunas clases"

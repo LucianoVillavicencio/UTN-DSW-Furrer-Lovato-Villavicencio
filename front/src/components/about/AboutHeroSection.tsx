@@ -1,7 +1,8 @@
 import { useState } from "react";
 import Container from "../common/Container";
 import Button from "../common/Button";
-import { Shield, Users, Trophy, Sparkles } from "lucide-react";
+import Badge from "../common/badge/Badge";
+import { Shield, Users, Trophy , HeartHandshake } from "lucide-react";
 
 const AboutHeroSection = () => {
   const [imgSrc, setImgSrc] = useState("/images/hero-imagen.avif");
@@ -16,7 +17,7 @@ const AboutHeroSection = () => {
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative overflow-hidden bg-background py-16 lg:py-24"
+      className="relative overflow-hidden bg-bg-secondary py-16 lg:py-24"
     >
       {/* Subtle Background Glow Accent */}
       <div
@@ -31,10 +32,9 @@ const AboutHeroSection = () => {
       <Container className="relative z-10 grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Left Column: Text & Content */}
         <div className="flex flex-col items-start text-left">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Sobre FitCore</span>
-          </div>
+          <Badge variant="accent" icon={HeartHandshake}>
+            Sobre FitCore
+          </Badge>
 
           <h1
             id="hero-heading"

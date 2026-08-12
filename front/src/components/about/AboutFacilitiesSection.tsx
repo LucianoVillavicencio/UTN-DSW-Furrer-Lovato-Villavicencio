@@ -92,7 +92,7 @@ const AboutFacilitiesSection = () => {
   return (
     <section
       aria-labelledby="facilities-heading"
-      className="relative bg-surface/50 py-20 lg:py-28 border-t border-border/50"
+      className="relative bg-background py-20 lg:py-28 border-t border-border/50"
     >
       <Container>
         <div className="text-center max-w-3xl mx-auto">

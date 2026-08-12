@@ -1,5 +1,6 @@
 import { Calendar, User as UserIcon, ChevronRight } from "lucide-react";
 import Button from "../common/Button";
+import Card from "../common/Card";
 import { renderCategoryIcon, type MasterClassData } from "./master-classes.data";
 
 interface ClassCardItemProps {
@@ -9,9 +10,9 @@ interface ClassCardItemProps {
 
 const ClassCardItem = ({ masterCls, onPress }: ClassCardItemProps) => {
   return (
-    <div
+    <Card
       onClick={() => onPress(masterCls)}
-      className="group relative flex flex-col justify-between rounded-3xl border border-border bg-surface p-7 shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-2xl cursor-pointer"
+      className="group relative flex flex-col justify-between cursor-pointer"
     >
       <div>
         {/* Category Badge */}
@@ -66,7 +67,7 @@ const ClassCardItem = ({ masterCls, onPress }: ClassCardItemProps) => {
           Ver horarios e inscribirme <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 
