@@ -1,13 +1,21 @@
-import { Check, X } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import Card from "../common/Card";
 import Button from "../common/Button";
 import type { MembershipPlan } from "./plans.data";
 
 interface PlanCardProps {
   plan: MembershipPlan;
+  onSelect?: (plan: MembershipPlan) => void;
+  isLoading?: boolean;
+  isCurrentSubscription?: boolean;
 }
 
-const PlanCard = ({ plan }: PlanCardProps) => {
+const PlanCard = ({
+  plan,
+  onSelect,
+  isLoading = false,
+  isCurrentSubscription = false,
+}: PlanCardProps) => {
   return (
     <Card
       className={`relative flex h-full flex-col justify-between gap-6 p-8 ${
@@ -42,21 +50,36 @@ const PlanCard = ({ plan }: PlanCardProps) => {
               }`}
             >
               {feature.available ? (
-                <Check className="h-4 w-4 text-primary" />
+                <Check className="h-4 w-4 text-primary shrink-0" />
               ) : (
-                <X className="h-4 w-4 text-text-muted" />
+                <X className="h-4 w-4 text-text-muted shrink-0" />
               )}
-              {feature.label}
+              <span>{feature.label}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <Button href="/register" className="w-full">
-        Elegir plan
+      <Button
+        onClick={() => onSelect?.(plan)}
+        disabled={isLoading || isCurrentSubscription}
+        variant={plan.highlight ? "primary" : "secondary"}
+        className="w-full"
+      >
+        {isLoading ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Procesando...
+          </span>
+        ) : isCurrentSubscription ? (
+          "Plan actual"
+        ) : (
+          "Elegir plan"
+        )}
       </Button>
     </Card>
   );
 };
 
 export default PlanCard;
+

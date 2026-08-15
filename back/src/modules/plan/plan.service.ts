@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
@@ -9,11 +10,45 @@ import { Plan } from './entity/plan.entity';
 import { PlanDto } from './dto/plan-dto';
 
 @Injectable()
-export class PlanService {
+export class PlanService implements OnModuleInit {
   constructor(
     @InjectRepository(Plan)
     private planRepository: Repository<Plan>,
   ) {}
+
+  async onModuleInit() {
+    try {
+      const count = await this.planRepository.count();
+      if (count === 0) {
+        const defaultPlans = [
+          {
+            name: 'Básico',
+            description: 'Perfecto para empezar tu camino fitness. Acceso al gimnasio y área de cardio.',
+            price: 29,
+            numDays: 30,
+            deleted: false,
+          },
+          {
+            name: 'Premium',
+            description: 'Nuestro plan más popular con todo lo que necesitás y clases grupales.',
+            price: 59,
+            numDays: 30,
+            deleted: false,
+          },
+          {
+            name: 'Elite',
+            description: 'Experiencia fitness definitiva con beneficios premium y entrenamiento personalizado.',
+            price: 99,
+            numDays: 30,
+            deleted: false,
+          },
+        ];
+        await this.planRepository.save(defaultPlans);
+      }
+    } catch (e) {
+      // Table might not be ready during certain migrations/tests
+    }
+  }
 
   async createPlan(planDto: PlanDto) {
     const newPlan = this.planRepository.create({

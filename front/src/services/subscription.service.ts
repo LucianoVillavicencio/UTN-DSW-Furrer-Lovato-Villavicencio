@@ -1,15 +1,16 @@
 import type { Subscription } from "../types/subscription";
 
+const API_URL = "http://localhost:3000/api/v1/subscription";
 
-const API_URL = "http://localhost:3000/api/v1/subcription";
-
-export const getSubscription = async (): Promise<Subscription[]> => {
+export const getSubscriptions = async (): Promise<Subscription[]> => {
   const response = await fetch(API_URL);
   if (!response.ok) {
     throw new Error("Error al obtener suscripciones");
   }
   return await response.json();
 };
+
+export const getSubscription = getSubscriptions;
 
 export const getSubscriptionById = async (id: number): Promise<Subscription> => {
   const response = await fetch(`${API_URL}/${id}`);
@@ -20,26 +21,27 @@ export const getSubscriptionById = async (id: number): Promise<Subscription> => 
 };
 
 export const createSubscription = async (
-  subcription: Subscription,
+  subscription: Subscription,
 ): Promise<Subscription> => {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subcription),
+    body: JSON.stringify(subscription),
   });
   if (!response.ok) {
-    throw new Error("Error al crear suscripción");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Error al crear suscripción");
   }
   return await response.json();
 };
 
-export const updateSubcription = async (
-  subcription: Subscription,
+export const updateSubscription = async (
+  subscription: Subscription,
 ): Promise<Subscription> => {
   const response = await fetch(API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subcription),
+    body: JSON.stringify(subscription),
   });
   if (!response.ok) {
     throw new Error("Error al actualizar suscripción");
@@ -47,7 +49,9 @@ export const updateSubcription = async (
   return await response.json();
 };
 
-export const deleteSubcription = async (id: number): Promise<boolean> => {
+export const updateSubcription = updateSubscription;
+
+export const deleteSubscription = async (id: number): Promise<boolean> => {
   const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
   if (!response.ok) {
     throw new Error(`Error al eliminar suscripción ${id}`);
@@ -55,10 +59,15 @@ export const deleteSubcription = async (id: number): Promise<boolean> => {
   return await response.json();
 };
 
-export const restoreSubcription = async (id: number): Promise<boolean> => {
+export const deleteSubcription = deleteSubscription;
+
+export const restoreSubscription = async (id: number): Promise<boolean> => {
   const response = await fetch(`${API_URL}/restore/${id}`, { method: "PATCH" });
   if (!response.ok) {
     throw new Error(`Error al restaurar suscripción ${id}`);
   }
   return await response.json();
 };
+
+export const restoreSubcription = restoreSubscription;
+
