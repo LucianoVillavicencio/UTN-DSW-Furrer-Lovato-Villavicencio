@@ -39,19 +39,4 @@ export class UsersDto {
   deleted?: boolean;
 }
 
-export class LoginDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password!: string;
-}
-
-export class GoogleLoginDto {
-  @IsString()
-  @IsNotEmpty()
-  idToken!: string;
-}
 

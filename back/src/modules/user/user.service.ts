@@ -1,5 +1,5 @@
+// src/modules/user/user.service.ts
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -8,34 +8,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from './entity/users.entity';
 import { Repository, UpdateResult } from 'typeorm';
-import { GoogleLoginDto, LoginDto, UsersDto } from './dto/users-dto';
-import { OAuth2Client } from 'google-auth-library';
+import { UsersDto } from './dto/users-dto';
+import { Role } from '../../common/enum/rol.enum';
 
 @Injectable()
 export class UserService {
-  private googleClient: OAuth2Client;
-
   constructor(
     @InjectRepository(Users) private usersRepository: Repository<Users>,
-  ) {
-    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  }
+  ) {}
 
+  // CreateUsers
   async createUsers(user: UsersDto) {
-    const userByDni = await this.findUser(user.dni);
-    if (userByDni) {
-      throw new ConflictException(
-        'El usuario con DNI: ' + user.dni + ' ya existe.',
-      );
-    }
-
-    const userByEmail = await this.findUserByEmail(user.email);
-    if (userByEmail) {
-      throw new ConflictException(
-        'El usuario con email ' + user.email + ' ya existe.',
-      );
-    }
-
     const newUser = this.usersRepository.create({
       ...user,
       deleted: user.deleted ?? false,
@@ -49,115 +32,25 @@ export class UserService {
     return await this.usersRepository.findOne({ where: { dni } });
   }
 
-  // Find One User by Email
+  // Find One User by Email (without passoword)
   async findUserByEmail(email: string) {
     return await this.usersRepository.findOne({ where: { email } });
   }
 
-  // Login User
-  async loginUser(loginDto: LoginDto) {
-    const user = await this.findUserByEmail(loginDto.email);
-    if (!user || user.deleted) {
-      throw new NotFoundException('Usuario no encontrado o dado de baja.');
-    }
-
-    if (user.password !== loginDto.password) {
-      throw new UnauthorizedException('Credenciales inválidas.');
-    }
-
-    const { password, ...userWithoutPassword } = user;
-    return {
-      message: 'Login exitoso',
-      user: userWithoutPassword,
-    };
-  }
-
-  // Google OAuth Login / Register
-  async googleLogin(googleLoginDto: GoogleLoginDto) {
-    const rawClientId = process.env.GOOGLE_CLIENT_ID;
-    const clientId = rawClientId
-      ? rawClientId.replace(/['"]/g, '').trim()
-      : undefined;
-    let payload;
-
-    try {
-      const client = new OAuth2Client(clientId);
-      const isConfigured =
-        clientId &&
-        clientId !== 'your-google-client-id.apps.googleusercontent.com';
-      const ticket = await client.verifyIdToken({
-        idToken: googleLoginDto.idToken,
-        audience: isConfigured ? clientId : undefined,
-      });
-      payload = ticket.getPayload();
-    } catch (error: any) {
-      console.error(
-        'Error al verificar Google ID token:',
-        error?.message || error,
-      );
-      const errorMessage = error?.message || 'Token inválido';
-      throw new UnauthorizedException(
-        `Token de Google no válido: ${errorMessage}`,
-      );
-    }
-
-    if (!payload || !payload.email) {
-      throw new BadRequestException(
-        'El token de Google no proporcionó un correo electrónico válido.',
-      );
-    }
-
-    let user = await this.findUserByEmail(payload.email);
-
-    if (user) {
-      if (user.deleted) {
-        throw new UnauthorizedException(
-          'El usuario se encuentra dado de baja.',
-        );
-      }
-
-      // Actualizar Google ID y Foto si no los tenía asignados
-      let shouldUpdate = false;
-      if (!user.googleId) {
-        user.googleId = payload.sub;
-        shouldUpdate = true;
-      }
-      if (!user.picture && payload.picture) {
-        user.picture = payload.picture;
-        shouldUpdate = true;
-      }
-
-      if (shouldUpdate) {
-        user = await this.usersRepository.save(user);
-      }
-    } else {
-      // Registrar un nuevo usuario autenticado con Google
-      // Generar un DNI único numérico para la clave primaria no nula del usuario
-      let generatedDni = Math.floor(10000000 + Math.random() * 89999999);
-      while (await this.findUser(generatedDni)) {
-        generatedDni = Math.floor(10000000 + Math.random() * 89999999);
-      }
-
-      const newUser = this.usersRepository.create({
-        dni: generatedDni,
-        email: payload.email,
-        name: payload.given_name || payload.name || 'Usuario',
-        surname: payload.family_name || '',
-        picture: payload.picture || null,
-        googleId: payload.sub,
-        password: null,
-        phone: null,
-        deleted: false,
-      });
-
-      user = await this.usersRepository.save(newUser);
-    }
-
-    const { password, ...userWithoutPassword } = user;
-    return {
-      message: 'Login con Google exitoso',
-      user: userWithoutPassword,
-    };
+  // Find one User by email (with password)
+  async findUserByEmailWithPassword(email: string) {
+    return await this.usersRepository.findOne({
+      where: { email },
+      select: {
+        dni: true,
+        email: true,
+        name: true,
+        surname: true,
+        phone: true,
+        password: true,
+        role: true,
+      },
+    });
   }
 
   // Find all Users
@@ -207,6 +100,7 @@ export class UserService {
 
     return { message: `Eliminado correctamente` };
   }
+
   // Restore User
   async restoreUsers(dni: number) {
     const userExists = await this.findUser(dni);
@@ -229,5 +123,75 @@ export class UserService {
     }
 
     return { message: `Restaurado correctamente` };
+  }
+
+
+
+
+  // ---- GOOGLE AUTH ----
+  // La verificación del idToken contra Google vive en AuthService
+  // (es responsabilidad de autenticación). Acá solo resolvemos el
+  // registro en la base de datos a partir de un payload ya verificado.
+
+  // Busca un usuario por email; si ya existe, completa googleId/picture
+  // si le faltaban. Si no existe, crea una cuenta nueva con rol por
+  // defecto (Role.USER) y sin password local (login exclusivo por Google).
+  async findOrCreateGoogleUser(googleProfile: {
+    email: string;
+    googleId: string;
+    name: string;
+    surname: string;
+    picture: string | null;
+  }): Promise<Users> {
+    const existing = await this.findUserByEmail(googleProfile.email);
+
+    if (existing) {
+      if (existing.deleted) {
+        throw new UnauthorizedException(
+          'El usuario se encuentra dado de baja.',
+        );
+      }
+
+  
+
+      // Si ya hay cuenta registrada con ese email. No lo deja logearse con google.
+      if (!existing.googleId) {
+        throw new ConflictException(
+          'Ya existe una cuenta registrada con este email. Iniciá sesión con tu contraseña.',
+        );
+      }
+
+      // Ya estaba vinculada de antes: solo refrescamos la foto si cambió.
+      if (googleProfile.picture && existing.picture !== googleProfile.picture) {
+        existing.picture = googleProfile.picture;
+        return this.usersRepository.save(existing);
+      }
+
+      return existing;
+    }
+
+    const dni = await this.generateUniqueDni();
+    const newUser = this.usersRepository.create({
+      dni,
+      email: googleProfile.email,
+      name: googleProfile.name,
+      surname: googleProfile.surname,
+      picture: googleProfile.picture,
+      googleId: googleProfile.googleId,
+      role: Role.USER,
+      password: null,
+      phone: null,
+      deleted: false,
+    });
+
+    return this.usersRepository.save(newUser);
+  }
+
+  private async generateUniqueDni(): Promise<number> {
+    let dni: number;
+    do {
+      dni = Math.floor(10000000 + Math.random() * 89999999);
+    } while (await this.findUser(dni));
+    return dni;
   }
 }
