@@ -12,6 +12,7 @@ import { classRegistrationModule } from './modules/classRegistration/classRegist
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
@@ -28,6 +29,7 @@ import { ContactModule } from './modules/contact/contact.module';
     PaymentModule,
     classRegistrationModule,
     ContactModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
