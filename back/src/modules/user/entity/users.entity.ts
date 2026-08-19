@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Role } from '../../../common/enum/rol.enum';
 
 @Entity('users')
 export class Users {
@@ -17,8 +18,11 @@ export class Users {
   @Column({ type: String, nullable: true, length: 50 })
   phone?: string | null;
 
-  @Column({ type: String, nullable: true, length: 255 })
+  @Column({ type: String, nullable: true, length: 255, select: false })
   password?: string | null;
+
+  @Column({ type: 'enum', enum: Role, default: Role.USER })
+  role!: Role;
 
   @Column({ type: String, nullable: true, length: 100 })
   googleId?: string | null;
@@ -29,3 +33,4 @@ export class Users {
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }
+  
