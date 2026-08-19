@@ -6,7 +6,7 @@ import PasswordField from "../common/PasswordField";
 import FormAlert from "../common/FormAlert";
 import GoogleAuthButton from "../common/GoogleAuthButton";
 import LoginSubmitButton from "./LoginSubmitButton";
-import { loginUser } from "../../services/auth.service";
+import { useAuth } from "../../context/AuthContext";
 
 // Simple RFC 5322 regex for client-side email format validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -14,6 +14,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   // Determine redirect target (fallback to home /)
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
@@ -45,8 +46,8 @@ const LoginForm = () => {
     if (!password) {
       setPasswordError("La contraseña es requerida.");
       isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError("La contraseña debe tener al menos 6 caracteres.");
+    } else if (password.length < 8) {
+      setPasswordError("La contraseña debe tener al menos 8 caracteres.");
       isValid = false;
     }
 
@@ -65,8 +66,10 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      await loginUser(email, password);
-      
+      // login() del AuthContext persiste el token/user Y actualiza el estado
+      // global (así Navbar se entera al toque, sin necesitar un refresh).
+      await login(email, password);
+
       setSuccess("¡Inicio de sesión exitoso! Redirigiendo...");
 
       if (rememberMe) {

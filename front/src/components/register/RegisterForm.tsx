@@ -4,12 +4,13 @@ import FormAlert from "../common/FormAlert";
 import GoogleAuthButton from "../common/GoogleAuthButton";
 import RegisterFieldsGroup from "./RegisterFieldsGroup";
 import RegisterSubmitButton from "./RegisterSubmitButton";
-import { registerUser } from "../../services/auth.service";
+import { useAuth } from "../../context/AuthContext";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const RegisterForm = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [dni, setDni] = useState("");
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -72,12 +73,12 @@ const RegisterForm = () => {
       isValid = false;
     }
 
-    // Password check
+    // Password check (mínimo 8: debe coincidir con RegisterDto del backend)
     if (!password) {
       newErrors.password = "La contraseña es requerida.";
       isValid = false;
-    } else if (password.length < 6) {
-      newErrors.password = "La contraseña debe tener al menos 6 caracteres.";
+    } else if (password.length < 8) {
+      newErrors.password = "La contraseña debe tener al menos 8 caracteres.";
       isValid = false;
     }
 
@@ -109,7 +110,9 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      const registeredUser = await registerUser({
+      // register() del AuthContext ya persiste el token/user Y actualiza el
+      // estado global (así Navbar se entera al toque, sin necesitar un refresh).
+      await register({
         dni: Number(dni.trim()),
         name: name.trim(),
         surname: surname.trim(),
@@ -118,31 +121,13 @@ const RegisterForm = () => {
         password,
       });
 
-      const userPayload = registeredUser?.user || {
-        dni: Number(dni.trim()),
-        name: name.trim(),
-        surname: surname.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-      };
-
-      if (registeredUser?.token) {
-        localStorage.setItem("accessToken", registeredUser.token);
-      }
-      localStorage.setItem("user", JSON.stringify(userPayload));
-
       setSuccess("¡Cuenta creada con éxito! Sesión iniciada. Redirigiendo al inicio...");
       setTimeout(() => {
         navigate("/");
       }, 1000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al registrar la cuenta";
-      
-      if (message.includes("409") || message.toLowerCase().includes("registrado") || message.toLowerCase().includes("ya existe")) {
-        setError("El correo electrónico o DNI ya se encuentra registrado en nuestra plataforma.");
-      } else {
-        setError(message);
-      }
+      const message = err instanceof Error ? err.message : "Error al registrar la cuenta.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

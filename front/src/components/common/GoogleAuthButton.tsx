@@ -1,8 +1,8 @@
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-import { loginWithGoogleApi } from "../../services/auth.service";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 interface GoogleAuthButtonProps {
   label?: string;
@@ -18,6 +18,7 @@ const GoogleAuthButton = ({
   onError,
 }: GoogleAuthButtonProps) => {
   const navigate = useNavigate();
+  const { loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -38,10 +39,10 @@ const GoogleAuthButton = ({
     setLocalError(null);
 
     try {
-      const response = await loginWithGoogleApi(credentialResponse.credential);
-      if (response && response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
+      // loginWithGoogle (AuthContext) ya persiste token+user en localStorage
+      // Y actualiza el estado global (Navbar, etc. se enteran sin recargar).
+      await loginWithGoogle(credentialResponse.credential);
+
       if (onSuccess) {
         onSuccess();
       } else {
