@@ -25,7 +25,6 @@ const publicLinks: NavLink[] = [
 // Navbar user logeado
 const userLinks: NavLink[] = [
   { label: "Inicio", href: "/" },
-  { label: "Turnos", href: "/turns" },
   { label: "Clases", href: "/class" },
   { label: "Entrenadores", href: "/trainers" },
   { label: "Mi cuenta", href: "/dashboard" },
@@ -39,7 +38,6 @@ const userLinks: NavLink[] = [
 // Navbar admin
 const adminLinks: NavLink[] = [
   { label: "Inicio", href: "/" },
-  { label: "Turnos", href: "/turns" },
   { label: "Clases", href: "/class" },
   { label: "Entrenadores", href: "/trainers" },
   { label: "Planes", href: "/membership" },
