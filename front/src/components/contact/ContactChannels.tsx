@@ -6,6 +6,24 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+// El número real vive en el .env (no versionado). El fallback es un placeholder
+// para que el repo público no exponga un teléfono personal.
+const WHATSAPP_NUMBER =
+  import.meta.env.VITE_WHATSAPP_NUMBER || "5490000000000";
+
+// 5493410000000 -> +54 9 341 000-0000
+const formatPhone = (raw: string) => {
+  const parts = raw.match(/^(\d{2})(9)(\d{3})(\d{3})(\d{4})$/);
+  return parts
+    ? `+${parts[1]} ${parts[2]} ${parts[3]} ${parts[4]}-${parts[5]}`
+    : `+${raw}`;
+};
+
+const WHATSAPP_DISPLAY = formatPhone(WHATSAPP_NUMBER);
+const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  "Hola! Quisiera hacer una consulta sobre el gimnasio FLG",
+)}`;
+
 const InstagramIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg
     className={className}
@@ -52,10 +70,10 @@ const ContactChannels = () => {
         <div className="space-y-4">
           {/* WhatsApp Option */}
           <a
-            href="https://wa.me/5493412277374?text=Hola!%20Quisiera%20hacer%20una%20consulta%20sobre%20el%20gimnasio%20FLG"
+            href={WHATSAPP_HREF}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Enviar mensaje directo por WhatsApp a +54 9 341 227-7374"
+            aria-label={`Enviar mensaje directo por WhatsApp a ${WHATSAPP_DISPLAY}`}
             className="group flex items-center justify-between p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/60 transition-all duration-300 shadow-sm"
           >
             <div className="flex items-center gap-3.5">
@@ -72,7 +90,7 @@ const ContactChannels = () => {
                   </span>
                 </div>
                 <p className="font-body text-xs text-text-muted mt-0.5">
-                  Chateá en vivo con el equipo (+54 9 341 227-7374)
+                  Chateá en vivo con el equipo ({WHATSAPP_DISPLAY})
                 </p>
               </div>
             </div>

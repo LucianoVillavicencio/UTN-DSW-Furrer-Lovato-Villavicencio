@@ -30,6 +30,9 @@ interface AuthContextValue {
   register: (data: RegisterUserData) => Promise<AuthResponse>;
   loginWithGoogle: (idToken: string) => Promise<AuthResponse>;
   logout: () => void;
+  // Refresca los datos de perfil en memoria + localStorage tras un PATCH
+  // /user/me exitoso, sin re-loguear (el rol no cambia en ese flujo).
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -92,6 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
+  const updateUser: AuthContextValue["updateUser"] = (patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const value: AuthContextValue = {
     user,
     role,
@@ -102,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     loginWithGoogle,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value} >{children}</AuthContext.Provider>;

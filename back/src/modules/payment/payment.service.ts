@@ -7,14 +7,60 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { Payment } from './entity/payment.entity';
 import { PaymentDto } from './dto/payment-dto';
+import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { PaymentState } from './enum/payment-state.enum';
+import { subscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
+    private readonly subscriptionService: subscriptionService,
   ) {}
+
+  // Pago presencial cargado por un admin (ver specs.md §3.5). Sigue siendo
+  // el único camino para escribir un pago hasta que Mercado Pago exista.
+  async createManualPayment(dto: ManualPaymentDto, adminDni: number) {
+    const subscription = await this.subscriptionService.findSubscription(
+      dto.subscriptionId,
+    );
+    if (!subscription || subscription.deleted) {
+      throw new NotFoundException(
+        `La suscripción con ID: ${dto.subscriptionId} no existe.`,
+      );
+    }
+
+    const newPayment = this.paymentRepository.create({
+      subscriptionId: dto.subscriptionId,
+      amount: dto.amount,
+      payMethod: dto.payMethod,
+      date: new Date(),
+      state: PaymentState.COMPLETED,
+      registeredByDni: adminDni,
+      deleted: false,
+    });
+    return this.paymentRepository.save(newPayment);
+  }
+
+  // Historial de pagos del usuario autenticado (a través de sus propias
+  // suscripciones). userDni sale del JWT — nunca aceptar uno por parámetro
+  // acá o cualquiera podría leer el historial de pagos de otra persona.
+  async findMineForUser(userDni: number) {
+    return this.findByUser(userDni);
+  }
+
+  // Historial de pagos de un usuario puntual (panel admin de Usuarios).
+  async findByUser(userDni: number) {
+    return this.paymentRepository
+      .createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.subscription', 'subscription')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .where('subscription.userDni = :userDni', { userDni })
+      .andWhere('payment.deleted = false')
+      .orderBy('payment.date', 'DESC')
+      .getMany();
+  }
 
   async createPayment(paymentDto: PaymentDto) {
     const newPayment = this.paymentRepository.create({
@@ -36,7 +82,9 @@ export class PaymentService {
   async findAll() {
     return await this.paymentRepository.find({
       where: { deleted: false },
-      relations: { subscription: true },
+      // relations explícitas hasta 'user'/'plan': eager:true en la entity
+      // Subscription no se puede dar por hecho que cascadee acá.
+      relations: { subscription: { user: true, plan: true } },
     });
   }
 

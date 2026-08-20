@@ -38,3 +38,14 @@ export interface AuthResponse {
   token: string;
   user: Pick<User, "dni" | "email" | "name" | "surname" | "phone" | "role">;
 }
+
+// Body de PATCH /user/me. El dni nunca viaja acá: lo resuelve el backend
+// desde el JWT.
+export interface UpdateProfilePayload {
+  name?: string;
+  surname?: string;
+  email?: string;
+  phone?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}

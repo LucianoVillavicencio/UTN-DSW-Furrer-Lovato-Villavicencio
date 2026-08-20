@@ -31,6 +31,11 @@ export class Payment {
   @Column({ type: String, nullable: false, default: 'completado' })
   state!: string;
 
+  // DNI del admin que cargó el pago presencial. Null para pagos que en el
+  // futuro vengan de Mercado Pago (no los carga una persona).
+  @Column({ type: Number, nullable: true })
+  registeredByDni?: number | null;
+
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }

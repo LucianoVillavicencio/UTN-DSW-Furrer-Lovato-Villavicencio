@@ -1,66 +1,80 @@
 import type { TypeClass } from "../types/typeClass";
+import { AxiosError } from "axios";
+import api from "./api";
 
+interface NestErrorBody {
+  message?: string | string[];
+  error?: string;
+  statusCode?: number;
+}
 
-const API_URL = "http://localhost:3000/api/v1/tipo-clase";
-
-export const getTypeClass = async (): Promise<TypeClass[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Error al obtener tipos de clase");
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (!(error instanceof AxiosError)) return fallback;
+  if (!error.response) {
+    return "No se pudo conectar con el servidor. Verifica tu conexión a internet.";
   }
-  return await response.json();
+  const data = error.response.data as NestErrorBody | undefined;
+  const backendMessage = Array.isArray(data?.message)
+    ? data.message.join(", ")
+    : data?.message;
+  return backendMessage || fallback;
+};
+
+// Antes apuntaba a /tipo-clase, que no existe en el backend (el controller
+// es /typeClass) — cualquier llamada de acá fallaba en silencio con 404.
+export const getTypeClass = async (): Promise<TypeClass[]> => {
+  try {
+    const { data } = await api.get<TypeClass[]>("/typeClass");
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "Error al obtener tipos de clase"), { cause: error });
+  }
 };
 
 export const getTypeClassById = async (id: number): Promise<TypeClass> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener tipo de clase ${id}`);
+  try {
+    const { data } = await api.get<TypeClass>(`/typeClass/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al obtener tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
-export const createTypeClass = async (
-  typeClass: TypeClass,
-): Promise<TypeClass> => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(typeClass),
-  });
-  if (!response.ok) {
-    throw new Error("Error al crear tipo de clase");
+// Admin-only.
+export const createTypeClass = async (typeClass: TypeClass): Promise<TypeClass> => {
+  try {
+    const { data } = await api.post<TypeClass>("/typeClass", typeClass);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "Error al crear tipo de clase"), { cause: error });
   }
-  return await response.json();
 };
 
-export const updateTypeClass = async (
-  typeClass: TypeClass,
-): Promise<TypeClass> => {
-  const response = await fetch(API_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(typeClass),
-  });
-  if (!response.ok) {
-    throw new Error("Error al actualizar tipo de clase");
+export const updateTypeClass = async (typeClass: TypeClass): Promise<TypeClass> => {
+  try {
+    const { data } = await api.put<TypeClass>("/typeClass", typeClass);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "Error al actualizar tipo de clase"), { cause: error });
   }
-  return await response.json();
 };
 
 export const deleteTypeClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar tipo de clase ${id}`);
+  try {
+    const { data } = await api.delete(`/typeClass/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al eliminar tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
 export const restoreTypeClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: "PATCH" });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar tipo de clase ${id}`);
+  try {
+    const { data } = await api.patch(`/typeClass/restore/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al restaurar tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
 export const getTiposClase = getTypeClass;
@@ -68,4 +82,3 @@ export const getTipoClaseById = getTypeClassById;
 export const createTipoClase = createTypeClass;
 export const updateTipoClase = updateTypeClass;
 export const deleteTipoClase = deleteTypeClass;
-
