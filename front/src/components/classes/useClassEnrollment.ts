@@ -12,6 +12,7 @@ import {
   getClassRegistration,
   deleteClassRegistration,
 } from '../../services/classRegistration.service';
+import { getMySubscription } from '../../services/subscription.service';
 
 import {
   generateFullWeekSessions,
@@ -28,6 +29,9 @@ export const useClassEnrollment = () => {
   const [userRegistrations, setUserRegistrations] = useState<
     ClassRegistration[]
   >([]);
+  // A membership is required to enroll, so the button offers the plans page
+  // instead of a request the backend would reject.
+  const [hasActivePlan, setHasActivePlan] = useState(false);
 
   // The user comes from AuthContext, whose token is already validated, rather
   // than from raw localStorage.
@@ -65,12 +69,15 @@ export const useClassEnrollment = () => {
         fetchedSessions,
         fetchedTypes,
         fetchedRegistrations,
+        fetchedSubscription,
       ] = await Promise.allSettled([
         getClass(),
         getClassSession(),
         getTypeClass(),
-        // Registrations only make sense for a signed-in user.
+        // Registrations and the subscription only make sense for a signed-in
+        // user.
         isAuthenticated ? getClassRegistration() : Promise.resolve([]),
+        isAuthenticated ? getMySubscription() : Promise.resolve(null),
       ]);
 
       // The class catalogue comes from the backend with no stand-in data: if it
@@ -126,6 +133,11 @@ export const useClassEnrollment = () => {
       ) {
         setUserRegistrations(fetchedRegistrations.value);
       }
+
+      setHasActivePlan(
+        fetchedSubscription.status === 'fulfilled' &&
+          !!fetchedSubscription.value,
+      );
 
       setIsLoading(false);
     };
@@ -379,6 +391,7 @@ export const useClassEnrollment = () => {
     selectedSession,
     setSelectedSession,
     isEnrolledInSession,
+    hasActivePlan,
     handleEnrollSession,
     handleCancelSession,
     currentUser,

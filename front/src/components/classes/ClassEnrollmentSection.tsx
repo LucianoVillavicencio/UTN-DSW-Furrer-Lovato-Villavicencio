@@ -26,6 +26,7 @@ const ClassEnrollmentSection = () => {
     selectedSession,
     setSelectedSession,
     isEnrolledInSession,
+    hasActivePlan,
     handleEnrollSession,
     handleCancelSession,
     currentUser,
@@ -115,6 +116,7 @@ const ClassEnrollmentSection = () => {
           selectedSession={selectedSession}
           setSelectedSession={setSelectedSession}
           isEnrolledInSession={isEnrolledInSession}
+          hasActivePlan={hasActivePlan}
           handleEnrollSession={handleEnrollSession}
           handleCancelSession={handleCancelSession}
           currentUser={currentUser}

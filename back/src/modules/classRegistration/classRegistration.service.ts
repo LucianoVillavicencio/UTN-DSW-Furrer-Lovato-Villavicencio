@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,15 +9,59 @@ import { Repository, UpdateResult } from 'typeorm';
 import { ClassRegistration } from './entity/classRegistration.entity';
 import { ClassRegistrationDto } from './dto/classRegistration-dto';
 import { ClassRegistrationState } from './enum/classRegistration-state.enum';
+import { ClassSessionService } from '../classSession/classSession.service';
+import { subscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ClassRegistrationService {
   constructor(
     @InjectRepository(ClassRegistration)
     private classRegistrationRepository: Repository<ClassRegistration>,
+    private readonly classSessionService: ClassSessionService,
+    private readonly subscriptions: subscriptionService,
   ) {}
 
+  // Everything below used to be unchecked: the row went straight to save(), so
+  // a session id that does not exist came back as a foreign-key error and Nest
+  // turned it into a bare 500. Each rule now answers with its own status and a
+  // message the frontend can show.
   async createClassRegistration(classRegistration: ClassRegistrationDto) {
+    const session = await this.classSessionService.findClassSession(
+      classRegistration.classSessionId,
+    );
+    if (!session || session.deleted) {
+      throw new NotFoundException(
+        `El turno de clase con ID: ${classRegistration.classSessionId} no existe.`,
+      );
+    }
+
+    const activeSubscription = await this.subscriptions.findActiveForUser(
+      classRegistration.userDni,
+    );
+    if (!activeSubscription) {
+      throw new ForbiddenException(
+        'Necesitás un plan activo para inscribirte a una clase.',
+      );
+    }
+
+    const alreadyRegistered = await this.classRegistrationRepository.findOne({
+      where: {
+        userDni: classRegistration.userDni,
+        classSessionId: classRegistration.classSessionId,
+        state: ClassRegistrationState.CONFIRMED,
+        deleted: false,
+      },
+    });
+    if (alreadyRegistered) {
+      throw new ConflictException('Ya estás inscripto en este turno.');
+    }
+
+    if (session.availableSpots <= 0) {
+      throw new ConflictException(
+        'No hay cupos disponibles para este horario.',
+      );
+    }
+
     const newRegistration = this.classRegistrationRepository.create({
       ...classRegistration,
       date: classRegistration.date

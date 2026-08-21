@@ -1,4 +1,10 @@
-import { Clock, CheckCircle2, UserCheck, AlertCircle } from 'lucide-react';
+import {
+  Clock,
+  CheckCircle2,
+  UserCheck,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react';
 import Button from '../common/Button';
 import type { ClassSession } from '../../types/classSession';
 import type { AuthUser } from '../../types/user';
@@ -7,6 +13,7 @@ interface SelectedHourSummaryProps {
   selectedSession: ClassSession;
   isEnrolled: boolean;
   currentUser: AuthUser | null;
+  hasActivePlan: boolean;
   actionLoading: boolean;
   onEnroll: (session: ClassSession) => void;
   onCancel: (session: ClassSession) => void;
@@ -16,6 +23,7 @@ const SelectedHourSummary = ({
   selectedSession,
   isEnrolled,
   currentUser,
+  hasActivePlan,
   actionLoading,
   onEnroll,
   onCancel,
@@ -110,6 +118,20 @@ const SelectedHourSummary = ({
                 {actionLoading ? 'Cancelando...' : 'Cancelar mi inscripción'}
               </Button>
             </div>
+          ) : !hasActivePlan ? (
+            <div className="space-y-2 text-center">
+              <Button
+                variant="primary"
+                href="/membership"
+                className="w-full py-3.5 text-base"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Ver Planes
+              </Button>
+              <p className="text-[11px] text-text-muted">
+                Necesitás un plan activo para inscribirte a una clase.
+              </p>
+            </div>
           ) : freeSpots > 0 ? (
             <Button
               variant="primary"
@@ -136,7 +158,7 @@ const SelectedHourSummary = ({
               </Button>
             </a>
             <p className="text-[11px] text-text-muted">
-              Debes tener una cuenta registrada para reservar sessions.
+              Debes tener una cuenta registrada para reservar turnos.
             </p>
           </div>
         )}

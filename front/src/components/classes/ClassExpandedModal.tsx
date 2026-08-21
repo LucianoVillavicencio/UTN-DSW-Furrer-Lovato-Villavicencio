@@ -20,6 +20,7 @@ interface ClassExpandedModalProps {
   selectedSession: ClassSession | null;
   setSelectedSession: (session: ClassSession | null) => void;
   isEnrolledInSession: (sessionId?: number) => boolean;
+  hasActivePlan: boolean;
   handleEnrollSession: (session: ClassSession) => void;
   handleCancelSession: (session: ClassSession) => void;
   currentUser: AuthUser | null;
@@ -36,6 +37,7 @@ const ClassExpandedModal = ({
   selectedSession,
   setSelectedSession,
   isEnrolledInSession,
+  hasActivePlan,
   handleEnrollSession,
   handleCancelSession,
   currentUser,
@@ -124,6 +126,7 @@ const ClassExpandedModal = ({
           <SelectedHourSummary
             selectedSession={selectedSession}
             isEnrolled={isEnrolledInSession(selectedSession.id)}
+            hasActivePlan={hasActivePlan}
             currentUser={currentUser}
             actionLoading={actionLoading}
             onEnroll={handleEnrollSession}
