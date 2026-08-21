@@ -24,7 +24,7 @@ export const getClassById = async (id: number): Promise<Class> => {
   }
 };
 
-export const getClassDeleted = async (): Promise<Class[]> => {
+export const getDeletedClasses = async (): Promise<Class[]> => {
   try {
     const { data } = await api.get<Class[]>("/class/filter/deleted");
     return data;

@@ -9,7 +9,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from './entity/users.entity';
 import { Repository, UpdateResult } from 'typeorm';
 import { UsersDto } from './dto/users-dto';
+import { UpdateProfileDto } from './dto/update-profile-dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { Role } from '../../common/enum/rol.enum';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -58,9 +61,161 @@ export class UserService {
     return await this.usersRepository.find({ where: { deleted: false } });
   }
 
+  // Búsqueda para el admin: dni y email hacen match exacto, name/surname
+  // hacen LIKE parcial. Cada filtro es independiente (se puede buscar por
+  // uno solo); si no viene ninguno, se comporta como findAll().
+  async searchUsers(query: {
+    dni?: number;
+    email?: string;
+    name?: string;
+    surname?: string;
+  }) {
+    const qb = this.usersRepository
+      .createQueryBuilder('user')
+      // select:false en la entity no lo respeta QueryBuilder (a diferencia
+      // de Repository.find/findOne) — se listan las columnas a mano para
+      // no arriesgarse a devolver el hash de la contraseña.
+      .select([
+        'user.dni',
+        'user.email',
+        'user.name',
+        'user.surname',
+        'user.phone',
+        'user.role',
+        'user.googleId',
+        'user.picture',
+        'user.deleted',
+      ])
+      .where('user.deleted = false');
+
+    if (query.dni) {
+      qb.andWhere('user.dni = :dni', { dni: query.dni });
+    }
+    if (query.email) {
+      qb.andWhere('user.email = :email', { email: query.email });
+    }
+    if (query.name) {
+      qb.andWhere('user.name LIKE :name', { name: `%${query.name}%` });
+    }
+    if (query.surname) {
+      qb.andWhere('user.surname LIKE :surname', {
+        surname: `%${query.surname}%`,
+      });
+    }
+
+    // password tiene select:false en la entity, así que no hace falta
+    // excluirlo a mano acá: TypeORM no lo trae salvo que se pida explícito.
+    return qb.orderBy('user.name', 'ASC').take(50).getMany();
+  }
+
   // Get Users deleted
   async findAllDeleted() {
     return await this.usersRepository.find({ where: { deleted: true } });
+  }
+
+  // Self-service profile update. dni siempre viene del JWT (ver
+  // UserController#updateMyProfile), nunca del body: así un usuario no
+  // puede editar el registro de otro usuario aunque lo intente.
+  async updateProfile(dni: number, dto: UpdateProfileDto) {
+    const user = await this.usersRepository.findOne({
+      where: { dni },
+      select: {
+        dni: true,
+        email: true,
+        name: true,
+        surname: true,
+        phone: true,
+        password: true,
+        role: true,
+        googleId: true,
+        picture: true,
+        deleted: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`El usuario con DNI: ${dni} no existe.`);
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const emailTaken = await this.findUserByEmail(dto.email);
+      if (emailTaken) {
+        throw new ConflictException(
+          `El email ${dto.email} ya está en uso por otra cuenta.`,
+        );
+      }
+      user.email = dto.email;
+    }
+
+    if (dto.name) user.name = dto.name;
+    if (dto.surname) user.surname = dto.surname;
+    if (dto.phone) user.phone = dto.phone;
+
+    if (dto.newPassword) {
+      if (!user.password) {
+        throw new ConflictException(
+          'Esta cuenta inició sesión con Google y no tiene contraseña local.',
+        );
+      }
+      const currentValid = await bcrypt.compare(
+        dto.currentPassword ?? '',
+        user.password,
+      );
+      if (!currentValid) {
+        throw new UnauthorizedException('La contraseña actual es incorrecta.');
+      }
+      user.password = await bcrypt.hash(dto.newPassword, 10);
+    }
+
+    const saved = await this.usersRepository.save(user);
+    const { password: _password, ...safeUser } = saved;
+    return safeUser;
+  }
+
+  // Edición por parte de un admin (panel de Usuarios): a diferencia de
+  // updateUsers (PUT /user, UsersDto) no toca password, así que no hay
+  // riesgo de guardar un valor sin hashear.
+  async adminUpdateUser(dni: number, dto: AdminUpdateUserDto) {
+    // select explícito con password incluido (igual que updateProfile):
+    // si se omite, save() de una entity a la que le falta esa columna
+    // puede terminar pisándola con null.
+    const user = await this.usersRepository.findOne({
+      where: { dni },
+      select: {
+        dni: true,
+        email: true,
+        name: true,
+        surname: true,
+        phone: true,
+        password: true,
+        role: true,
+        googleId: true,
+        picture: true,
+        deleted: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException(`El usuario con DNI: ${dni} no existe.`);
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const emailTaken = await this.findUserByEmail(dto.email);
+      if (emailTaken) {
+        throw new ConflictException(
+          `El email ${dto.email} ya está en uso por otra cuenta.`,
+        );
+      }
+      user.email = dto.email;
+    }
+
+    if (dto.name) user.name = dto.name;
+    if (dto.surname) user.surname = dto.surname;
+    if (dto.phone) user.phone = dto.phone;
+    if (dto.role) user.role = dto.role;
+
+    const saved = await this.usersRepository.save(user);
+    const { password: _password, ...safeUser } = saved;
+    return safeUser;
   }
 
   // Update User

@@ -1,11 +1,23 @@
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+
+export class PlanFeatureDto {
+  @IsString()
+  @IsNotEmpty()
+  label!: string;
+
+  @IsBoolean()
+  available!: boolean;
+}
 
 export class PlanDto {
   @IsNumber()
@@ -29,6 +41,12 @@ export class PlanDto {
   @IsPositive()
   @IsNotEmpty()
   numDays!: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanFeatureDto)
+  @IsOptional()
+  features?: PlanFeatureDto[];
 
   @IsBoolean()
   @IsOptional()

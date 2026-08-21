@@ -29,6 +29,7 @@ export class TrainerController {
     return this.trainerService.createTrainer(trainerDto);
   }
 
+  // Lectura pública: la usa la página /trainers.
   @Get()
   getTrainers() {
     return this.trainerService.findAll();

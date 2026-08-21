@@ -1,59 +1,85 @@
 import type { Plan } from '../types/plan';
+import { AxiosError } from 'axios';
+import api from './api';
 
-const API_URL = 'http://localhost:3000/api/v1/plan';
+interface NestErrorBody {
+  message?: string | string[];
+  error?: string;
+  statusCode?: number;
+}
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (!(error instanceof AxiosError)) return fallback;
+  if (!error.response) {
+    return 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+  }
+  const data = error.response.data as NestErrorBody | undefined;
+  const backendMessage = Array.isArray(data?.message)
+    ? data.message.join(', ')
+    : data?.message;
+  return backendMessage || fallback;
+};
 
 export const getPlans = async (): Promise<Plan[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error('Error al obtener lista de planes');
+  try {
+    const { data } = await api.get<Plan[]>('/plan');
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Error al obtener lista de planes'), { cause: error });
   }
-  return await response.json();
 };
 
 export const getPlanById = async (id: number): Promise<Plan> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener plan ${id}`);
+  try {
+    const { data } = await api.get<Plan>(`/plan/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al obtener plan ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
+// Admin-only.
 export const createPlan = async (plan: Plan): Promise<Plan> => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(plan),
-  });
-  if (!response.ok) {
-    throw new Error('Error al crear plan');
+  try {
+    const { data } = await api.post<Plan>('/plan', plan);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Error al crear plan'), { cause: error });
   }
-  return await response.json();
 };
 
 export const updatePlan = async (plan: Plan): Promise<Plan> => {
-  const response = await fetch(API_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(plan),
-  });
-  if (!response.ok) {
-    throw new Error('Error al actualizar plan');
+  try {
+    const { data } = await api.put<Plan>('/plan', plan);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Error al actualizar plan'), { cause: error });
   }
-  return await response.json();
 };
 
 export const deletePlan = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar plan ${id}`);
+  try {
+    const { data } = await api.delete(`/plan/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al eliminar plan ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
 export const restorePlan = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: 'PATCH' });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar plan ${id}`);
+  try {
+    const { data } = await api.patch(`/plan/restore/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, `Error al restaurar plan ${id}`), { cause: error });
   }
-  return await response.json();
+};
+
+export const getDeletedPlans = async (): Promise<Plan[]> => {
+  try {
+    const { data } = await api.get<Plan[]>('/plan/filter/deleted');
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Error al obtener planes eliminados'), { cause: error });
+  }
 };

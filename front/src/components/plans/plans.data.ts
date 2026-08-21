@@ -1,9 +1,7 @@
-import type { Plan } from "../../types/plan";
+import type { Plan, PlanFeature } from "../../types/plan";
+import { formatPriceDisplay } from "../../lib/currency";
 
-export interface PlanFeature {
-  label: string;
-  available: boolean;
-}
+export type { PlanFeature };
 
 export interface MembershipPlan {
   id?: number;
@@ -94,9 +92,14 @@ export function enrichBackendPlan(plan: Plan): MembershipPlan {
   const isElite = normName.includes("elite") || normName.includes("vip") || normName.includes("pro");
   const isBasic = normName.includes("básico") || normName.includes("basico");
 
-  // Determine features based on plan tier or generate smart features
+  // El admin ahora puede editar las features de cada plan (se guardan en
+  // el backend). Estos sets adivinados por nombre quedan solo como fallback
+  // para el caso raro de un plan sin features todavía (el backend hace un
+  // backfill automático, así que esto no debería disparar en la práctica).
   let features: PlanFeature[];
-  if (isElite) {
+  if (plan.features && plan.features.length > 0) {
+    features = plan.features;
+  } else if (isElite) {
     features = [
       { label: "Acceso ilimitado 24/7 a todas las áreas", available: true },
       { label: "Todas las clases grupales ilimitadas", available: true },
@@ -132,7 +135,7 @@ export function enrichBackendPlan(plan: Plan): MembershipPlan {
     id: plan.id,
     name: plan.name,
     description: plan.description || (isBasic ? "Perfecto para empezar tu camino fitness" : isElite ? "Experiencia fitness definitiva con beneficios premium" : "Nuestro plan más popular con todo lo necesario"),
-    price: `$${plan.price}`,
+    price: `$${formatPriceDisplay(plan.price)}`,
     numericPrice: Number(plan.price),
     period: periodStr,
     numDays: plan.numDays || 30,

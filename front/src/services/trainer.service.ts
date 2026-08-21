@@ -23,7 +23,7 @@ export const getTrainerByDni = async (dni: number): Promise<Trainer> => {
   }
 };
 
-export const getTrainersDeleted = async (): Promise<Trainer[]> => {
+export const getDeletedTrainers = async (): Promise<Trainer[]> => {
   try {
     const { data } = await api.get<Trainer[]>("/trainer/filter/deleted");
     return data;

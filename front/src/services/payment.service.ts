@@ -1,60 +1,63 @@
-import type { Payment } from "../types/payment";
+import type { Payment, ManualPaymentPayload } from "../types/payment";
+import { AxiosError } from "axios";
+import api from "./api";
 
+interface NestErrorBody {
+  message?: string | string[];
+  error?: string;
+  statusCode?: number;
+}
 
-const API_URL = 'http://localhost:3000/api/v1/payment';
-
-export const getPayment = async (): Promise<Payment[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error('Error al obtener lista de pagos');
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (!(error instanceof AxiosError)) return fallback;
+  if (!error.response) {
+    return "No se pudo conectar con el servidor. Verifica tu conexión a internet.";
   }
-  return await response.json();
+  const data = error.response.data as NestErrorBody | undefined;
+  const backendMessage = Array.isArray(data?.message)
+    ? data.message.join(", ")
+    : data?.message;
+  return backendMessage || fallback;
 };
 
-export const getPaymentById = async (id: number): Promise<Payment> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener pago ${id}`);
+// Self-service: historial de pagos del usuario autenticado.
+export const getMyPayments = async (): Promise<Payment[]> => {
+  try {
+    const { data } = await api.get<Payment[]>("/Payment/me");
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "No se pudo obtener tu historial de pagos."), { cause: error });
   }
-  return await response.json();
 };
 
-export const createPayment = async (pago: Payment): Promise<Payment> => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(pago),
-  });
-  if (!response.ok) {
-    throw new Error('Error al registrar pago');
+// Admin-only: pago presencial.
+export const createManualPayment = async (
+  payload: ManualPaymentPayload,
+): Promise<Payment> => {
+  try {
+    const { data } = await api.post<Payment>("/Payment/manual", payload);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "No se pudo registrar el pago."), { cause: error });
   }
-  return await response.json();
 };
 
-export const updatePayment = async (pago: Payment): Promise<Payment> => {
-  const response = await fetch(API_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(pago),
-  });
-  if (!response.ok) {
-    throw new Error('Error al actualizar pago');
+// Admin-only: todos los pagos (para la sección "Pagos presenciales").
+export const getPayments = async (): Promise<Payment[]> => {
+  try {
+    const { data } = await api.get<Payment[]>("/Payment");
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "Error al obtener lista de pagos"), { cause: error });
   }
-  return await response.json();
 };
 
-export const deletePayment = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar pago ${id}`);
+// Admin-only: historial de pagos de un usuario puntual (panel de Usuarios).
+export const getPaymentsByUser = async (dni: number): Promise<Payment[]> => {
+  try {
+    const { data } = await api.get<Payment[]>(`/Payment/by-user/${dni}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, "No se pudo obtener el historial de pagos."), { cause: error });
   }
-  return await response.json();
-};
-
-export const restorePayment = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: 'PATCH' });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar pago ${id}`);
-  }
-  return await response.json();
 };

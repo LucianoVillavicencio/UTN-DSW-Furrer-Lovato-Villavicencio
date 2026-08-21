@@ -1,8 +1,19 @@
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+// GSI solo llama a onError cuando Google contesta sin credencial. Si el flujo
+// se corta antes (origen no autorizado, popup bloqueado por el navegador, una
+// extension que rompe el handshake, o el usuario que cierra la ventana), no
+// llama a nada: el boton queda mudo y la pantalla no muestra ningun error.
+// Estos dos plazos convierten ese silencio en un mensaje.
+
+// Backstop: hubo click pero nunca se abrio nada ni volvio respuesta.
+const UNRESOLVED_TIMEOUT_MS = 45_000;
+// El usuario volvio de la ventana de Google y la credencial nunca llego.
+const RETURN_TIMEOUT_MS = 5_000;
 
 interface GoogleAuthButtonProps {
   label?: string;
@@ -22,12 +33,93 @@ const GoogleAuthButton = ({
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // onError llega como arrow inline desde el form, asi que cambia en cada
+  // render; el ref evita que los timers se queden con una version vieja.
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  const unresolvedTimerRef = useRef<number | null>(null);
+  const returnTimerRef = useRef<number | null>(null);
+  // Hay un click esperando resolucion (exito, error o vencimiento).
+  const awaitingRef = useRef(false);
+  // La ventana perdio el foco, o sea que el popup de Google si llego a abrirse.
+  const blurredRef = useRef(false);
+
+  const clearPending = () => {
+    if (unresolvedTimerRef.current !== null) {
+      window.clearTimeout(unresolvedTimerRef.current);
+      unresolvedTimerRef.current = null;
+    }
+    if (returnTimerRef.current !== null) {
+      window.clearTimeout(returnTimerRef.current);
+      returnTimerRef.current = null;
+    }
+    awaitingRef.current = false;
+    blurredRef.current = false;
+  };
+
+  // Es una heuristica, no un diagnostico: no sabemos por que se corto el flujo,
+  // solo que no contesto. Por eso el mensaje sugiere reintentar en vez de
+  // afirmar una causa.
+  const reportUnresolvedFlow = () => {
+    if (!awaitingRef.current) return;
+    clearPending();
+    const msg =
+      "No se pudo completar el inicio de sesión con Google. Intentá de nuevo o ingresá con tu email y contraseña.";
+    setLocalError(msg);
+    onErrorRef.current?.(msg);
+  };
+
+  const handleGoogleClick = () => {
+    setLocalError(null);
+    // Si ya hay un click sin resolver no reiniciamos el backstop: alguien
+    // clickeando repetidamente sobre un boton muerto lo postergaria para siempre.
+    if (awaitingRef.current) return;
+    awaitingRef.current = true;
+    blurredRef.current = false;
+    unresolvedTimerRef.current = window.setTimeout(
+      reportUnresolvedFlow,
+      UNRESOLVED_TIMEOUT_MS,
+    );
+  };
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (awaitingRef.current) blurredRef.current = true;
+    };
+
+    // Solo cuenta como "volvio sin credencial" si antes hubo popup. Con FedCM
+    // el selector de cuentas es UI del navegador y la pagina nunca pierde el
+    // foco, asi que en ese caso queda solo el backstop largo.
+    const handleFocus = () => {
+      if (!awaitingRef.current || !blurredRef.current) return;
+      if (returnTimerRef.current !== null) return;
+      returnTimerRef.current = window.setTimeout(
+        reportUnresolvedFlow,
+        RETURN_TIMEOUT_MS,
+      );
+    };
+
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+      clearPending();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const isConfigured =
     Boolean(clientId) &&
     clientId !== "your-google-client-id.apps.googleusercontent.com";
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    clearPending();
+
     if (!credentialResponse.credential) {
       const msg = "No se recibió la credencial de Google.";
       setLocalError(msg);
@@ -59,6 +151,7 @@ const GoogleAuthButton = ({
   };
 
   const handleGoogleError = () => {
+    clearPending();
     const msg = "La autenticación con Google ha fallado o fue cancelada por el usuario.";
     setLocalError(msg);
     onError?.(msg);
@@ -98,7 +191,7 @@ const GoogleAuthButton = ({
           </svg>
           <span>{label}</span>
         </button>
-        {localError && (
+        {!onError && localError && (
           <p className="text-xs text-amber-400 text-center font-body animate-fadeIn">
             {localError}
           </p>
@@ -119,15 +212,17 @@ const GoogleAuthButton = ({
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
-            useOneTap
+            click_listener={handleGoogleClick}
             theme="outline"
             size="large"
-            width="100%"
+            width="320"
             text="continue_with"
           />
         </div>
       )}
-      {localError && (
+      {/* Si el padre recibe onError ya muestra el mensaje (FormAlert); solo lo
+          pintamos aca cuando el boton se usa suelto, sin nadie que lo reporte. */}
+      {!onError && localError && (
         <p className="text-xs text-red-400 text-center font-body animate-fadeIn">{localError}</p>
       )}
     </div>

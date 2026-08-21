@@ -10,6 +10,9 @@ import Contact from "../pages/Contact/Contact";
 import Plan from "../pages/Plan/Plan";
 import NotFound from "../pages/NotFound/NotFound";
 import Trainers from "../pages/Trainers/Trainers";
+import Dashboard from "../pages/Dashboard/Dashboard";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+import ProtectedRoute from "./ProtectedRoute";
 
 // 1. Creamos el Layout principal
 const RootLayout = () => {
@@ -61,6 +64,22 @@ export const router = createBrowserRouter([
       {
         path: "/trainers",
         element: <Trainers />,
+      },
+      {
+        path: "/dashboard",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/admin",
+        element: (
+          <ProtectedRoute requiredRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "*",

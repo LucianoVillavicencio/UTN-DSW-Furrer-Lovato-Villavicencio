@@ -29,6 +29,7 @@ export class ClassController {
     return this.classService.createClass(claseDto);
   }
 
+  // Lectura pública: la usan las páginas /class y el picker de turnos.
   @Get()
   getClasses() {
     return this.classService.findAll();

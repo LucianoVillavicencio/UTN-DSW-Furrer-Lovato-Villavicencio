@@ -25,10 +25,9 @@ const publicLinks: NavLink[] = [
 // Navbar user logeado
 const userLinks: NavLink[] = [
   { label: "Inicio", href: "/" },
-  { label: "Turnos", href: "/turns" },
   { label: "Clases", href: "/class" },
   { label: "Entrenadores", href: "/trainers" },
-  { label: "Mis turnos", href: "/profile" },
+  { label: "Mi cuenta", href: "/dashboard" },
   { label: "Planes", href: "/membership" },
   { label: "Sobre nosotros", href: "/about" },
   { label: "Contacto", href: "/contact" },
@@ -39,7 +38,6 @@ const userLinks: NavLink[] = [
 // Navbar admin
 const adminLinks: NavLink[] = [
   { label: "Inicio", href: "/" },
-  { label: "Turnos", href: "/turns" },
   { label: "Clases", href: "/class" },
   { label: "Entrenadores", href: "/trainers" },
   { label: "Planes", href: "/membership" },
@@ -93,7 +91,7 @@ const Navbar = () => {
           {/* NAVBAR ADMIN */}
           {isAdmin && (
             <Link
-              to="/profile"
+              to="/admin"
               className="flex items-center gap-1.5 font-body text-md text-primary transition-colors duration-200 hover:text-primary-hover"
             >
               <ShieldCheck className="h-4 w-4" />
@@ -107,7 +105,7 @@ const Navbar = () => {
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <Link
-                to="/profile"
+                to="/dashboard"
                 className="font-body text-sm font-semibold text-text flex items-center gap-1.5 bg-surface px-3 py-1.5 rounded-md border border-border hover:border-primary/50 transition-colors"
               >
                 <UserIcon className="h-4 w-4 text-primary" />
@@ -171,7 +169,7 @@ const Navbar = () => {
 
             {isAdmin && (
               <Link
-                to="/profile"
+                to="/admin"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2 font-body text-base text-primary transition-colors duration-200 hover:text-primary-hover"
               >
@@ -183,7 +181,7 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="flex flex-col gap-2 pt-2 border-t border-border">
                 <Link
-                  to="/profile"
+                  to="/dashboard"
                   onClick={() => setIsOpen(false)}
                   className="font-body text-sm font-semibold text-text flex items-center gap-2"
                 >

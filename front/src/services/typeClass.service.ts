@@ -2,7 +2,8 @@ import type { TypeClass } from "../types/typeClass";
 import api from "./api";
 import { getApiErrorMessage } from "./api-error";
 
-// La ruta del backend es /api/v1/typeClass (ver TypeClassController).
+// La ruta del backend es /api/v1/typeClass (ver TypeClassController). Antes esto
+// apuntaba a /tipo-clase, que no existe: cualquier llamada fallaba con un 404.
 // Se usa desde el filtro de disciplinas de la página de clases.
 
 export const getTypeClass = async (): Promise<TypeClass[]> => {

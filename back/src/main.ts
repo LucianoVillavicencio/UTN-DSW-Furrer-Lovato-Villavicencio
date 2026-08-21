@@ -32,7 +32,10 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  app.enableCors();
+  // Restringido al origen del frontend: enableCors() sin opciones acepta
+  // cualquier origin, lo cual no queremos apenas el panel admin sea alcanzable
+  // fuera de localhost.
+  app.enableCors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5173' });
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

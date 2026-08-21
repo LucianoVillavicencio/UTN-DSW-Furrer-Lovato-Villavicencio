@@ -14,10 +14,7 @@ import {
   type MembershipPlan,
 } from "../../components/plans/plans.data";
 import { getPlans } from "../../services/plan.service";
-import {
-  createSubscription,
-  getSubscriptions,
-} from "../../services/subscription.service";
+import { changePlan, getMySubscription } from "../../services/subscription.service";
 import type { User } from "../../types/user";
 import type { Subscription } from "../../types/subscription";
 
@@ -38,8 +35,8 @@ function Plan() {
     }
   });
 
-  // User subscriptions state
-  const [userSubscriptions, setUserSubscriptions] = useState<Subscription[]>([]);
+  // Suscripción activa del usuario actual (self-service; ver Dashboard).
+  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
     type: "success" | "error";
@@ -52,9 +49,9 @@ function Plan() {
       setIsLoading(true);
       setError(null);
       try {
-        const [plansRes, subsRes] = await Promise.allSettled([
+        const [plansRes, subRes] = await Promise.allSettled([
           getPlans(),
-          currentUser ? getSubscriptions() : Promise.resolve([]),
+          currentUser ? getMySubscription() : Promise.resolve(null),
         ]);
 
         if (plansRes.status === "fulfilled" && Array.isArray(plansRes.value) && plansRes.value.length > 0) {
@@ -65,8 +62,8 @@ function Plan() {
           setPlans(MEMBERSHIP_PLANS);
         }
 
-        if (subsRes.status === "fulfilled" && Array.isArray(subsRes.value)) {
-          setUserSubscriptions(subsRes.value);
+        if (subRes.status === "fulfilled") {
+          setActiveSubscription(subRes.value);
         }
       } catch (err) {
         console.warn("Backend error fetching plans, using fallback:", err);
@@ -81,14 +78,11 @@ function Plan() {
 
   // Check if current user has an active subscription to a given plan
   const hasActiveSubscriptionToPlan = (planId?: number) => {
-    if (!currentUser || !planId) return false;
-    const userDniNum = Number(currentUser.dni);
-    return userSubscriptions.some(
-      (sub) =>
-        Number(sub.userDni) === userDniNum &&
-        Number(sub.planId) === Number(planId) &&
-        sub.state?.toLowerCase() === "activa" &&
-        !sub.deleted
+    if (!planId || !activeSubscription) return false;
+    return (
+      Number(activeSubscription.planId) === Number(planId) &&
+      activeSubscription.state?.toLowerCase() === "activa" &&
+      !activeSubscription.deleted
     );
   };
 
@@ -108,15 +102,6 @@ function Plan() {
     }
 
     const planIdNum = selectedPlan.id ?? 1;
-    const userDniNum = Number(currentUser.dni);
-
-    if (!userDniNum || isNaN(userDniNum)) {
-      setActionFeedback({
-        type: "error",
-        message: "No se pudo verificar tu DNI de usuario. Por favor iniciá sesión nuevamente.",
-      });
-      return;
-    }
 
     if (hasActiveSubscriptionToPlan(planIdNum)) {
       setActionFeedback({
@@ -129,32 +114,17 @@ function Plan() {
     setSubscribingId(planIdNum);
 
     try {
-      const today = new Date();
-      const startDateStr = today.toISOString().split("T")[0];
-
-      const endDate = new Date();
-      endDate.setDate(today.getDate() + (selectedPlan.numDays || 30));
-      const endDateStr = endDate.toISOString().split("T")[0];
-
-      const newSub = await createSubscription({
-        userDni: userDniNum,
-        planId: planIdNum,
-        startDate: startDateStr,
-        endDate: endDateStr,
-        state: "activa",
-      });
-
-      setUserSubscriptions((prev) => [...prev, newSub]);
+      const updated = await changePlan(planIdNum);
+      setActiveSubscription(updated);
 
       setActionFeedback({
         type: "success",
-        message: `¡Felicitaciones! Te has suscrito exitosamente al plan ${selectedPlan.name}.`,
+        message: `Tu cambio de plan a "${selectedPlan.name}" fue registrado. Acercate al gimnasio para abonar.`,
       });
-    } catch (err: any) {
-      console.error("Subscription error:", err);
+    } catch (err: unknown) {
       setActionFeedback({
         type: "error",
-        message: err.message || "No se pudo procesar la suscripción. Intentalo de nuevo.",
+        message: err instanceof Error ? err.message : "No se pudo procesar la suscripción. Intentalo de nuevo.",
       });
     } finally {
       setSubscribingId(null);
