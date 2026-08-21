@@ -36,4 +36,4 @@ Adicionales para Aprobación
 | :--- | :--- |
 |Listados | 1. Listado de clientes por clase <br> 2. Listado de profesores por dia|
 | CUU/Epic | 1. Cancelar turno clase <br> 2. Dar de baja plan|
-| Otros | 1. Integración con Google Calendar para evento de la clase|
+| Otros | 1. Integración de Mercado Pago Point para Pagos Presenciales con Tarjeta/QR|
