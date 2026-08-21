@@ -19,7 +19,8 @@ const ClassHourGrid = ({
       <label className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-text-muted mb-3">
         <span>2. Selecciona la Hora (Todas las horas disponibles):</span>
         <span className="text-primary font-semibold text-[11px] bg-primary/10 px-2.5 py-0.5 rounded-full">
-          {sessionsForActiveExpandedDay.length} turnos
+          {sessionsForActiveExpandedDay.length}{' '}
+          {sessionsForActiveExpandedDay.length === 1 ? 'turno' : 'turnos'}
         </span>
       </label>
 

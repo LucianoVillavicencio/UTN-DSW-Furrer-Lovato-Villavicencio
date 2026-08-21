@@ -33,6 +33,22 @@ export class ClassSessionService {
     });
   }
 
+  // Moves the remaining-spots counter as people enroll and cancel. Without
+  // this the column never changes, so a session can never fill up and the
+  // capacity check on enrollment can never fire.
+  async adjustAvailableSpots(id: number, delta: number) {
+    const session = await this.findClassSession(id);
+    if (!session) {
+      throw new NotFoundException(`El turno de clase con ID: ${id} no existe.`);
+    }
+    const next = Math.min(
+      session.maxCapacity,
+      Math.max(0, session.availableSpots + delta),
+    );
+    await this.classSessionRepository.update({ id }, { availableSpots: next });
+    return next;
+  }
+
   async findAll() {
     return await this.classSessionRepository.find({
       where: { deleted: false },

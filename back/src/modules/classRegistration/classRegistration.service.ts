@@ -62,6 +62,11 @@ export class ClassRegistrationService {
       );
     }
 
+    await this.classSessionService.adjustAvailableSpots(
+      classRegistration.classSessionId,
+      -1,
+    );
+
     const newRegistration = this.classRegistrationRepository.create({
       ...classRegistration,
       date: classRegistration.date
@@ -133,6 +138,12 @@ export class ClassRegistrationService {
     if (rows.affected === 0) {
       throw new ConflictException(`No se pudo eliminar la inscripcion`);
     }
+
+    // Cancelling frees the spot again.
+    await this.classSessionService.adjustAvailableSpots(
+      exists.classSessionId,
+      1,
+    );
 
     return { message: `Eliminada correctamente` };
   }

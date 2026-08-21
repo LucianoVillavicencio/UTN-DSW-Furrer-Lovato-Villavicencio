@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Dumbbell,
   Users as UsersIcon,
+  CalendarClock,
   CreditCard,
   Receipt,
   ArrowLeft,
@@ -17,6 +18,7 @@ import DashboardTabs, {
   type DashboardTab,
 } from '../../components/dashboard/DashboardTabs';
 import ClassesSection from '../../components/admin/ClassesSection';
+import ClassSessionsSection from '../../components/admin/ClassSessionsSection';
 import TrainersSection from '../../components/admin/TrainersSection';
 import PlansSection from '../../components/admin/PlansSection';
 import UsersSection from '../../components/admin/UsersSection';
@@ -28,6 +30,7 @@ import { getTrainers } from '../../services/trainer.service';
 const TABS: DashboardTab[] = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
   { id: 'clases', label: 'Clases', icon: Dumbbell },
+  { id: 'turnos', label: 'Turnos', icon: CalendarClock },
   { id: 'entrenadores', label: 'Entrenadores', icon: UsersIcon },
   { id: 'planes', label: 'Planes', icon: CreditCard },
   { id: 'usuarios', label: 'Usuarios', icon: UsersIcon },
@@ -94,8 +97,8 @@ const AdminDashboard = () => {
                 Panel de administración
               </h1>
               <p className="font-body text-sm text-text-muted">
-                Gestión de clases, entrenadores, planes, usuarios y pagos
-                presenciales.
+                Gestión de clases, turnos, entrenadores, planes, usuarios y
+                pagos presenciales.
               </p>
             </div>
           </Container>
@@ -121,6 +124,7 @@ const AdminDashboard = () => {
             <div className="min-w-0 flex-1">
               {activeTab === 'resumen' && <ResumenTab />}
               {activeTab === 'clases' && <ClassesSection />}
+              {activeTab === 'turnos' && <ClassSessionsSection />}
               {activeTab === 'entrenadores' && <TrainersSection />}
               {activeTab === 'planes' && <PlansSection />}
               {activeTab === 'usuarios' && <UsersSection />}
