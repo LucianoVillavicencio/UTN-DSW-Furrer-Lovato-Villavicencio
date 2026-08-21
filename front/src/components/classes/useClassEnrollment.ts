@@ -15,7 +15,6 @@ import {
 import { getMySubscription } from '../../services/subscription.service';
 
 import {
-  generateFullWeekSessions,
   getLocalYMD,
   normalizeText,
   toMasterClassData,
@@ -98,17 +97,16 @@ export const useClassEnrollment = () => {
 
       setMasterClasses(classesFromApi);
 
-      // Real sessions from the backend; while none are loaded yet, a week grid is
-      // generated over the classes that do exist.
-      if (
+      // Only the sessions an admin actually published. There used to be a
+      // generated week grid as a stand-in here, but those slots do not exist in
+      // the database: enrolling in one fails, so it advertised a schedule that
+      // could not be booked. An empty grid is the honest answer.
+      setSessions(
         fetchedSessions.status === 'fulfilled' &&
-        Array.isArray(fetchedSessions.value) &&
-        fetchedSessions.value.length > 0
-      ) {
-        setSessions(fetchedSessions.value);
-      } else {
-        setSessions(generateFullWeekSessions(classesFromApi));
-      }
+          Array.isArray(fetchedSessions.value)
+          ? fetchedSessions.value
+          : [],
+      );
 
       // Filter disciplines: the class-type endpoint, falling back to the types
       // already embedded in the classes that were fetched.
@@ -199,6 +197,18 @@ export const useClassEnrollment = () => {
       );
     },
     [currentUser, userRegistrations],
+  );
+
+  // Whether the expanded class has any published session at all, which is a
+  // different message from "none on the day you picked".
+  const activeClassHasSessions = useMemo(
+    () =>
+      activeExpandedClass
+        ? sessions.some(
+            (s) => (s.classId ?? s.class?.id) === activeExpandedClass.id,
+          )
+        : false,
+    [sessions, activeExpandedClass],
   );
 
   // Available sessions for active expanded class on selected day (timezone-safe getLocalYMD)
@@ -388,6 +398,7 @@ export const useClassEnrollment = () => {
     selectedDayOffset,
     setSelectedDayOffset,
     sessionsForActiveExpandedDay,
+    activeClassHasSessions,
     selectedSession,
     setSelectedSession,
     isEnrolledInSession,

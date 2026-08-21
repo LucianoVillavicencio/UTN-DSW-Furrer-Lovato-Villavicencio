@@ -3,6 +3,7 @@ import type { ClassSession } from '../../types/classSession';
 
 interface ClassHourGridProps {
   sessionsForActiveExpandedDay: ClassSession[];
+  activeClassHasSessions: boolean;
   selectedSession: ClassSession | null;
   onSelectHour: (session: ClassSession) => void;
   isEnrolledInSession: (sessionId?: number) => boolean;
@@ -10,6 +11,7 @@ interface ClassHourGridProps {
 
 const ClassHourGrid = ({
   sessionsForActiveExpandedDay,
+  activeClassHasSessions,
   selectedSession,
   onSelectHour,
   isEnrolledInSession,
@@ -26,8 +28,9 @@ const ClassHourGrid = ({
 
       {sessionsForActiveExpandedDay.length === 0 ? (
         <div className="rounded-2xl border border-border/80 bg-background/50 p-8 text-center text-xs text-text-muted">
-          No hay sessions programados para el día seleccionado. Elige otro día
-          arriba.
+          {activeClassHasSessions
+            ? 'No hay turnos programados para el día seleccionado. Elegí otro día arriba.'
+            : 'Todavía no hay turnos publicados para esta clase. Volvé a consultar más adelante.'}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">

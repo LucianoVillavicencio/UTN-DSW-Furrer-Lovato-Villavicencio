@@ -23,6 +23,7 @@ const ClassEnrollmentSection = () => {
     selectedDayOffset,
     setSelectedDayOffset,
     sessionsForActiveExpandedDay,
+    activeClassHasSessions,
     selectedSession,
     setSelectedSession,
     isEnrolledInSession,
@@ -113,6 +114,7 @@ const ClassEnrollmentSection = () => {
           selectedDayOffset={selectedDayOffset}
           setSelectedDayOffset={setSelectedDayOffset}
           sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
+          activeClassHasSessions={activeClassHasSessions}
           selectedSession={selectedSession}
           setSelectedSession={setSelectedSession}
           isEnrolledInSession={isEnrolledInSession}

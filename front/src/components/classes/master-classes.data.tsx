@@ -8,7 +8,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { Class } from '../../types/class';
-import type { ClassSession } from '../../types/classSession';
 import type { TypeClass } from '../../types/typeClass';
 
 // A class as the cards and the modal consume it. The real data comes from the
@@ -106,46 +105,3 @@ export const toMasterClassData = (cls: Class): MasterClassData => ({
     phone: cls.trainer?.phone ?? undefined,
   },
 });
-
-// Hourly sessions for the whole week, used as a stand-in while the backend has
-// none loaded yet (07:00 to 21:00).
-export const generateFullWeekSessions = (
-  masterClasses: MasterClassData[],
-): ClassSession[] => {
-  const sessions: ClassSession[] = [];
-  let idCounter = 1000;
-  const hourlySlots = Array.from(
-    { length: CLOSING_HOUR - OPENING_HOUR },
-    (_, i) => OPENING_HOUR + i,
-  );
-
-  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-    const baseDate = new Date();
-    baseDate.setDate(baseDate.getDate() + dayOffset);
-
-    if (baseDate.getDay() === 0) continue; // Gym closed on Sunday
-
-    hourlySlots.forEach((hour) => {
-      masterClasses.forEach((clsDef, cIndex) => {
-        if ((hour + cIndex + dayOffset) % 2 === 0) {
-          const slotDate = new Date(baseDate);
-          slotDate.setHours(hour, 0, 0, 0);
-
-          const maxCapacity = 20;
-          const seed = (dayOffset * 13 + hour * 7 + cIndex * 5) % 21;
-          const availableSpots = seed === 0 ? 0 : Math.min(maxCapacity, seed);
-
-          sessions.push({
-            id: idCounter++,
-            classId: clsDef.id,
-            dateTime: slotDate.toISOString(),
-            maxCapacity,
-            availableSpots,
-          });
-        }
-      });
-    });
-  }
-
-  return sessions;
-};

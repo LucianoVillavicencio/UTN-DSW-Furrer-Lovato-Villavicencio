@@ -17,6 +17,7 @@ interface ClassExpandedModalProps {
   selectedDayOffset: number;
   setSelectedDayOffset: (offset: number) => void;
   sessionsForActiveExpandedDay: ClassSession[];
+  activeClassHasSessions: boolean;
   selectedSession: ClassSession | null;
   setSelectedSession: (session: ClassSession | null) => void;
   isEnrolledInSession: (sessionId?: number) => boolean;
@@ -34,6 +35,7 @@ const ClassExpandedModal = ({
   selectedDayOffset,
   setSelectedDayOffset,
   sessionsForActiveExpandedDay,
+  activeClassHasSessions,
   selectedSession,
   setSelectedSession,
   isEnrolledInSession,
@@ -116,6 +118,7 @@ const ClassExpandedModal = ({
         {/* ALL HOURS SELECTION GRID FOR SELECTED DAY */}
         <ClassHourGrid
           sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
+          activeClassHasSessions={activeClassHasSessions}
           selectedSession={selectedSession}
           onSelectHour={(t) => setSelectedSession(t)}
           isEnrolledInSession={isEnrolledInSession}
