@@ -1,7 +1,7 @@
-import { User, Mail, Phone, IdCard } from "lucide-react";
-import InputField from "../common/InputField";
-import PasswordField from "../common/PasswordField";
-import PasswordStrengthMeter from "./PasswordStrengthMeter";
+import { User, Mail, Phone, IdCard } from 'lucide-react';
+import InputField from '../common/InputField';
+import PasswordField from '../common/PasswordField';
+import PasswordStrengthMeter from './PasswordStrengthMeter';
 
 interface RegisterFieldsGroupProps {
   dni: string;
@@ -148,7 +148,7 @@ const RegisterFieldsGroup = ({
           disabled={disabled}
           error={
             errors.confirmPassword ||
-            (isPasswordMismatch ? "Las contraseñas no coinciden." : null)
+            (isPasswordMismatch ? 'Las contraseñas no coinciden.' : null)
           }
         />
       </div>

@@ -1,33 +1,39 @@
-import { Clock, CheckCircle2, UserCheck, AlertCircle } from "lucide-react";
-import Button from "../common/Button";
-import type { TurnoClase } from "../../types/classSession";
-import type { AuthUser } from "../../types/user";
+import { Clock, CheckCircle2, UserCheck, AlertCircle } from 'lucide-react';
+import Button from '../common/Button';
+import type { ClassSession } from '../../types/classSession';
+import type { AuthUser } from '../../types/user';
 
 interface SelectedHourSummaryProps {
-  selectedHourTurno: TurnoClase;
+  selectedSession: ClassSession;
   isEnrolled: boolean;
   currentUser: AuthUser | null;
   actionLoading: boolean;
-  onEnroll: (turno: TurnoClase) => void;
-  onCancel: (turno: TurnoClase) => void;
+  onEnroll: (session: ClassSession) => void;
+  onCancel: (session: ClassSession) => void;
 }
 
 const SelectedHourSummary = ({
-  selectedHourTurno,
+  selectedSession,
   isEnrolled,
   currentUser,
   actionLoading,
   onEnroll,
   onCancel,
 }: SelectedHourSummaryProps) => {
-  const startStr = new Date(selectedHourTurno.fechaHora).toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const cupoMax = selectedHourTurno.cupoMaximo || 20;
-  const cupoDispon = selectedHourTurno.cupoDisponible ?? cupoMax;
-  const inscritosCount = Math.max(0, cupoMax - cupoDispon);
-  const occupancyPercent = Math.min(100, Math.round((inscritosCount / cupoMax) * 100));
+  const startStr = new Date(selectedSession.dateTime).toLocaleTimeString(
+    'es-ES',
+    {
+      hour: '2-digit',
+      minute: '2-digit',
+    },
+  );
+  const maxSpots = selectedSession.maxCapacity || 20;
+  const freeSpots = selectedSession.availableSpots ?? maxSpots;
+  const enrolledCount = Math.max(0, maxSpots - freeSpots);
+  const occupancyPercent = Math.min(
+    100,
+    Math.round((enrolledCount / maxSpots) * 100),
+  );
 
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface/60 p-5 backdrop-blur-sm animate-in fade-in duration-200">
@@ -45,7 +51,7 @@ const SelectedHourSummary = ({
       <div className="mt-4 grid grid-cols-2 gap-4 text-center">
         <div className="rounded-xl border border-border bg-background/80 p-3.5">
           <span className="block text-2xl font-extrabold text-primary">
-            {inscritosCount}
+            {enrolledCount}
           </span>
           <span className="text-[11px] font-semibold text-text-muted">
             Usuarios inscriptos
@@ -55,10 +61,10 @@ const SelectedHourSummary = ({
         <div className="rounded-xl border border-border bg-background/80 p-3.5">
           <span
             className={`block text-2xl font-extrabold ${
-              cupoDispon === 0 ? "text-red-400" : "text-emerald-400"
+              freeSpots === 0 ? 'text-red-400' : 'text-emerald-400'
             }`}
           >
-            {cupoDispon}
+            {freeSpots}
           </span>
           <span className="text-[11px] font-semibold text-text-muted">
             Cupos disponibles
@@ -76,10 +82,10 @@ const SelectedHourSummary = ({
           <div
             className={`h-full transition-all duration-500 rounded-full ${
               occupancyPercent >= 100
-                ? "bg-red-500"
+                ? 'bg-red-500'
                 : occupancyPercent >= 80
-                ? "bg-amber-500"
-                : "bg-emerald-500"
+                  ? 'bg-amber-500'
+                  : 'bg-emerald-500'
             }`}
             style={{ width: `${occupancyPercent}%` }}
           />
@@ -98,21 +104,21 @@ const SelectedHourSummary = ({
               <Button
                 variant="secondary"
                 className="w-full text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-300"
-                onClick={() => onCancel(selectedHourTurno)}
+                onClick={() => onCancel(selectedSession)}
                 disabled={actionLoading}
               >
-                {actionLoading ? "Cancelando..." : "Cancelar mi inscripción"}
+                {actionLoading ? 'Cancelando...' : 'Cancelar mi inscripción'}
               </Button>
             </div>
-          ) : cupoDispon > 0 ? (
+          ) : freeSpots > 0 ? (
             <Button
               variant="primary"
               className="w-full py-3.5 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30"
-              onClick={() => onEnroll(selectedHourTurno)}
+              onClick={() => onEnroll(selectedSession)}
               disabled={actionLoading}
             >
               {actionLoading
-                ? "Inscribiendo..."
+                ? 'Inscribiendo...'
                 : `Inscribirme a las ${startStr} hs`}
             </Button>
           ) : (
@@ -130,7 +136,7 @@ const SelectedHourSummary = ({
               </Button>
             </a>
             <p className="text-[11px] text-text-muted">
-              Debes tener una cuenta registrada para reservar turnos.
+              Debes tener una cuenta registrada para reservar sessions.
             </p>
           </div>
         )}

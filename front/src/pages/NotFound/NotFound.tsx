@@ -1,6 +1,6 @@
-import Navbar from "../../components/layout/Navbar";
-import NotFoundSection from "../../components/not-found/NotFoundSection";
-import Footer from "../../components/layout/Footer";
+import Navbar from '../../components/layout/Navbar';
+import NotFoundSection from '../../components/not-found/NotFoundSection';
+import Footer from '../../components/layout/Footer';
 
 function NotFound() {
   return (

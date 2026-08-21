@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 // accent(green) default  | neutral(chips Rating)
-type BadgeVariant = "accent" | "neutral";
+type BadgeVariant = 'accent' | 'neutral';
 
 interface BadgeProps {
   children: ReactNode;
@@ -13,16 +13,16 @@ interface BadgeProps {
 
 const variantStyle: Record<BadgeVariant, string> = {
   accent:
-    "font-display border-primary/20 bg-primary/10 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm hover:bg-primary/20 transition-colors duration-200",
+    'font-display border-primary/20 bg-primary/10 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm hover:bg-primary/20 transition-colors duration-200',
   neutral:
-    "font-display border-white/10 bg-white/5 text-xs font-medium text-text-muted hover:bg-white/10 hover:text-text transition-colors duration-200",
+    'font-display border-white/10 bg-white/5 text-xs font-medium text-text-muted hover:bg-white/10 hover:text-text transition-colors duration-200',
 };
 
 const Badge = ({
   children,
-  variant = "accent",
+  variant = 'accent',
   icon: Icon,
-  className = "",
+  className = '',
 }: BadgeProps) => {
   return (
     <span

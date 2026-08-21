@@ -1,7 +1,7 @@
-import Container from "./Container";
-import Badge from "./badge/Badge";
-import { Sparkles, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import Container from './Container';
+import Badge from './badge/Badge';
+import { Sparkles, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
   badge: string;
@@ -10,7 +10,12 @@ interface PageHeaderProps {
   subtitle?: string;
 }
 
-const PageHeader = ({ badge, icon = Sparkles, title, subtitle }: PageHeaderProps) => {
+const PageHeader = ({
+  badge,
+  icon = Sparkles,
+  title,
+  subtitle,
+}: PageHeaderProps) => {
   return (
     <section
       aria-labelledby="page-header-heading"

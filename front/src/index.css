@@ -1,35 +1,28 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap");
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import 'tailwindcss';
 
 @theme {
   --color-background: #050505;
   --color-surface: #0a0a0a;
   --color-surface-hover: #1c1c1c;
   --color-border: #262626;
-  --color-border-button:#555555;
+  --color-border-button: #555555;
   --color-primary: #22c55e;
   --color-primary-hover: #16a34a;
   --color-text: #ffffff;
   --color-text-muted: #a3a3a3;
   --color-star: #facc15;
-  --color-bg-secondary:#000e04;
+  --color-bg-secondary: #000e04;
   --color-bg-terciary: #000;
 
+  /* Badge */
+  --color-badge-green-text: #4ade80;
+  --color-badge-green-bg: rgba(34, 197, 94, 0.1);
+  --color-badge-green-border: rgba(34, 197, 94, 0.25);
 
-
-
-/* Badge */
---color-badge-green-text: #4ade80;
---color-badge-green-bg: rgba(34, 197, 94, 0.1);
---color-badge-green-border: rgba(34, 197, 94, 0.25);
-
-
-  --font-display: "Poppins", sans-serif;
-  --font-body: "Inter", sans-serif;
-
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
-
-
 
 body {
   background-color: var(--color-background);

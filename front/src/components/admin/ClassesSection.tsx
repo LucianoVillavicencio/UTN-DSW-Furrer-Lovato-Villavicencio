@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { Pencil, Trash2, RotateCcw, Plus } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import DataTable, { type DataTableColumn } from "./DataTable";
-import Modal from "./Modal";
-import ConfirmDialog from "./ConfirmDialog";
+import { useEffect, useState } from 'react';
+import { Pencil, Trash2, RotateCcw, Plus } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import DataTable, { type DataTableColumn } from './DataTable';
+import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import {
   getClass,
   getDeletedClasses,
@@ -13,14 +13,22 @@ import {
   updateClass,
   deleteClass,
   restoreClass,
-} from "../../services/class.service";
-import { getTypeClass, createTypeClass } from "../../services/typeClass.service";
-import { getTrainers } from "../../services/trainer.service";
-import type { Class } from "../../types/class";
-import type { TypeClass } from "../../types/typeClass";
-import type { Trainer } from "../../types/trainer";
+} from '../../services/class.service';
+import {
+  getTypeClass,
+  createTypeClass,
+} from '../../services/typeClass.service';
+import { getTrainers } from '../../services/trainer.service';
+import type { Class } from '../../types/class';
+import type { TypeClass } from '../../types/typeClass';
+import type { Trainer } from '../../types/trainer';
 
-const emptyForm: Class = { name: "", description: "", typeClassId: 0, trainerDni: 0 };
+const emptyForm: Class = {
+  name: '',
+  description: '',
+  typeClassId: 0,
+  trainerDni: 0,
+};
 
 const ClassesSection = () => {
   const [classes, setClasses] = useState<Class[]>([]);
@@ -41,7 +49,7 @@ const ClassesSection = () => {
   const [listError, setListError] = useState<string | null>(null);
 
   const [isAddingType, setIsAddingType] = useState(false);
-  const [newTypeName, setNewTypeName] = useState("");
+  const [newTypeName, setNewTypeName] = useState('');
   const [typeError, setTypeError] = useState<string | null>(null);
   const [isSavingType, setIsSavingType] = useState(false);
 
@@ -58,7 +66,9 @@ const ClassesSection = () => {
       setTypes(typesRes);
       setTrainers(trainersRes);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudo cargar la lista.");
+      setLoadError(
+        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +99,7 @@ const ClassesSection = () => {
   const handleSubmit = async () => {
     setFormError(null);
     if (!form.name.trim() || !form.typeClassId || !form.trainerDni) {
-      setFormError("Nombre, tipo de clase y entrenador son obligatorios.");
+      setFormError('Nombre, tipo de clase y entrenador son obligatorios.');
       return;
     }
 
@@ -103,7 +113,7 @@ const ClassesSection = () => {
       closeModal();
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
       setIsSaving(false);
     }
@@ -122,7 +132,9 @@ const ClassesSection = () => {
       setPendingDelete(null);
       await load();
     } catch (err) {
-      setListError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+      setListError(
+        err instanceof Error ? err.message : 'No se pudo completar la acción.',
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -131,35 +143,43 @@ const ClassesSection = () => {
   const handleAddType = async () => {
     setTypeError(null);
     if (!newTypeName.trim()) {
-      setTypeError("El nombre es obligatorio.");
+      setTypeError('El nombre es obligatorio.');
       return;
     }
     setIsSavingType(true);
     try {
       const created = await createTypeClass({ name: newTypeName.trim() });
       setTypes((prev) => [...prev, created]);
-      setForm((prev) => ({ ...prev, typeClassId: created.id ?? prev.typeClassId }));
-      setNewTypeName("");
+      setForm((prev) => ({
+        ...prev,
+        typeClassId: created.id ?? prev.typeClassId,
+      }));
+      setNewTypeName('');
       setIsAddingType(false);
     } catch (err) {
-      setTypeError(err instanceof Error ? err.message : "No se pudo crear el tipo de clase.");
+      setTypeError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo crear el tipo de clase.',
+      );
     } finally {
       setIsSavingType(false);
     }
   };
 
-  const typeName = (id: number) => types.find((t) => t.id === id)?.name ?? `#${id}`;
+  const typeName = (id: number) =>
+    types.find((t) => t.id === id)?.name ?? `#${id}`;
   const trainerName = (dni: number) => {
     const t = trainers.find((tr) => tr.dni === dni);
     return t ? `${t.name} ${t.surname}` : `#${dni}`;
   };
 
   const columns: DataTableColumn<Class>[] = [
-    { header: "Nombre", cell: (c) => c.name },
-    { header: "Tipo", cell: (c) => typeName(c.typeClassId) },
-    { header: "Entrenador", cell: (c) => trainerName(c.trainerDni) },
+    { header: 'Nombre', cell: (c) => c.name },
+    { header: 'Tipo', cell: (c) => typeName(c.typeClassId) },
+    { header: 'Entrenador', cell: (c) => trainerName(c.trainerDni) },
     {
-      header: "Acciones",
+      header: 'Acciones',
       cell: (c) => (
         <div className="flex gap-2">
           {!showDeleted && (
@@ -175,10 +195,16 @@ const ClassesSection = () => {
           <button
             type="button"
             onClick={() => setPendingDelete(c)}
-            aria-label={showDeleted ? `Restaurar ${c.name}` : `Eliminar ${c.name}`}
+            aria-label={
+              showDeleted ? `Restaurar ${c.name}` : `Eliminar ${c.name}`
+            }
             className="rounded-lg p-1.5 text-text-muted hover:text-red-400"
           >
-            {showDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+            {showDeleted ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </button>
         </div>
       ),
@@ -201,7 +227,11 @@ const ClassesSection = () => {
             />
             Mostrar eliminadas
           </label>
-          <Button size="sm" onClick={openCreate} className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            onClick={openCreate}
+            className="flex items-center gap-1.5"
+          >
             <Plus className="h-4 w-4" />
             Agregar
           </Button>
@@ -221,11 +251,18 @@ const ClassesSection = () => {
         rows={classes}
         rowKey={(c) => c.id ?? c.name}
         isLoading={isLoading}
-        emptyMessage={showDeleted ? "No hay clases eliminadas." : "Todavía no hay clases cargadas."}
+        emptyMessage={
+          showDeleted
+            ? 'No hay clases eliminadas.'
+            : 'Todavía no hay clases cargadas.'
+        }
       />
 
       {(isCreating || editing) && (
-        <Modal title={isCreating ? "Agregar clase" : "Editar clase"} onClose={closeModal}>
+        <Modal
+          title={isCreating ? 'Agregar clase' : 'Editar clase'}
+          onClose={closeModal}
+        >
           <div className="space-y-4">
             <FormAlert type="error" message={formError} />
             <InputField
@@ -235,8 +272,10 @@ const ClassesSection = () => {
             />
             <InputField
               label="Descripción"
-              value={form.description ?? ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              value={form.description ?? ''}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
 
             <div>
@@ -254,8 +293,10 @@ const ClassesSection = () => {
                 </button>
               </div>
               <select
-                value={form.typeClassId || ""}
-                onChange={(e) => setForm({ ...form, typeClassId: Number(e.target.value) })}
+                value={form.typeClassId || ''}
+                onChange={(e) =>
+                  setForm({ ...form, typeClassId: Number(e.target.value) })
+                }
                 className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <option value="">Elegir tipo...</option>
@@ -272,8 +313,10 @@ const ClassesSection = () => {
                 Entrenador
               </label>
               <select
-                value={form.trainerDni || ""}
-                onChange={(e) => setForm({ ...form, trainerDni: Number(e.target.value) })}
+                value={form.trainerDni || ''}
+                onChange={(e) =>
+                  setForm({ ...form, trainerDni: Number(e.target.value) })
+                }
                 className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <option value="">Elegir entrenador...</option>
@@ -286,10 +329,18 @@ const ClassesSection = () => {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleSubmit} disabled={isSaving} className="flex-1">
-                {isSaving ? "Guardando..." : "Guardar"}
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="flex-1"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar'}
               </Button>
-              <Button variant="secondary" onClick={closeModal} disabled={isSaving}>
+              <Button
+                variant="secondary"
+                onClick={closeModal}
+                disabled={isSaving}
+              >
                 Cancelar
               </Button>
             </div>
@@ -298,7 +349,10 @@ const ClassesSection = () => {
       )}
 
       {isAddingType && (
-        <Modal title="Nuevo tipo de clase" onClose={() => setIsAddingType(false)}>
+        <Modal
+          title="Nuevo tipo de clase"
+          onClose={() => setIsAddingType(false)}
+        >
           <div className="space-y-4">
             <FormAlert type="error" message={typeError} />
             <InputField
@@ -308,8 +362,12 @@ const ClassesSection = () => {
               placeholder="Ej: Funcional, Yoga, Spinning..."
             />
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleAddType} disabled={isSavingType} className="flex-1">
-                {isSavingType ? "Guardando..." : "Crear tipo"}
+              <Button
+                onClick={handleAddType}
+                disabled={isSavingType}
+                className="flex-1"
+              >
+                {isSavingType ? 'Guardando...' : 'Crear tipo'}
               </Button>
               <Button
                 variant="secondary"
@@ -325,13 +383,13 @@ const ClassesSection = () => {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={showDeleted ? "Restaurar clase" : "Eliminar clase"}
+          title={showDeleted ? 'Restaurar clase' : 'Eliminar clase'}
           description={
             showDeleted
               ? `"${pendingDelete.name}" volverá a estar disponible.`
               : `"${pendingDelete.name}" se va a dar de baja (baja lógica) — se puede restaurar después.`
           }
-          confirmLabel={showDeleted ? "Restaurar" : "Eliminar"}
+          confirmLabel={showDeleted ? 'Restaurar' : 'Eliminar'}
           danger={!showDeleted}
           isLoading={isDeleting}
           onConfirm={confirmDelete}

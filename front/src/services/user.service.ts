@@ -25,23 +25,32 @@ export const updateMyProfile = async (
   payload: UpdateProfilePayload,
 ): Promise<Omit<User, 'password'>> => {
   try {
-    const { data } = await api.patch<Omit<User, 'password'>>('/user/me', payload);
+    const { data } = await api.patch<Omit<User, 'password'>>(
+      '/user/me',
+      payload,
+    );
     return data;
   } catch (error: unknown) {
-    throw new Error(getErrorMessage(error, 'No se pudo actualizar tu perfil.'), { cause: error });
+    throw new Error(
+      getErrorMessage(error, 'No se pudo actualizar tu perfil.'),
+      { cause: error },
+    );
   }
 };
 
-// Todo lo demás en este archivo es admin-only (UserController está gateado
-// con @Auth(Role.ADMIN) a nivel clase). Antes usaba fetch crudo sin el
-// header Authorization, así que nunca hubiese funcionado una vez agregado
-// el guard — se pasa a la instancia `api` para que el JWT viaje.
+// Everything else here is admin-only: UserController is gated with
+// @Auth(Role.ADMIN) at class level. This used to use raw fetch with no
+// Authorization header, which could never have worked once the guard existed,
+// so it goes through the `api` instance and the JWT travels with it.
 export const getUsers = async (): Promise<User[]> => {
   try {
     const { data } = await api.get<User[]>('/user');
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al obtener la lista de usuarios'), { cause: error });
+    throw new Error(
+      getErrorMessage(error, 'Error al obtener la lista de usuarios'),
+      { cause: error },
+    );
   }
 };
 
@@ -63,7 +72,9 @@ export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
     const { data } = await api.get<User[]>('/user/search', { params });
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'No se pudo buscar usuarios.'), { cause: error });
+    throw new Error(getErrorMessage(error, 'No se pudo buscar usuarios.'), {
+      cause: error,
+    });
   }
 };
 
@@ -72,7 +83,10 @@ export const getUserByDni = async (dni: number): Promise<User> => {
     const { data } = await api.get<User>(`/user/${dni}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al obtener usuario con DNI ${dni}`), { cause: error });
+    throw new Error(
+      getErrorMessage(error, `Error al obtener usuario con DNI ${dni}`),
+      { cause: error },
+    );
   }
 };
 
@@ -81,7 +95,9 @@ export const updateUser = async (user: User): Promise<User> => {
     const { data } = await api.put<User>('/user', user);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al actualizar el usuario'), { cause: error });
+    throw new Error(getErrorMessage(error, 'Error al actualizar el usuario'), {
+      cause: error,
+    });
   }
 };
 
@@ -93,17 +109,23 @@ export interface AdminUpdateUserPayload {
   role?: 'user' | 'admin';
 }
 
-// Edición por un admin (perfil + rol) — no toca password, ver back
-// AdminUpdateUserDto para el porqué.
+// Admin-side edit (profile + role). It never touches password — see
+// AdminUpdateUserDto on the backend for why.
 export const adminUpdateUser = async (
   dni: number,
   payload: AdminUpdateUserPayload,
 ): Promise<Omit<User, 'password'>> => {
   try {
-    const { data } = await api.patch<Omit<User, 'password'>>(`/user/${dni}`, payload);
+    const { data } = await api.patch<Omit<User, 'password'>>(
+      `/user/${dni}`,
+      payload,
+    );
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'No se pudo actualizar el usuario.'), { cause: error });
+    throw new Error(
+      getErrorMessage(error, 'No se pudo actualizar el usuario.'),
+      { cause: error },
+    );
   }
 };
 
@@ -112,7 +134,10 @@ export const deleteUser = async (dni: number): Promise<boolean> => {
     const { data } = await api.delete(`/user/${dni}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al eliminar usuario con DNI ${dni}`), { cause: error });
+    throw new Error(
+      getErrorMessage(error, `Error al eliminar usuario con DNI ${dni}`),
+      { cause: error },
+    );
   }
 };
 
@@ -121,6 +146,9 @@ export const restoreUser = async (dni: number): Promise<boolean> => {
     const { data } = await api.patch(`/user/restore/${dni}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al restaurar usuario con DNI ${dni}`), { cause: error });
+    throw new Error(
+      getErrorMessage(error, `Error al restaurar usuario con DNI ${dni}`),
+      { cause: error },
+    );
   }
 };

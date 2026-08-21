@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -7,29 +7,31 @@ import {
   CreditCard,
   Receipt,
   ArrowLeft,
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import Navbar from "../../components/layout/Navbar";
-import Footer from "../../components/layout/Footer";
-import Container from "../../components/common/Container";
-import Card from "../../components/common/Card";
-import DashboardTabs, { type DashboardTab } from "../../components/dashboard/DashboardTabs";
-import ClassesSection from "../../components/admin/ClassesSection";
-import TrainersSection from "../../components/admin/TrainersSection";
-import PlansSection from "../../components/admin/PlansSection";
-import UsersSection from "../../components/admin/UsersSection";
-import AdminPaymentsSection from "../../components/admin/AdminPaymentsSection";
-import { getPlans } from "../../services/plan.service";
-import { getClass } from "../../services/class.service";
-import { getTrainers } from "../../services/trainer.service";
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import Container from '../../components/common/Container';
+import Card from '../../components/common/Card';
+import DashboardTabs, {
+  type DashboardTab,
+} from '../../components/dashboard/DashboardTabs';
+import ClassesSection from '../../components/admin/ClassesSection';
+import TrainersSection from '../../components/admin/TrainersSection';
+import PlansSection from '../../components/admin/PlansSection';
+import UsersSection from '../../components/admin/UsersSection';
+import AdminPaymentsSection from '../../components/admin/AdminPaymentsSection';
+import { getPlans } from '../../services/plan.service';
+import { getClass } from '../../services/class.service';
+import { getTrainers } from '../../services/trainer.service';
 
 const TABS: DashboardTab[] = [
-  { id: "resumen", label: "Resumen", icon: LayoutDashboard },
-  { id: "clases", label: "Clases", icon: Dumbbell },
-  { id: "entrenadores", label: "Entrenadores", icon: UsersIcon },
-  { id: "planes", label: "Planes", icon: CreditCard },
-  { id: "usuarios", label: "Usuarios", icon: UsersIcon },
-  { id: "pagos", label: "Pagos presenciales", icon: Receipt },
+  { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'clases', label: 'Clases', icon: Dumbbell },
+  { id: 'entrenadores', label: 'Entrenadores', icon: UsersIcon },
+  { id: 'planes', label: 'Planes', icon: CreditCard },
+  { id: 'usuarios', label: 'Usuarios', icon: UsersIcon },
+  { id: 'pagos', label: 'Pagos presenciales', icon: Receipt },
 ];
 
 const ResumenTab = () => {
@@ -37,37 +39,47 @@ const ResumenTab = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([getPlans(), getClass(), getTrainers()]).then((results) => {
-      const [plansRes, classesRes, trainersRes] = results;
-      setStats({
-        plans: plansRes.status === "fulfilled" ? plansRes.value.length : 0,
-        classes: classesRes.status === "fulfilled" ? classesRes.value.length : 0,
-        trainers: trainersRes.status === "fulfilled" ? trainersRes.value.length : 0,
-      });
-      setIsLoading(false);
-    });
+    Promise.allSettled([getPlans(), getClass(), getTrainers()]).then(
+      (results) => {
+        const [plansRes, classesRes, trainersRes] = results;
+        setStats({
+          plans: plansRes.status === 'fulfilled' ? plansRes.value.length : 0,
+          classes:
+            classesRes.status === 'fulfilled' ? classesRes.value.length : 0,
+          trainers:
+            trainersRes.status === 'fulfilled' ? trainersRes.value.length : 0,
+        });
+        setIsLoading(false);
+      },
+    );
   }, []);
 
   return (
     <div className="grid gap-6 sm:grid-cols-3">
       <Card className="hover:-translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Planes activos</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">{isLoading ? "…" : stats.plans}</p>
+        <p className="mt-2 font-display text-3xl font-bold text-text">
+          {isLoading ? '…' : stats.plans}
+        </p>
       </Card>
       <Card className="hover:-translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Clases</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">{isLoading ? "…" : stats.classes}</p>
+        <p className="mt-2 font-display text-3xl font-bold text-text">
+          {isLoading ? '…' : stats.classes}
+        </p>
       </Card>
       <Card className="hover:-translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Entrenadores</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">{isLoading ? "…" : stats.trainers}</p>
+        <p className="mt-2 font-display text-3xl font-bold text-text">
+          {isLoading ? '…' : stats.trainers}
+        </p>
       </Card>
     </div>
   );
 };
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("resumen");
+  const [activeTab, setActiveTab] = useState('resumen');
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-text">
@@ -78,9 +90,12 @@ const AdminDashboard = () => {
           <Container className="flex items-center gap-3">
             <ShieldCheck className="h-7 w-7 text-primary" />
             <div>
-              <h1 className="font-display text-2xl font-bold text-text">Panel de administración</h1>
+              <h1 className="font-display text-2xl font-bold text-text">
+                Panel de administración
+              </h1>
               <p className="font-body text-sm text-text-muted">
-                Gestión de clases, entrenadores, planes, usuarios y pagos presenciales.
+                Gestión de clases, entrenadores, planes, usuarios y pagos
+                presenciales.
               </p>
             </div>
           </Container>
@@ -89,7 +104,11 @@ const AdminDashboard = () => {
         <section className="py-12">
           <Container className="flex flex-col gap-8 md:flex-row">
             <div className="md:w-56 md:shrink-0">
-              <DashboardTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+              <DashboardTabs
+                tabs={TABS}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
               <Link
                 to="/"
                 className="mt-4 hidden items-center gap-2 px-4 py-2 font-body text-sm text-text-muted hover:text-primary md:flex"
@@ -100,12 +119,12 @@ const AdminDashboard = () => {
             </div>
 
             <div className="min-w-0 flex-1">
-              {activeTab === "resumen" && <ResumenTab />}
-              {activeTab === "clases" && <ClassesSection />}
-              {activeTab === "entrenadores" && <TrainersSection />}
-              {activeTab === "planes" && <PlansSection />}
-              {activeTab === "usuarios" && <UsersSection />}
-              {activeTab === "pagos" && <AdminPaymentsSection />}
+              {activeTab === 'resumen' && <ResumenTab />}
+              {activeTab === 'clases' && <ClassesSection />}
+              {activeTab === 'entrenadores' && <TrainersSection />}
+              {activeTab === 'planes' && <PlansSection />}
+              {activeTab === 'usuarios' && <UsersSection />}
+              {activeTab === 'pagos' && <AdminPaymentsSection />}
             </div>
           </Container>
         </section>

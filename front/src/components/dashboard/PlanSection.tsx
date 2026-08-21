@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
-import Card from "../common/Card";
-import Button from "../common/Button";
-import FormAlert from "../common/FormAlert";
-import PlanCard from "../plans/PlanCard";
+import { useEffect, useState } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import Card from '../common/Card';
+import Button from '../common/Button';
+import FormAlert from '../common/FormAlert';
+import PlanCard from '../plans/PlanCard';
 import {
   MEMBERSHIP_PLANS,
   enrichBackendPlan,
   type MembershipPlan,
-} from "../plans/plans.data";
-import { getPlans } from "../../services/plan.service";
-import { getMySubscription, changePlan } from "../../services/subscription.service";
-import type { Subscription } from "../../types/subscription";
-import { formatDateOnly } from "../../lib/date";
+} from '../plans/plans.data';
+import { getPlans } from '../../services/plan.service';
+import {
+  getMySubscription,
+  changePlan,
+} from '../../services/subscription.service';
+import type { Subscription } from '../../types/subscription';
+import { formatDateOnly } from '../../lib/date';
 
 const stateBadge: Record<string, string> = {
-  activa: "bg-primary/10 text-primary border-primary/30",
-  vencida: "bg-red-500/10 text-red-400 border-red-500/30",
-  cancelada: "bg-text-muted/10 text-text-muted border-border",
+  activa: 'bg-primary/10 text-primary border-primary/30',
+  vencida: 'bg-red-500/10 text-red-400 border-red-500/30',
+  cancelada: 'bg-text-muted/10 text-text-muted border-border',
 };
 
 const PlanSection = () => {
@@ -40,15 +43,19 @@ const PlanSection = () => {
         getMySubscription(),
       ]);
 
-      if (plansRes.status === "fulfilled" && plansRes.value.length > 0) {
+      if (plansRes.status === 'fulfilled' && plansRes.value.length > 0) {
         setPlans(plansRes.value.map(enrichBackendPlan));
       } else {
         setPlans(MEMBERSHIP_PLANS);
       }
 
-      setSubscription(subRes.status === "fulfilled" ? subRes.value : null);
+      setSubscription(subRes.status === 'fulfilled' ? subRes.value : null);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudieron cargar los planes.");
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudieron cargar los planes.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +83,9 @@ const PlanSection = () => {
       );
       setPendingPlan(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "No se pudo cambiar de plan.");
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo cambiar de plan.',
+      );
     } finally {
       setIsChanging(false);
     }
@@ -104,7 +113,7 @@ const PlanSection = () => {
   }
 
   const currentPlanId = subscription?.planId;
-  const currentState = (subscription?.state ?? "").toLowerCase();
+  const currentState = (subscription?.state ?? '').toLowerCase();
 
   return (
     <div className="space-y-8">
@@ -112,7 +121,9 @@ const PlanSection = () => {
       <FormAlert type="error" message={actionError} />
 
       <Card className="hover:-translate-y-0 hover:shadow-lg">
-        <h3 className="font-display text-lg font-semibold text-text">Plan actual</h3>
+        <h3 className="font-display text-lg font-semibold text-text">
+          Plan actual
+        </h3>
         {subscription ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -128,7 +139,7 @@ const PlanSection = () => {
                 stateBadge[currentState] ?? stateBadge.cancelada
               }`}
             >
-              {subscription.state ?? "Sin estado"}
+              {subscription.state ?? 'Sin estado'}
             </span>
           </div>
         ) : (
@@ -139,14 +150,20 @@ const PlanSection = () => {
       </Card>
 
       <div>
-        <h3 className="font-display text-lg font-semibold text-text">Cambiar de plan</h3>
+        <h3 className="font-display text-lg font-semibold text-text">
+          Cambiar de plan
+        </h3>
         <div className="mt-4 grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id ?? plan.name}
               plan={plan}
               onSelect={handleSelect}
-              isCurrentSubscription={!!plan.id && plan.id === currentPlanId && currentState === "activa"}
+              isCurrentSubscription={
+                !!plan.id &&
+                plan.id === currentPlanId &&
+                currentState === 'activa'
+              }
             />
           ))}
         </div>
@@ -159,16 +176,29 @@ const PlanSection = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
         >
           <Card className="w-full max-w-sm hover:-translate-y-0 hover:shadow-lg">
-            <h4 className="font-display text-lg font-semibold text-text">Confirmar cambio de plan</h4>
+            <h4 className="font-display text-lg font-semibold text-text">
+              Confirmar cambio de plan
+            </h4>
             <p className="mt-3 text-sm text-text-muted">
-              Vas a pasar {subscription ? `de "${subscription.plan?.name ?? "tu plan actual"}" ` : ""}
-              a <span className="font-semibold text-text">"{pendingPlan.name}"</span> ({pendingPlan.price}
-              {pendingPlan.period}). El cambio queda registrado con el pago pendiente hasta que lo abones
-              en el gimnasio.
+              Vas a pasar{' '}
+              {subscription
+                ? `de "${subscription.plan?.name ?? 'tu plan actual'}" `
+                : ''}
+              a{' '}
+              <span className="font-semibold text-text">
+                "{pendingPlan.name}"
+              </span>{' '}
+              ({pendingPlan.price}
+              {pendingPlan.period}). El cambio queda registrado con el pago
+              pendiente hasta que lo abones en el gimnasio.
             </p>
             <div className="mt-6 flex gap-3">
-              <Button onClick={confirmChange} disabled={isChanging} className="flex-1">
-                {isChanging ? "Confirmando..." : "Confirmar"}
+              <Button
+                onClick={confirmChange}
+                disabled={isChanging}
+                className="flex-1"
+              >
+                {isChanging ? 'Confirmando...' : 'Confirmar'}
               </Button>
               <Button
                 variant="secondary"

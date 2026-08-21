@@ -1,12 +1,12 @@
-import Badge from "../common/badge/Badge";
-import Button from "../common/Button";
-import Container from "../common/Container";
-import { CheckCircle, Trophy } from "lucide-react";
+import Badge from '../common/badge/Badge';
+import Button from '../common/Button';
+import Container from '../common/Container';
+import { CheckCircle, Trophy } from 'lucide-react';
 
 const stast = [
-  { value: "500+", label: "Miembros" },
-  { value: "10+", label: "Entrenadores" },
-  { value: "24/7+", label: "Acceso" },
+  { value: '500+', label: 'Miembros' },
+  { value: '10+', label: 'Entrenadores' },
+  { value: '24/7+', label: 'Acceso' },
 ];
 
 const HeroSection = () => {
@@ -27,13 +27,15 @@ const HeroSection = () => {
 
       <Container className="relative z-10 grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="flex flex-col items-start text-left">
-          <Badge variant="accent" icon={Trophy}>1° Fitness App</Badge>
+          <Badge variant="accent" icon={Trophy}>
+            1° Fitness App
+          </Badge>
 
           <h1
             id="home-hero-heading"
             className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-text leading-[1.15]"
           >
-            Transforma tu cuerpo,{" "}
+            Transforma tu cuerpo,{' '}
             <span className="text-primary">transforma tu vida</span>
           </h1>
 
@@ -47,7 +49,12 @@ const HeroSection = () => {
             <Button href="/register" size="md" className="w-full sm:w-auto">
               Empezar ahora
             </Button>
-            <Button href="/class" variant="secondary" size="md" className="w-full sm:w-auto">
+            <Button
+              href="/class"
+              variant="secondary"
+              size="md"
+              className="w-full sm:w-auto"
+            >
               Visualizar clases
             </Button>
           </div>

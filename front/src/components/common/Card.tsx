@@ -1,4 +1,4 @@
-import type { MouseEventHandler, ReactNode } from "react";
+import type { MouseEventHandler, ReactNode } from 'react';
 
 interface CardProps {
   children: ReactNode;
@@ -6,7 +6,7 @@ interface CardProps {
   onClick?: MouseEventHandler<HTMLDivElement>;
 }
 
-const Card = ({ children, className = "", onClick }: CardProps) => {
+const Card = ({ children, className = '', onClick }: CardProps) => {
   return (
     <div
       onClick={onClick}

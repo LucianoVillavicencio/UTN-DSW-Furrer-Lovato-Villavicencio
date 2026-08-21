@@ -1,7 +1,6 @@
-import type { Subscription } from "./subscription";
+import type { Subscription } from './subscription';
 
-
-export interface Payment{
+export interface Payment {
   id?: number;
   subscriptionId: number;
   subscription?: Subscription;
@@ -13,9 +12,9 @@ export interface Payment{
   deleted?: boolean;
 }
 
-// Body de POST /Payment/manual (pago presencial cargado por un admin).
+// Body of POST /Payment/manual: an in-person payment recorded by an admin.
 export interface ManualPaymentPayload {
   subscriptionId: number;
   amount: number;
-  payMethod: "efectivo" | "debito" | "credito" | "transferencia";
+  payMethod: 'efectivo' | 'debito' | 'credito' | 'transferencia';
 }

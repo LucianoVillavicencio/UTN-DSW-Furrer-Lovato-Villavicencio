@@ -1,8 +1,8 @@
-import Navbar from "../../components/layout/Navbar";
-import HeroSection from "../../components/home/HeroSection";
-import ClassesSection from "../../components/home/ClassesSection";
-import CTASection from "../../components/common/CTASection";
-import Footer from "../../components/layout/Footer";
+import Navbar from '../../components/layout/Navbar';
+import HeroSection from '../../components/home/HeroSection';
+import ClassesSection from '../../components/home/ClassesSection';
+import CTASection from '../../components/common/CTASection';
+import Footer from '../../components/layout/Footer';
 
 function Home() {
   return (
@@ -13,7 +13,7 @@ function Home() {
       <CTASection
         title="Listo para tu transformacion ?"
         subtitle="Únete a FLG hoy mismo y obtén tu primer mes gratis. Sin contratos ni cargos ocultos."
-        primaryButton={{ label: "Empezar ahora", href: "/register" }}
+        primaryButton={{ label: 'Empezar ahora', href: '/register' }}
       />
       <Footer />
     </>

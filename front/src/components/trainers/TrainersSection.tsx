@@ -1,11 +1,11 @@
-import { UserX } from "lucide-react";
-import Container from "../common/Container";
-import FormAlert from "../common/FormAlert";
-import TrainerCard from "./TrainerCard";
-import { useTrainers } from "./useTrainers";
+import { UserX } from 'lucide-react';
+import Container from '../common/Container';
+import FormAlert from '../common/FormAlert';
+import TrainerCard from './TrainerCard';
+import { useTrainers } from './useTrainers';
 
-// Misma estructura que ClassEnrollmentSection: la página arma el layout y la
-// sección se encarga de los datos (carga, error y vacío).
+// Same structure as ClassEnrollmentSection: the page builds the layout and the
+// section owns the data — loading, error and empty states.
 const TrainersSection = () => {
   const { trainers, isLoading, loadError } = useTrainers();
 
@@ -34,7 +34,8 @@ const TrainersSection = () => {
               No hay profesores para mostrar
             </h3>
             <p className="mt-1 text-sm text-text-muted">
-              Estamos actualizando el equipo. Volvé a intentarlo en unos minutos.
+              Estamos actualizando el equipo. Volvé a intentarlo en unos
+              minutos.
             </p>
           </div>
         ) : (

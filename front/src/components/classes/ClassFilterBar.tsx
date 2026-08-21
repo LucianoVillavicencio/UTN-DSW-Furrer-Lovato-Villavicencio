@@ -1,20 +1,20 @@
-import { Search, Filter, X } from "lucide-react";
-import type { TipoClase } from "../../types/typeClass";
+import { Search, Filter, X } from 'lucide-react';
+import type { TypeClass } from '../../types/typeClass';
 
 interface ClassFilterBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  selectedTipoId: number | "ALL";
-  setSelectedTipoId: (id: number | "ALL") => void;
-  tiposClase: TipoClase[];
+  selectedTypeId: number | 'ALL';
+  setSelectedTypeId: (id: number | 'ALL') => void;
+  classTypes: TypeClass[];
 }
 
 const ClassFilterBar = ({
   searchQuery,
   setSearchQuery,
-  selectedTipoId,
-  setSelectedTipoId,
-  tiposClase,
+  selectedTypeId,
+  setSelectedTypeId,
+  classTypes,
 }: ClassFilterBarProps) => {
   return (
     <div className="mb-10 rounded-2xl border border-border bg-surface/80 p-6 shadow-xl backdrop-blur-md">
@@ -31,7 +31,7 @@ const ClassFilterBar = ({
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X className="h-4 w-4" />
@@ -46,27 +46,27 @@ const ClassFilterBar = ({
           </span>
 
           <button
-            onClick={() => setSelectedTipoId("ALL")}
+            onClick={() => setSelectedTypeId('ALL')}
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
-              selectedTipoId === "ALL"
-                ? "bg-primary text-background font-semibold shadow-sm"
-                : "bg-background/80 text-text-muted hover:bg-surface hover:text-text"
+              selectedTypeId === 'ALL'
+                ? 'bg-primary text-background font-semibold shadow-sm'
+                : 'bg-background/80 text-text-muted hover:bg-surface hover:text-text'
             }`}
           >
             Todas las disciplinas
           </button>
 
-          {tiposClase.map((tipo) => (
+          {classTypes.map((type) => (
             <button
-              key={tipo.id}
-              onClick={() => setSelectedTipoId(tipo.id || "ALL")}
+              key={type.id}
+              onClick={() => setSelectedTypeId(type.id || 'ALL')}
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
-                selectedTipoId === tipo.id
-                  ? "bg-primary text-background font-semibold shadow-sm"
-                  : "bg-background/80 text-text-muted hover:bg-surface hover:text-text"
+                selectedTypeId === type.id
+                  ? 'bg-primary text-background font-semibold shadow-sm'
+                  : 'bg-background/80 text-text-muted hover:bg-surface hover:text-text'
               }`}
             >
-              {tipo.nombre}
+              {type.name}
             </button>
           ))}
         </div>

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import type { Trainer } from "../../types/trainer";
-import { getTrainers } from "../../services/trainer.service";
+import { useEffect, useState } from 'react';
+import type { Trainer } from '../../types/trainer';
+import { getTrainers } from '../../services/trainer.service';
 
-// Trae el listado de profesores desde el backend (GET /api/v1/trainer, público)
-// y expone los estados de carga/error que consume TrainersSection.
+// Fetches the trainer listing (GET /api/v1/trainer, public) and exposes the
+// loading/error state TrainersSection consumes.
 export const useTrainers = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +20,7 @@ export const useTrainers = () => {
         setLoadError(
           error instanceof Error
             ? error.message
-            : "Error al obtener lista de profesores",
+            : 'Error al obtener lista de profesores',
         );
         setTrainers([]);
       } finally {

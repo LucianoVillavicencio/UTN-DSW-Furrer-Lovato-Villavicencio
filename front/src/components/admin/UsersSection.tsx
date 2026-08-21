@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { Search } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import DataTable, { type DataTableColumn } from "./DataTable";
-import UserDetailPanel from "./UserDetailPanel";
-import { searchUsers } from "../../services/user.service";
-import { useAuth } from "../../context/AuthContext";
-import type { User } from "../../types/user";
+import { useState } from 'react';
+import { Search } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import DataTable, { type DataTableColumn } from './DataTable';
+import UserDetailPanel from './UserDetailPanel';
+import { searchUsers } from '../../services/user.service';
+import { useAuth } from '../../context/useAuth';
+import type { User } from '../../types/user';
 
 const UsersSection = () => {
   const { user: currentAdmin } = useAuth();
-  const [searchMode, setSearchMode] = useState<"dni" | "email" | "name">("name");
-  const [searchValue, setSearchValue] = useState("");
+  const [searchMode, setSearchMode] = useState<'dni' | 'email' | 'name'>(
+    'name',
+  );
+  const [searchValue, setSearchValue] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -26,11 +28,13 @@ const UsersSection = () => {
     setSearchError(null);
     setHasSearched(true);
     try {
-      const query = { [searchMode]: searchMode === "dni" ? Number(searchValue) : searchValue };
+      const query = {
+        [searchMode]: searchMode === 'dni' ? Number(searchValue) : searchValue,
+      };
       const data = await searchUsers(query);
       setResults(data);
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : "No se pudo buscar.");
+      setSearchError(err instanceof Error ? err.message : 'No se pudo buscar.');
     } finally {
       setIsSearching(false);
     }
@@ -41,15 +45,17 @@ const UsersSection = () => {
   };
 
   const columns: DataTableColumn<User>[] = [
-    { header: "DNI", cell: (u) => u.dni },
-    { header: "Nombre", cell: (u) => `${u.name} ${u.surname}` },
-    { header: "Email", cell: (u) => u.email },
+    { header: 'DNI', cell: (u) => u.dni },
+    { header: 'Nombre', cell: (u) => `${u.name} ${u.surname}` },
+    { header: 'Email', cell: (u) => u.email },
     {
-      header: "Rol",
+      header: 'Rol',
       cell: (u) => (
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${
-            u.role === "admin" ? "bg-primary/10 text-primary" : "bg-surface text-text-muted"
+            u.role === 'admin'
+              ? 'bg-primary/10 text-primary'
+              : 'bg-surface text-text-muted'
           }`}
         >
           {u.role}
@@ -57,10 +63,10 @@ const UsersSection = () => {
       ),
     },
     {
-      header: "Estado",
+      header: 'Estado',
       cell: (u) => (
-        <span className={u.deleted ? "text-red-400" : "text-primary"}>
-          {u.deleted ? "Dado de baja" : "Activo"}
+        <span className={u.deleted ? 'text-red-400' : 'text-primary'}>
+          {u.deleted ? 'Dado de baja' : 'Activo'}
         </span>
       ),
     },
@@ -89,14 +95,22 @@ const UsersSection = () => {
           <InputField
             label="Buscar"
             placeholder={
-              searchMode === "dni" ? "Ej: 40123456" : searchMode === "email" ? "Ej: nombre@mail.com" : "Nombre o apellido"
+              searchMode === 'dni'
+                ? 'Ej: 40123456'
+                : searchMode === 'email'
+                  ? 'Ej: nombre@mail.com'
+                  : 'Nombre o apellido'
             }
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
         </div>
-        <Button onClick={handleSearch} disabled={isSearching} className="flex shrink-0 items-center gap-1.5">
+        <Button
+          onClick={handleSearch}
+          disabled={isSearching}
+          className="flex shrink-0 items-center gap-1.5"
+        >
           <Search className="h-4 w-4" />
           Buscar
         </Button>

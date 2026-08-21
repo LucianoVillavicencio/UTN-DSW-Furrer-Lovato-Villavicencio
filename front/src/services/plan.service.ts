@@ -25,7 +25,10 @@ export const getPlans = async (): Promise<Plan[]> => {
     const { data } = await api.get<Plan[]>('/plan');
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al obtener lista de planes'), { cause: error });
+    throw new Error(
+      getErrorMessage(error, 'Error al obtener lista de planes'),
+      { cause: error },
+    );
   }
 };
 
@@ -34,7 +37,9 @@ export const getPlanById = async (id: number): Promise<Plan> => {
     const { data } = await api.get<Plan>(`/plan/${id}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al obtener plan ${id}`), { cause: error });
+    throw new Error(getErrorMessage(error, `Error al obtener plan ${id}`), {
+      cause: error,
+    });
   }
 };
 
@@ -44,7 +49,9 @@ export const createPlan = async (plan: Plan): Promise<Plan> => {
     const { data } = await api.post<Plan>('/plan', plan);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al crear plan'), { cause: error });
+    throw new Error(getErrorMessage(error, 'Error al crear plan'), {
+      cause: error,
+    });
   }
 };
 
@@ -53,7 +60,9 @@ export const updatePlan = async (plan: Plan): Promise<Plan> => {
     const { data } = await api.put<Plan>('/plan', plan);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al actualizar plan'), { cause: error });
+    throw new Error(getErrorMessage(error, 'Error al actualizar plan'), {
+      cause: error,
+    });
   }
 };
 
@@ -62,7 +71,9 @@ export const deletePlan = async (id: number): Promise<boolean> => {
     const { data } = await api.delete(`/plan/${id}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al eliminar plan ${id}`), { cause: error });
+    throw new Error(getErrorMessage(error, `Error al eliminar plan ${id}`), {
+      cause: error,
+    });
   }
 };
 
@@ -71,7 +82,9 @@ export const restorePlan = async (id: number): Promise<boolean> => {
     const { data } = await api.patch(`/plan/restore/${id}`);
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, `Error al restaurar plan ${id}`), { cause: error });
+    throw new Error(getErrorMessage(error, `Error al restaurar plan ${id}`), {
+      cause: error,
+    });
   }
 };
 
@@ -80,6 +93,9 @@ export const getDeletedPlans = async (): Promise<Plan[]> => {
     const { data } = await api.get<Plan[]>('/plan/filter/deleted');
     return data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al obtener planes eliminados'), { cause: error });
+    throw new Error(
+      getErrorMessage(error, 'Error al obtener planes eliminados'),
+      { cause: error },
+    );
   }
 };

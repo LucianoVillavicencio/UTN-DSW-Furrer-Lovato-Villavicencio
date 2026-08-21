@@ -1,5 +1,5 @@
-import Card from "../common/Card";
-import Button from "../common/Button";
+import Card from '../common/Card';
+import Button from '../common/Button';
 
 interface ConfirmDialogProps {
   title: string;
@@ -14,7 +14,7 @@ interface ConfirmDialogProps {
 const ConfirmDialog = ({
   title,
   description,
-  confirmLabel = "Confirmar",
+  confirmLabel = 'Confirmar',
   isLoading = false,
   danger = false,
   onConfirm,
@@ -32,15 +32,17 @@ const ConfirmDialog = ({
         className="w-full max-w-sm hover:-translate-y-0 hover:shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h4 className="font-display text-lg font-semibold text-text">{title}</h4>
+        <h4 className="font-display text-lg font-semibold text-text">
+          {title}
+        </h4>
         <p className="mt-3 text-sm text-text-muted">{description}</p>
         <div className="mt-6 flex gap-3">
           <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 ${danger ? "!bg-red-500 hover:!bg-red-600 !text-white" : ""}`}
+            className={`flex-1 ${danger ? '!bg-red-500 hover:!bg-red-600 !text-white' : ''}`}
           >
-            {isLoading ? "Procesando..." : confirmLabel}
+            {isLoading ? 'Procesando...' : confirmLabel}
           </Button>
           <Button variant="secondary" onClick={onCancel} disabled={isLoading}>
             Cancelar

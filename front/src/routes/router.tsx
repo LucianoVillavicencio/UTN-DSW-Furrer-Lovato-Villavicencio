@@ -1,72 +1,62 @@
-import { createBrowserRouter, Outlet } from "react-router-dom";
-import { ScrollToTop } from "../components/common/ScrollToTop"; // Importamos tu componente
+import { createBrowserRouter } from 'react-router-dom';
 
-import Login from "../pages/Login/Login";
-import Register from "../pages/Register/Register";
-import Home from "../pages/Home/Home";
-import Classes from "../pages/Classes/Classes";
-import About from "../pages/About/About";
-import Contact from "../pages/Contact/Contact";
-import Plan from "../pages/Plan/Plan";
-import NotFound from "../pages/NotFound/NotFound";
-import Trainers from "../pages/Trainers/Trainers";
-import Dashboard from "../pages/Dashboard/Dashboard";
-import AdminDashboard from "../pages/Admin/AdminDashboard";
-import ProtectedRoute from "./ProtectedRoute";
+import Login from '../pages/Login/Login';
+import Register from '../pages/Register/Register';
+import Home from '../pages/Home/Home';
+import Classes from '../pages/Classes/Classes';
+import About from '../pages/About/About';
+import Contact from '../pages/Contact/Contact';
+import Plan from '../pages/Plan/Plan';
+import NotFound from '../pages/NotFound/NotFound';
+import Trainers from '../pages/Trainers/Trainers';
+import Dashboard from '../pages/Dashboard/Dashboard';
+import AdminDashboard from '../pages/Admin/AdminDashboard';
+import ProtectedRoute from './ProtectedRoute';
+import RootLayout from './RootLayout';
 
-// 1. Creamos el Layout principal
-const RootLayout = () => {
-  return (
-    <>
-      <ScrollToTop />
-      <Outlet />
-    </>
-  );
-};
-
-// 2. Envolvemos todas las rutas existentes dentro de los 'children' del Layout
+// Every route hangs off RootLayout, so the shared chrome renders once.
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
       {
-        path: "/",
+        path: '/',
         element: <Home />,
       },
       {
-        path: "/login",
+        path: '/login',
         element: <Login />,
       },
       {
-        path: "/register",
+        path: '/register',
         element: <Register />,
       },
       {
-        path: "/class",
+        path: '/class',
         element: <Classes />,
       },
       {
-        path: "/about",
+        path: '/about',
         element: <About />,
       },
       {
-        path: "/contact",
+        path: '/contact',
         element: <Contact />,
       },
       {
-        path: "/contacto",
-        element: <Contact />, 
+        path: '/contacto',
+        element: <Contact />,
       },
       {
-        path: "/membership",
+        path: '/membership',
         element: <Plan />,
       },
       {
-        path: "/trainers",
+        path: '/trainers',
         element: <Trainers />,
       },
       {
-        path: "/dashboard",
+        path: '/dashboard',
         element: (
           <ProtectedRoute>
             <Dashboard />
@@ -74,7 +64,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "/admin",
+        path: '/admin',
         element: (
           <ProtectedRoute requiredRole="admin">
             <AdminDashboard />
@@ -82,7 +72,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "*",
+        path: '*',
         element: <NotFound />,
       },
     ],

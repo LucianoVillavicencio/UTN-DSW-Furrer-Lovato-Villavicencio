@@ -1,20 +1,20 @@
-import { Calendar } from "lucide-react";
-import Container from "../common/Container";
-import Button from "../common/Button";
+import { Calendar } from 'lucide-react';
+import Container from '../common/Container';
+import Button from '../common/Button';
 
-import FormAlert from "../common/FormAlert";
-import ClassFilterBar from "./ClassFilterBar";
-import ClassCardItem from "./ClassCardItem";
-import ClassExpandedModal from "./ClassExpandedModal";
-import { useClassEnrollment } from "./useClassEnrollment";
+import FormAlert from '../common/FormAlert';
+import ClassFilterBar from './ClassFilterBar';
+import ClassCardItem from './ClassCardItem';
+import ClassExpandedModal from './ClassExpandedModal';
+import { useClassEnrollment } from './useClassEnrollment';
 
 const ClassEnrollmentSection = () => {
   const {
     isLoading,
     loadError,
-    tiposClase,
-    selectedTipoId,
-    setSelectedTipoId,
+    classTypes,
+    selectedTypeId,
+    setSelectedTypeId,
     searchQuery,
     setSearchQuery,
     filteredMasterClasses,
@@ -22,12 +22,12 @@ const ClassEnrollmentSection = () => {
     setActiveExpandedClass,
     selectedDayOffset,
     setSelectedDayOffset,
-    turnosForActiveExpandedDay,
-    selectedHourTurno,
-    setSelectedHourTurno,
-    isEnrolledInTurno,
-    handleEnrollTurno,
-    handleCancelTurno,
+    sessionsForActiveExpandedDay,
+    selectedSession,
+    setSelectedSession,
+    isEnrolledInSession,
+    handleEnrollSession,
+    handleCancelSession,
     currentUser,
     actionLoading,
     actionFeedback,
@@ -41,12 +41,12 @@ const ClassEnrollmentSection = () => {
         <ClassFilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          selectedTipoId={selectedTipoId}
-          setSelectedTipoId={setSelectedTipoId}
-          tiposClase={tiposClase}
+          selectedTypeId={selectedTypeId}
+          setSelectedTypeId={setSelectedTypeId}
+          classTypes={classTypes}
         />
 
-        {/* Error al traer el catálogo desde el backend */}
+        {/* Catalogue request failed */}
         {loadError && (
           <div className="mb-8">
             <FormAlert type="error" message={loadError} />
@@ -58,13 +58,17 @@ const ClassEnrollmentSection = () => {
           <div className="flex h-64 items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="text-sm font-medium text-text-muted">Cargando catálogo de clases...</p>
+              <p className="text-sm font-medium text-text-muted">
+                Cargando catálogo de clases...
+              </p>
             </div>
           </div>
         ) : filteredMasterClasses.length === 0 ? (
           <div className="rounded-2xl border border-border bg-surface/40 py-16 text-center">
             <Calendar className="mx-auto h-12 w-12 text-text-muted/50" />
-            <h3 className="mt-4 text-lg font-semibold text-text">No se encontraron clases</h3>
+            <h3 className="mt-4 text-lg font-semibold text-text">
+              No se encontraron clases
+            </h3>
             <p className="mt-1 text-sm text-text-muted">
               Prueba modificando la búsqueda o el filtro de disciplina.
             </p>
@@ -73,8 +77,8 @@ const ClassEnrollmentSection = () => {
               size="sm"
               className="mt-4"
               onClick={() => {
-                setSelectedTipoId("ALL");
-                setSearchQuery("");
+                setSelectedTypeId('ALL');
+                setSearchQuery('');
               }}
             >
               Restablecer filtros
@@ -89,7 +93,7 @@ const ClassEnrollmentSection = () => {
                 onPress={(cls) => {
                   setActiveExpandedClass(cls);
                   setSelectedDayOffset(0);
-                  setSelectedHourTurno(null);
+                  setSelectedSession(null);
                   setActionFeedback(null);
                 }}
               />
@@ -102,17 +106,17 @@ const ClassEnrollmentSection = () => {
           activeExpandedClass={activeExpandedClass}
           onClose={() => {
             setActiveExpandedClass(null);
-            setSelectedHourTurno(null);
+            setSelectedSession(null);
             setActionFeedback(null);
           }}
           selectedDayOffset={selectedDayOffset}
           setSelectedDayOffset={setSelectedDayOffset}
-          turnosForActiveExpandedDay={turnosForActiveExpandedDay}
-          selectedHourTurno={selectedHourTurno}
-          setSelectedHourTurno={setSelectedHourTurno}
-          isEnrolledInTurno={isEnrolledInTurno}
-          handleEnrollTurno={handleEnrollTurno}
-          handleCancelTurno={handleCancelTurno}
+          sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
+          selectedSession={selectedSession}
+          setSelectedSession={setSelectedSession}
+          isEnrolledInSession={isEnrolledInSession}
+          handleEnrollSession={handleEnrollSession}
+          handleCancelSession={handleCancelSession}
           currentUser={currentUser}
           actionLoading={actionLoading}
           actionFeedback={actionFeedback}

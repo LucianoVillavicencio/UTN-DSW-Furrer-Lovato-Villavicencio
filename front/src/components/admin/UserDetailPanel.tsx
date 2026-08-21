@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
-import { ShieldAlert } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import Modal from "./Modal";
-import ConfirmDialog from "./ConfirmDialog";
-import RegisterPaymentForm from "./RegisterPaymentForm";
-import { formatDateOnly } from "../../lib/date";
-import { formatPriceDisplay } from "../../lib/currency";
+import { useEffect, useState } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
+import RegisterPaymentForm from './RegisterPaymentForm';
+import { formatDateOnly } from '../../lib/date';
+import { formatPriceDisplay } from '../../lib/currency';
 import {
   adminUpdateUser,
   deleteUser,
   restoreUser,
   type AdminUpdateUserPayload,
-} from "../../services/user.service";
+} from '../../services/user.service';
 import {
   getSubscriptionsByUser,
   cancelSubscription,
-} from "../../services/subscription.service";
-import { getPaymentsByUser } from "../../services/payment.service";
-import type { User } from "../../types/user";
-import type { Subscription } from "../../types/subscription";
-import type { Payment } from "../../types/payment";
+} from '../../services/subscription.service';
+import { getPaymentsByUser } from '../../services/payment.service';
+import type { User } from '../../types/user';
+import type { Subscription } from '../../types/subscription';
+import type { Payment } from '../../types/payment';
 
 interface UserDetailPanelProps {
   user: User;
@@ -30,7 +30,12 @@ interface UserDetailPanelProps {
   onChanged: () => void;
 }
 
-const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDetailPanelProps) => {
+const UserDetailPanel = ({
+  user,
+  currentAdminDni,
+  onClose,
+  onChanged,
+}: UserDetailPanelProps) => {
   const [form, setForm] = useState<AdminUpdateUserPayload>({
     name: user.name,
     surname: user.surname,
@@ -47,7 +52,7 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   const [confirmDangerAction, setConfirmDangerAction] = useState<
-    "delete" | "restore" | "cancelSub" | null
+    'delete' | 'restore' | 'cancelSub' | null
   >(null);
   const [pendingSubId, setPendingSubId] = useState<number | null>(null);
   const [isActing, setIsActing] = useState(false);
@@ -63,7 +68,9 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
       setSubscriptions(subs);
       setPayments(pays);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "No se pudo cargar el historial.");
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo cargar el historial.',
+      );
     } finally {
       setIsLoadingHistory(false);
     }
@@ -87,10 +94,10 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
     setIsSaving(true);
     try {
       await adminUpdateUser(user.dni, form);
-      setSaveSuccess("Cambios guardados.");
+      setSaveSuccess('Cambios guardados.');
       onChanged();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setSaveError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
       setIsSaving(false);
     }
@@ -100,15 +107,15 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
     setIsActing(true);
     setActionError(null);
     try {
-      if (confirmDangerAction === "delete") {
+      if (confirmDangerAction === 'delete') {
         await deleteUser(user.dni);
         onChanged();
         onClose();
-      } else if (confirmDangerAction === "restore") {
+      } else if (confirmDangerAction === 'restore') {
         await restoreUser(user.dni);
         onChanged();
         onClose();
-      } else if (confirmDangerAction === "cancelSub" && pendingSubId) {
+      } else if (confirmDangerAction === 'cancelSub' && pendingSubId) {
         const sub = subscriptions.find((s) => s.id === pendingSubId);
         if (sub) {
           await cancelSubscription(sub);
@@ -118,7 +125,9 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
       setConfirmDangerAction(null);
       setPendingSubId(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo completar la acción.',
+      );
     } finally {
       setIsActing(false);
     }
@@ -127,7 +136,7 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
   return (
     <Modal title={`${user.name} ${user.surname}`} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
-        {/* Datos */}
+        {/* Profile */}
         <section>
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Datos
@@ -139,24 +148,24 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
             <div className="grid gap-3 sm:grid-cols-2">
               <InputField
                 label="Nombre"
-                value={form.name ?? ""}
+                value={form.name ?? ''}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
               <InputField
                 label="Apellido"
-                value={form.surname ?? ""}
+                value={form.surname ?? ''}
                 onChange={(e) => setForm({ ...form, surname: e.target.value })}
               />
             </div>
             <InputField
               label="Email"
               type="email"
-              value={form.email ?? ""}
+              value={form.email ?? ''}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <InputField
               label="Teléfono"
-              value={form.phone ?? ""}
+              value={form.phone ?? ''}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
             <div>
@@ -165,7 +174,9 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
               </label>
               <select
                 value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value as "user" | "admin" })}
+                onChange={(e) =>
+                  setForm({ ...form, role: e.target.value as 'user' | 'admin' })
+                }
                 disabled={user.dni === currentAdminDni}
                 className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
               >
@@ -173,16 +184,22 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
                 <option value="admin">Admin</option>
               </select>
               {user.dni === currentAdminDni && (
-                <p className="mt-1 text-xs text-text-muted">No podés cambiar tu propio rol.</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  No podés cambiar tu propio rol.
+                </p>
               )}
             </div>
-            <Button onClick={handleSave} disabled={!isDirty || isSaving} size="sm">
-              {isSaving ? "Guardando..." : "Guardar cambios"}
+            <Button
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              size="sm"
+            >
+              {isSaving ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </div>
         </section>
 
-        {/* Suscripción */}
+        {/* Subscription */}
         <section className="border-t border-border pt-4">
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Suscripciones
@@ -199,17 +216,19 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
                   className="flex items-center justify-between rounded-xl border border-border bg-surface px-3 py-2 text-sm"
                 >
                   <div>
-                    <span className="font-semibold text-text">{s.plan?.name ?? `Plan #${s.planId}`}</span>{" "}
+                    <span className="font-semibold text-text">
+                      {s.plan?.name ?? `Plan #${s.planId}`}
+                    </span>{' '}
                     <span className="text-text-muted">
                       — {s.state} · vence {formatDateOnly(s.endDate)}
                     </span>
                   </div>
-                  {s.state?.toLowerCase() === "activa" && !s.deleted && (
+                  {s.state?.toLowerCase() === 'activa' && !s.deleted && (
                     <button
                       type="button"
                       onClick={() => {
                         setPendingSubId(s.id ?? null);
-                        setConfirmDangerAction("cancelSub");
+                        setConfirmDangerAction('cancelSub');
                       }}
                       className="text-xs font-semibold text-red-400 hover:text-red-300"
                     >
@@ -222,7 +241,7 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
           )}
         </section>
 
-        {/* Pagos */}
+        {/* Payments */}
         <section className="border-t border-border pt-4">
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Pagos
@@ -230,7 +249,9 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
           {isLoadingHistory ? (
             <p className="mt-3 text-sm text-text-muted">Cargando...</p>
           ) : payments.length === 0 ? (
-            <p className="mt-3 text-sm text-text-muted">Sin pagos registrados.</p>
+            <p className="mt-3 text-sm text-text-muted">
+              Sin pagos registrados.
+            </p>
           ) : (
             <ul className="mt-3 space-y-1.5 text-sm">
               {payments.map((p) => (
@@ -244,12 +265,14 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
           )}
 
           <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold text-text-muted">Registrar pago presencial</p>
+            <p className="mb-2 text-xs font-semibold text-text-muted">
+              Registrar pago presencial
+            </p>
             <RegisterPaymentForm presetUser={user} onRegistered={loadHistory} />
           </div>
         </section>
 
-        {/* Zona de peligro */}
+        {/* Danger zone */}
         <section className="rounded-xl border border-red-500/30 p-4">
           <div className="flex items-center gap-2 text-red-400">
             <ShieldAlert className="h-4 w-4" />
@@ -263,14 +286,14 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setConfirmDangerAction("restore")}
+                onClick={() => setConfirmDangerAction('restore')}
               >
                 Restaurar cuenta
               </Button>
             ) : (
               <Button
                 size="sm"
-                onClick={() => setConfirmDangerAction("delete")}
+                onClick={() => setConfirmDangerAction('delete')}
                 className="!bg-red-500 hover:!bg-red-600 !text-white"
               >
                 Dar de baja cuenta
@@ -283,27 +306,27 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
       {confirmDangerAction && (
         <ConfirmDialog
           title={
-            confirmDangerAction === "delete"
-              ? "Dar de baja cuenta"
-              : confirmDangerAction === "restore"
-                ? "Restaurar cuenta"
-                : "Cancelar suscripción"
+            confirmDangerAction === 'delete'
+              ? 'Dar de baja cuenta'
+              : confirmDangerAction === 'restore'
+                ? 'Restaurar cuenta'
+                : 'Cancelar suscripción'
           }
           description={
-            confirmDangerAction === "delete"
+            confirmDangerAction === 'delete'
               ? `"${user.name} ${user.surname}" no va a poder iniciar sesión hasta que se restaure la cuenta.`
-              : confirmDangerAction === "restore"
+              : confirmDangerAction === 'restore'
                 ? `"${user.name} ${user.surname}" vuelve a poder iniciar sesión.`
-                : "Esta suscripción va a quedar cancelada."
+                : 'Esta suscripción va a quedar cancelada.'
           }
           confirmLabel={
-            confirmDangerAction === "delete"
-              ? "Dar de baja"
-              : confirmDangerAction === "restore"
-                ? "Restaurar"
-                : "Cancelar suscripción"
+            confirmDangerAction === 'delete'
+              ? 'Dar de baja'
+              : confirmDangerAction === 'restore'
+                ? 'Restaurar'
+                : 'Cancelar suscripción'
           }
-          danger={confirmDangerAction !== "restore"}
+          danger={confirmDangerAction !== 'restore'}
           isLoading={isActing}
           onConfirm={handleDangerConfirm}
           onCancel={() => {

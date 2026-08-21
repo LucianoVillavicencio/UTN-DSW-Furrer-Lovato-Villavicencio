@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import { searchUsers } from "../../services/user.service";
-import { getSubscriptionsByUser } from "../../services/subscription.service";
-import { createManualPayment } from "../../services/payment.service";
-import { parsePriceInput, formatPriceDisplay } from "../../lib/currency";
-import type { User } from "../../types/user";
-import type { Subscription } from "../../types/subscription";
-import type { Payment } from "../../types/payment";
+import { useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import { searchUsers } from '../../services/user.service';
+import { getSubscriptionsByUser } from '../../services/subscription.service';
+import { createManualPayment } from '../../services/payment.service';
+import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
+import type { User } from '../../types/user';
+import type { Subscription } from '../../types/subscription';
+import type { Payment } from '../../types/payment';
 
 const PAY_METHODS = [
-  { value: "efectivo", label: "Efectivo" },
-  { value: "debito", label: "Débito" },
-  { value: "credito", label: "Crédito" },
-  { value: "transferencia", label: "Transferencia" },
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'debito', label: 'Débito' },
+  { value: 'credito', label: 'Crédito' },
+  { value: 'transferencia', label: 'Transferencia' },
 ];
 
 interface RegisterPaymentFormProps {
@@ -23,19 +23,24 @@ interface RegisterPaymentFormProps {
   onRegistered?: (payment: Payment) => void;
 }
 
-const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormProps) => {
-  const [searchMode, setSearchMode] = useState<"dni" | "email" | "name">("dni");
-  const [searchValue, setSearchValue] = useState("");
+const RegisterPaymentForm = ({
+  presetUser,
+  onRegistered,
+}: RegisterPaymentFormProps) => {
+  const [searchMode, setSearchMode] = useState<'dni' | 'email' | 'name'>('dni');
+  const [searchValue, setSearchValue] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(presetUser ?? null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(
+    presetUser ?? null,
+  );
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [selectedSubId, setSelectedSubId] = useState<number | "">("");
+  const [selectedSubId, setSelectedSubId] = useState<number | ''>('');
   const [isLoadingSubs, setIsLoadingSubs] = useState(false);
 
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0].value);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -50,13 +55,21 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
     getSubscriptionsByUser(selectedUser.dni)
       .then((subs) => {
         setSubscriptions(subs);
-        const active = subs.find((s) => s.state?.toLowerCase() === "activa" && !s.deleted);
-        setSelectedSubId(active?.id ?? subs[0]?.id ?? "");
+        const active = subs.find(
+          (s) => s.state?.toLowerCase() === 'activa' && !s.deleted,
+        );
+        setSelectedSubId(active?.id ?? subs[0]?.id ?? '');
         if (active?.plan?.price) {
           setAmount(formatPriceDisplay(active.plan.price));
         }
       })
-      .catch((err) => setSearchError(err instanceof Error ? err.message : "No se pudieron cargar las suscripciones."))
+      .catch((err) =>
+        setSearchError(
+          err instanceof Error
+            ? err.message
+            : 'No se pudieron cargar las suscripciones.',
+        ),
+      )
       .finally(() => setIsLoadingSubs(false));
   }, [selectedUser]);
 
@@ -66,14 +79,16 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
     setSearchError(null);
     setResults([]);
     try {
-      const query = { [searchMode]: searchMode === "dni" ? Number(searchValue) : searchValue };
+      const query = {
+        [searchMode]: searchMode === 'dni' ? Number(searchValue) : searchValue,
+      };
       const data = await searchUsers(query);
       setResults(data);
       if (data.length === 0) {
-        setSearchError("No se encontraron usuarios con ese criterio.");
+        setSearchError('No se encontraron usuarios con ese criterio.');
       }
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : "No se pudo buscar.");
+      setSearchError(err instanceof Error ? err.message : 'No se pudo buscar.');
     } finally {
       setIsSearching(false);
     }
@@ -92,12 +107,12 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
     setSuccess(null);
 
     if (!selectedSubId) {
-      setFormError("Elegí una suscripción.");
+      setFormError('Elegí una suscripción.');
       return;
     }
     const amountNum = parsePriceInput(amount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
-      setFormError("Ingresá un monto válido.");
+      setFormError('Ingresá un monto válido.');
       return;
     }
 
@@ -106,13 +121,21 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
       const payment = await createManualPayment({
         subscriptionId: Number(selectedSubId),
         amount: amountNum,
-        payMethod: payMethod as "efectivo" | "debito" | "credito" | "transferencia",
+        payMethod: payMethod as
+          | 'efectivo'
+          | 'debito'
+          | 'credito'
+          | 'transferencia',
       });
-      setSuccess(`Pago de $${formatPriceDisplay(amountNum)} registrado correctamente.`);
-      setAmount("");
+      setSuccess(
+        `Pago de $${formatPriceDisplay(amountNum)} registrado correctamente.`,
+      );
+      setAmount('');
       onRegistered?.(payment);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "No se pudo registrar el pago.");
+      setFormError(
+        err instanceof Error ? err.message : 'No se pudo registrar el pago.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -129,7 +152,9 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
               </label>
               <select
                 value={searchMode}
-                onChange={(e) => setSearchMode(e.target.value as typeof searchMode)}
+                onChange={(e) =>
+                  setSearchMode(e.target.value as typeof searchMode)
+                }
                 className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text focus:border-primary focus:outline-none"
               >
                 <option value="dni">DNI</option>
@@ -143,10 +168,15 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
                 placeholder="Buscar socio..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button onClick={handleSearch} disabled={isSearching} size="sm" className="shrink-0">
+            <Button
+              onClick={handleSearch}
+              disabled={isSearching}
+              size="sm"
+              className="shrink-0"
+            >
               <Search className="h-4 w-4" />
             </Button>
           </div>
@@ -160,7 +190,7 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
                     onClick={() => {
                       setSelectedUser(u);
                       setResults([]);
-                      setSearchValue("");
+                      setSearchValue('');
                     }}
                     className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-text hover:bg-surface"
                   >
@@ -183,7 +213,9 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
               <p className="font-semibold text-text">
                 {selectedUser.name} {selectedUser.surname}
               </p>
-              <p className="text-xs text-text-muted">DNI {selectedUser.dni} · {selectedUser.email}</p>
+              <p className="text-xs text-text-muted">
+                DNI {selectedUser.dni} · {selectedUser.email}
+              </p>
             </div>
             {!presetUser && (
               <button
@@ -197,9 +229,13 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
           </div>
 
           {isLoadingSubs ? (
-            <p className="mt-3 text-sm text-text-muted">Cargando suscripciones...</p>
+            <p className="mt-3 text-sm text-text-muted">
+              Cargando suscripciones...
+            </p>
           ) : subscriptions.length === 0 ? (
-            <p className="mt-3 text-sm text-text-muted">Este socio no tiene suscripciones.</p>
+            <p className="mt-3 text-sm text-text-muted">
+              Este socio no tiene suscripciones.
+            </p>
           ) : (
             <div className="mt-4 space-y-4">
               <div>
@@ -229,11 +265,14 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
-                  {amount && Number.isFinite(parsePriceInput(amount)) && parsePriceInput(amount) > 0 && (
-                    <p className="mt-1 text-xs text-primary">
-                      Se va a registrar como ${formatPriceDisplay(parsePriceInput(amount))}
-                    </p>
-                  )}
+                  {amount &&
+                    Number.isFinite(parsePriceInput(amount)) &&
+                    parsePriceInput(amount) > 0 && (
+                      <p className="mt-1 text-xs text-primary">
+                        Se va a registrar como $
+                        {formatPriceDisplay(parsePriceInput(amount))}
+                      </p>
+                    )}
                 </div>
                 <div>
                   <label className="mb-1.5 block font-body text-xs sm:text-sm font-medium text-text">
@@ -256,8 +295,12 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
               <FormAlert type="error" message={formError} />
               <FormAlert type="success" message={success} />
 
-              <Button onClick={handleSubmit} disabled={isSaving} className="w-full">
-                {isSaving ? "Registrando..." : "Registrar pago"}
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="w-full"
+              >
+                {isSaving ? 'Registrando...' : 'Registrar pago'}
               </Button>
             </div>
           )}

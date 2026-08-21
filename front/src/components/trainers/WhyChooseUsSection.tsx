@@ -1,32 +1,32 @@
-import { Award, Clock, Star, Users2 } from "lucide-react";
-import Container from "../common/Container";
-import IconFeatureCard from "../common/IconFeatureCard";
-import SectionTitle from "../common/SectionTitle";
+import { Award, Clock, Star, Users2 } from 'lucide-react';
+import Container from '../common/Container';
+import IconFeatureCard from '../common/IconFeatureCard';
+import SectionTitle from '../common/SectionTitle';
 
 const features = [
   {
     icon: Award,
-    title: "Expertos certificados",
+    title: 'Expertos certificados',
     description:
-      "Todos los entrenadores cuentan con certificaciones reconocidas a nivel nacional y continúan su formación de manera regular.",
+      'Todos los entrenadores cuentan con certificaciones reconocidas a nivel nacional y continúan su formación de manera regular.',
   },
   {
     icon: Users2,
-    title: "Enfoque personalizado",
+    title: 'Enfoque personalizado',
     description:
-      "Cada entrenador crea programas personalizados basados ​​en tus objetivos específicos y tu nivel de condición física.",
+      'Cada entrenador crea programas personalizados basados ​​en tus objetivos específicos y tu nivel de condición física.',
   },
   {
     icon: Star,
-    title: "Resultados comprobados",
+    title: 'Resultados comprobados',
     description:
-      "Nuestros entrenadores han ayudado a miles de clientes a alcanzar sus objetivos de acondicionamiento físico y a transformar sus vidas",
+      'Nuestros entrenadores han ayudado a miles de clientes a alcanzar sus objetivos de acondicionamiento físico y a transformar sus vidas',
   },
   {
     icon: Clock,
-    title: "Apoyo continuo",
+    title: 'Apoyo continuo',
     description:
-      "Recibe motivación constante, correcciones de técnica y ajustes en el programa a lo largo de tu recorrido.",
+      'Recibe motivación constante, correcciones de técnica y ajustes en el programa a lo largo de tu recorrido.',
   },
 ];
 

@@ -1,7 +1,7 @@
-import { Check, X, Loader2 } from "lucide-react";
-import Card from "../common/Card";
-import Button from "../common/Button";
-import type { MembershipPlan } from "./plans.data";
+import { Check, X, Loader2 } from 'lucide-react';
+import Card from '../common/Card';
+import Button from '../common/Button';
+import type { MembershipPlan } from './plans.data';
 
 interface PlanCardProps {
   plan: MembershipPlan;
@@ -20,8 +20,8 @@ const PlanCard = ({
     <Card
       className={`relative flex h-full flex-col justify-between gap-6 p-8 ${
         plan.highlight
-          ? "border border-primary bg-bg-secondary shadow-[0_0_30px_rgba(34,197,94,0.15)]"
-          : "border-border"
+          ? 'border border-primary bg-bg-secondary shadow-[0_0_30px_rgba(34,197,94,0.15)]'
+          : 'border-border'
       }`}
     >
       {plan.highlight && (
@@ -46,7 +46,7 @@ const PlanCard = ({
             <li
               key={feature.label}
               className={`flex items-center gap-3 text-sm ${
-                feature.available ? "text-text" : "text-text-muted"
+                feature.available ? 'text-text' : 'text-text-muted'
               }`}
             >
               {feature.available ? (
@@ -63,7 +63,7 @@ const PlanCard = ({
       <Button
         onClick={() => onSelect?.(plan)}
         disabled={isLoading || isCurrentSubscription}
-        variant={plan.highlight ? "primary" : "secondary"}
+        variant={plan.highlight ? 'primary' : 'secondary'}
         className="w-full"
       >
         {isLoading ? (
@@ -72,9 +72,9 @@ const PlanCard = ({
             Procesando...
           </span>
         ) : isCurrentSubscription ? (
-          "Plan actual"
+          'Plan actual'
         ) : (
-          "Elegir plan"
+          'Elegir plan'
         )}
       </Button>
     </Card>
@@ -82,4 +82,3 @@ const PlanCard = ({
 };
 
 export default PlanCard;
-

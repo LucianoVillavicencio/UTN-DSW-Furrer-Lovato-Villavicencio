@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { Pencil, Trash2, RotateCcw, Plus } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import DataTable, { type DataTableColumn } from "./DataTable";
-import Modal from "./Modal";
-import ConfirmDialog from "./ConfirmDialog";
+import { useEffect, useState } from 'react';
+import { Pencil, Trash2, RotateCcw, Plus } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import DataTable, { type DataTableColumn } from './DataTable';
+import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import {
   getTrainers,
   getDeletedTrainers,
@@ -13,16 +13,16 @@ import {
   updateTrainer,
   deleteTrainer,
   restoreTrainer,
-} from "../../services/trainer.service";
-import type { Trainer } from "../../types/trainer";
+} from '../../services/trainer.service';
+import type { Trainer } from '../../types/trainer';
 
 const emptyForm: Trainer = {
   dni: 0,
-  name: "",
-  surname: "",
-  email: "",
-  phone: "",
-  speciality: "",
+  name: '',
+  surname: '',
+  email: '',
+  phone: '',
+  speciality: '',
 };
 
 const TrainersSection = () => {
@@ -45,10 +45,14 @@ const TrainersSection = () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const data = showDeleted ? await getDeletedTrainers() : await getTrainers();
+      const data = showDeleted
+        ? await getDeletedTrainers()
+        : await getTrainers();
       setTrainers(data);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudo cargar la lista.");
+      setLoadError(
+        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +83,11 @@ const TrainersSection = () => {
   const handleSubmit = async () => {
     setFormError(null);
     if (!form.name.trim() || !form.surname.trim() || !form.email.trim()) {
-      setFormError("Nombre, apellido y email son obligatorios.");
+      setFormError('Nombre, apellido y email son obligatorios.');
       return;
     }
     if (isCreating && !form.dni) {
-      setFormError("El DNI es obligatorio.");
+      setFormError('El DNI es obligatorio.');
       return;
     }
 
@@ -97,7 +101,7 @@ const TrainersSection = () => {
       closeModal();
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
       setIsSaving(false);
     }
@@ -116,19 +120,21 @@ const TrainersSection = () => {
       setPendingDelete(null);
       await load();
     } catch (err) {
-      setListError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+      setListError(
+        err instanceof Error ? err.message : 'No se pudo completar la acción.',
+      );
     } finally {
       setIsDeleting(false);
     }
   };
 
   const columns: DataTableColumn<Trainer>[] = [
-    { header: "DNI", cell: (t) => t.dni },
-    { header: "Nombre", cell: (t) => `${t.name} ${t.surname}` },
-    { header: "Especialidad", cell: (t) => t.speciality || "—" },
-    { header: "Email", cell: (t) => t.email },
+    { header: 'DNI', cell: (t) => t.dni },
+    { header: 'Nombre', cell: (t) => `${t.name} ${t.surname}` },
+    { header: 'Especialidad', cell: (t) => t.speciality || '—' },
+    { header: 'Email', cell: (t) => t.email },
     {
-      header: "Acciones",
+      header: 'Acciones',
       cell: (t) => (
         <div className="flex gap-2">
           {!showDeleted && (
@@ -144,10 +150,16 @@ const TrainersSection = () => {
           <button
             type="button"
             onClick={() => setPendingDelete(t)}
-            aria-label={showDeleted ? `Restaurar ${t.name}` : `Eliminar ${t.name}`}
+            aria-label={
+              showDeleted ? `Restaurar ${t.name}` : `Eliminar ${t.name}`
+            }
             className="rounded-lg p-1.5 text-text-muted hover:text-red-400"
           >
-            {showDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+            {showDeleted ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </button>
         </div>
       ),
@@ -157,7 +169,9 @@ const TrainersSection = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-text">Entrenadores</h3>
+        <h3 className="font-display text-lg font-semibold text-text">
+          Entrenadores
+        </h3>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-text-muted">
             <input
@@ -168,7 +182,11 @@ const TrainersSection = () => {
             />
             Mostrar eliminados
           </label>
-          <Button size="sm" onClick={openCreate} className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            onClick={openCreate}
+            className="flex items-center gap-1.5"
+          >
             <Plus className="h-4 w-4" />
             Agregar
           </Button>
@@ -182,19 +200,28 @@ const TrainersSection = () => {
         rows={trainers}
         rowKey={(t) => t.dni}
         isLoading={isLoading}
-        emptyMessage={showDeleted ? "No hay entrenadores eliminados." : "Todavía no hay entrenadores cargados."}
+        emptyMessage={
+          showDeleted
+            ? 'No hay entrenadores eliminados.'
+            : 'Todavía no hay entrenadores cargados.'
+        }
       />
 
       {(isCreating || editing) && (
-        <Modal title={isCreating ? "Agregar entrenador" : "Editar entrenador"} onClose={closeModal}>
+        <Modal
+          title={isCreating ? 'Agregar entrenador' : 'Editar entrenador'}
+          onClose={closeModal}
+        >
           <div className="space-y-4">
             <FormAlert type="error" message={formError} />
             <InputField
               label="DNI"
               type="number"
-              value={form.dni || ""}
+              value={form.dni || ''}
               disabled={!isCreating}
-              onChange={(e) => setForm({ ...form, dni: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, dni: Number(e.target.value) })
+              }
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField
@@ -216,19 +243,27 @@ const TrainersSection = () => {
             />
             <InputField
               label="Teléfono"
-              value={form.phone ?? ""}
+              value={form.phone ?? ''}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
             <InputField
               label="Especialidad"
-              value={form.speciality ?? ""}
+              value={form.speciality ?? ''}
               onChange={(e) => setForm({ ...form, speciality: e.target.value })}
             />
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleSubmit} disabled={isSaving} className="flex-1">
-                {isSaving ? "Guardando..." : "Guardar"}
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="flex-1"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar'}
               </Button>
-              <Button variant="secondary" onClick={closeModal} disabled={isSaving}>
+              <Button
+                variant="secondary"
+                onClick={closeModal}
+                disabled={isSaving}
+              >
                 Cancelar
               </Button>
             </div>
@@ -238,13 +273,13 @@ const TrainersSection = () => {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={showDeleted ? "Restaurar entrenador" : "Eliminar entrenador"}
+          title={showDeleted ? 'Restaurar entrenador' : 'Eliminar entrenador'}
           description={
             showDeleted
               ? `"${pendingDelete.name} ${pendingDelete.surname}" volverá a estar disponible.`
               : `"${pendingDelete.name} ${pendingDelete.surname}" se va a dar de baja (baja lógica) — se puede restaurar después.`
           }
-          confirmLabel={showDeleted ? "Restaurar" : "Eliminar"}
+          confirmLabel={showDeleted ? 'Restaurar' : 'Eliminar'}
           danger={!showDeleted}
           isLoading={isDeleting}
           onConfirm={confirmDelete}

@@ -1,7 +1,7 @@
-import { Dumbbell, ShieldCheck, Zap, Users } from "lucide-react";
-import Container from "../common/Container";
-import Card from "../common/Card";
-import LoginForm from "./LoginForm";
+import { Dumbbell, ShieldCheck, Zap, Users } from 'lucide-react';
+import Container from '../common/Container';
+import Card from '../common/Card';
+import LoginForm from './LoginForm';
 
 const LoginSection = () => {
   return (
@@ -24,7 +24,8 @@ const LoginSection = () => {
                 Bienvenido de nuevo a tu comunidad de entrenamiento
               </h2>
               <p className="mt-3 font-body text-sm text-text-muted leading-relaxed">
-                Accede a tu panel personalizado, reserva tus clases y sigue tus progresos diarios.
+                Accede a tu panel personalizado, reserva tus clases y sigue tus
+                progresos diarios.
               </p>
             </div>
 
@@ -35,8 +36,12 @@ const LoginSection = () => {
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Acceso Seguro</h4>
-                  <p className="font-body text-xs text-text-muted">Tus datos e historial de clases protegidos.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Acceso Seguro
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Tus datos e historial de clases protegidos.
+                  </p>
                 </div>
               </div>
 
@@ -45,8 +50,12 @@ const LoginSection = () => {
                   <Zap className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Reservas Rápidas</h4>
-                  <p className="font-body text-xs text-text-muted">Reserva tu lugar en segundos en cualquier rutina.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Reservas Rápidas
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Reserva tu lugar en segundos en cualquier rutina.
+                  </p>
                 </div>
               </div>
 
@@ -55,8 +64,12 @@ const LoginSection = () => {
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Comunidad Activa</h4>
-                  <p className="font-body text-xs text-text-muted">Entrena junto a los mejores profesores y compañeros.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Comunidad Activa
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Entrena junto a los mejores profesores y compañeros.
+                  </p>
                 </div>
               </div>
             </div>
@@ -64,7 +77,8 @@ const LoginSection = () => {
             {/* Motivational Quote */}
             <div className="relative z-10 border-t border-border/50 pt-4">
               <p className="font-body text-xs italic text-text-muted">
-                "La disciplina es la clave entre lo que quieres ahora y lo que más deseas."
+                "La disciplina es la clave entre lo que quieres ahora y lo que
+                más deseas."
               </p>
             </div>
           </div>
@@ -75,7 +89,9 @@ const LoginSection = () => {
             <div className="mb-6 lg:mb-8 text-center lg:text-left">
               <div className="flex justify-center lg:justify-start items-center gap-2 mb-2 lg:hidden">
                 <Dumbbell className="h-7 w-7 text-primary" />
-                <span className="font-display text-xl font-bold text-text">FLG</span>
+                <span className="font-display text-xl font-bold text-text">
+                  FLG
+                </span>
               </div>
               <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text">
                 Iniciar Sesión

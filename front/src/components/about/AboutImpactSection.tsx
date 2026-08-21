@@ -1,34 +1,34 @@
-import { Calendar, Users, Award, Smile } from "lucide-react";
-import Container from "../common/Container";
+import { Calendar, Users, Award, Smile } from 'lucide-react';
+import Container from '../common/Container';
 
 const metrics = [
   {
-    id: "metric-years",
+    id: 'metric-years',
     icon: Calendar,
-    value: "10+",
-    label: "Años de excelencia",
-    subtext: "Liderando la industria",
+    value: '10+',
+    label: 'Años de excelencia',
+    subtext: 'Liderando la industria',
   },
   {
-    id: "metric-members",
+    id: 'metric-members',
     icon: Users,
-    value: "5,000+",
-    label: "Miembros transformados",
-    subtext: "Comunidad activa",
+    value: '5,000+',
+    label: 'Miembros transformados',
+    subtext: 'Comunidad activa',
   },
   {
-    id: "metric-trainers",
+    id: 'metric-trainers',
     icon: Award,
-    value: "50+",
-    label: "Entrenadores expertos",
-    subtext: "Certificación internacional",
+    value: '50+',
+    label: 'Entrenadores expertos',
+    subtext: 'Certificación internacional',
   },
   {
-    id: "metric-satisfaction",
+    id: 'metric-satisfaction',
     icon: Smile,
-    value: "98%",
-    label: "Satisfacción garantizada",
-    subtext: "Clientes satisfechos",
+    value: '98%',
+    label: 'Satisfacción garantizada',
+    subtext: 'Clientes satisfechos',
   },
 ];
 
@@ -52,7 +52,8 @@ const AboutImpactSection = () => {
           </h2>
 
           <p className="mt-4 font-sans text-base sm:text-lg text-text-muted leading-relaxed">
-            Cada meta alcanzada es el fruto de la disciplina, el trabajo constante y un equipo apasionado que te acompaña paso a paso.
+            Cada meta alcanzada es el fruto de la disciplina, el trabajo
+            constante y un equipo apasionado que te acompaña paso a paso.
           </p>
         </div>
 
@@ -90,4 +91,3 @@ const AboutImpactSection = () => {
 };
 
 export default AboutImpactSection;
-

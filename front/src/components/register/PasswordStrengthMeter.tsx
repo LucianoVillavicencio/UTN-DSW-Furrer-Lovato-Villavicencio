@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { Check, X } from 'lucide-react';
 
 interface PasswordStrengthMeterProps {
   password: string;
@@ -8,23 +8,34 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
   if (!password) return null;
 
   const checks = [
-    { label: "Mínimo 8 caracteres", valid: password.length >= 8 },
-    { label: "Una letra minúscula", valid: /[a-z]/.test(password) },
-    { label: "Una letra mayúscula", valid: /[A-Z]/.test(password) },
-    { label: "Un número", valid: /\d/.test(password) },
-    { label: "Un carácter especial (!@#$%...)", valid: /[^A-Za-z0-9]/.test(password) },
+    { label: 'Mínimo 8 caracteres', valid: password.length >= 8 },
+    { label: 'Una letra minúscula', valid: /[a-z]/.test(password) },
+    { label: 'Una letra mayúscula', valid: /[A-Z]/.test(password) },
+    { label: 'Un número', valid: /\d/.test(password) },
+    {
+      label: 'Un carácter especial (!@#$%...)',
+      valid: /[^A-Za-z0-9]/.test(password),
+    },
   ];
 
   const score = checks.filter((c) => c.valid).length;
 
   const getStrengthInfo = () => {
     if (score <= 2) {
-      return { label: "Débil", color: "bg-red-500", textColor: "text-red-400" };
+      return { label: 'Débil', color: 'bg-red-500', textColor: 'text-red-400' };
     }
     if (score <= 4) {
-      return { label: "Media", color: "bg-amber-500", textColor: "text-amber-400" };
+      return {
+        label: 'Media',
+        color: 'bg-amber-500',
+        textColor: 'text-amber-400',
+      };
     }
-    return { label: "Excelente", color: "bg-primary", textColor: "text-primary" };
+    return {
+      label: 'Excelente',
+      color: 'bg-primary',
+      textColor: 'text-primary',
+    };
   };
 
   const strength = getStrengthInfo();
@@ -34,7 +45,9 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
       {/* Strength Progress Bar Header */}
       <div className="flex items-center justify-between text-xs font-body">
         <span className="text-text-muted">Fortaleza de la contraseña:</span>
-        <span className={`font-semibold tracking-wide ${strength.textColor}`}>{strength.label}</span>
+        <span className={`font-semibold tracking-wide ${strength.textColor}`}>
+          {strength.label}
+        </span>
       </div>
 
       {/* Bar Segments */}
@@ -43,7 +56,7 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
           <div
             key={level}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              level <= score ? strength.color : "bg-border/60"
+              level <= score ? strength.color : 'bg-border/60'
             }`}
           />
         ))}
@@ -58,7 +71,11 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
             ) : (
               <X className="h-3.5 w-3.5 text-text-muted/50 shrink-0" />
             )}
-            <span className={c.valid ? "text-text font-medium" : "text-text-muted/70"}>
+            <span
+              className={
+                c.valid ? 'text-text font-medium' : 'text-text-muted/70'
+              }
+            >
               {c.label}
             </span>
           </div>

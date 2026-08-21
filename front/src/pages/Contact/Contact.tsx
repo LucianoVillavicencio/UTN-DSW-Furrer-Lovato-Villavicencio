@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-import { Mail} from "lucide-react";
-import Navbar from "../../components/layout/Navbar";
-import Footer from "../../components/layout/Footer";
-import PageHeader from "../../components/common/PageHeader";
-import ContactSection from "../../components/contact/ContactSection";
+import { useEffect } from 'react';
+import { Mail } from 'lucide-react';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import PageHeader from '../../components/common/PageHeader';
+import ContactSection from '../../components/contact/ContactSection';
 
 function Contact() {
   useEffect(() => {
@@ -19,7 +19,8 @@ function Contact() {
           icon={Mail}
           title={
             <>
-              Ponete en <span className="text-primary">contacto</span> con nosotros
+              Ponete en <span className="text-primary">contacto</span> con
+              nosotros
             </>
           }
           subtitle="¿Tenés dudas sobre nuestras clases, planes o entrenadores? Mandanos tu mensaje y te responderemos a la brevedad."

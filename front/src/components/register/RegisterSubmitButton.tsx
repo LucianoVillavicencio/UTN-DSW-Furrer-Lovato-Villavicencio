@@ -1,12 +1,15 @@
-import { UserPlus, Loader2 } from "lucide-react";
-import Button from "../common/Button";
+import { UserPlus, Loader2 } from 'lucide-react';
+import Button from '../common/Button';
 
 interface RegisterSubmitButtonProps {
   isLoading: boolean;
   disabled?: boolean;
 }
 
-const RegisterSubmitButton = ({ isLoading, disabled = false }: RegisterSubmitButtonProps) => {
+const RegisterSubmitButton = ({
+  isLoading,
+  disabled = false,
+}: RegisterSubmitButtonProps) => {
   return (
     <Button
       type="submit"

@@ -4,12 +4,11 @@ import {
   Phone,
   MessageCircle,
   ArrowUpRight,
-} from "lucide-react";
+} from 'lucide-react';
 
-// El número real vive en el .env (no versionado). El fallback es un placeholder
-// para que el repo público no exponga un teléfono personal.
-const WHATSAPP_NUMBER =
-  import.meta.env.VITE_WHATSAPP_NUMBER || "5490000000000";
+// The real number lives in .env, which is not versioned. The fallback is a
+// placeholder so the public repo does not expose a personal phone number.
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5490000000000';
 
 // 5493410000000 -> +54 9 341 000-0000
 const formatPhone = (raw: string) => {
@@ -21,10 +20,10 @@ const formatPhone = (raw: string) => {
 
 const WHATSAPP_DISPLAY = formatPhone(WHATSAPP_NUMBER);
 const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  "Hola! Quisiera hacer una consulta sobre el gimnasio FLG",
+  'Hola! Quisiera hacer una consulta sobre el gimnasio FLG',
 )}`;
 
-const InstagramIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+const InstagramIcon = ({ className = 'w-6 h-6' }: { className?: string }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -41,7 +40,7 @@ const InstagramIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const WhatsAppIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+const WhatsAppIcon = ({ className = 'w-6 h-6' }: { className?: string }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"

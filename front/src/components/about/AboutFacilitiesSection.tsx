@@ -1,6 +1,14 @@
-import { useState } from "react";
-import { Dumbbell, HeartPulse, Wind, Sparkles, ShieldCheck, Coffee, CheckCircle2 } from "lucide-react";
-import Container from "../common/Container";
+import { useState } from 'react';
+import {
+  Dumbbell,
+  HeartPulse,
+  Wind,
+  Sparkles,
+  ShieldCheck,
+  Coffee,
+  CheckCircle2,
+} from 'lucide-react';
+import Container from '../common/Container';
 
 interface FacilityItem {
   id: string;
@@ -14,64 +22,94 @@ interface FacilityItem {
 
 const facilityList: FacilityItem[] = [
   {
-    id: "facility-fuerza",
+    id: 'facility-fuerza',
     icon: Dumbbell,
-    title: "Zona de Fuerza & Peso Libre",
-    badge: "Equipamiento Olímpico",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80",
+    title: 'Zona de Fuerza & Peso Libre',
+    badge: 'Equipamiento Olímpico',
+    image:
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
     description:
-      "Máncuernas, barras olímpicas, bancas ajustables y racks de potencia de marcas líderes para maximizar tu ganancia de fuerza.",
-    features: ["Pesas libres hasta 50kg", "Plataformas de Powerlifting", "Maquinaria Hammer Strength"],
+      'Máncuernas, barras olímpicas, bancas ajustables y racks de potencia de marcas líderes para maximizar tu ganancia de fuerza.',
+    features: [
+      'Pesas libres hasta 50kg',
+      'Plataformas de Powerlifting',
+      'Maquinaria Hammer Strength',
+    ],
   },
   {
-    id: "facility-cardio",
+    id: 'facility-cardio',
     icon: Wind,
-    title: "Zona Cardio Interactiva",
-    badge: "Alta Tecnología",
-    image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80",
+    title: 'Zona Cardio Interactiva',
+    badge: 'Alta Tecnología',
+    image:
+      'https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80',
     description:
-      "Cintas de correr, elípticas, remadoras y bicicletas de spinning equipadas con pantallas táctiles y métricas en tiempo real.",
-    features: ["Pantallas HD integradas", "Simuladores de ruta", "Monitoreo cardíaco Bluetooth"],
+      'Cintas de correr, elípticas, remadoras y bicicletas de spinning equipadas con pantallas táctiles y métricas en tiempo real.',
+    features: [
+      'Pantallas HD integradas',
+      'Simuladores de ruta',
+      'Monitoreo cardíaco Bluetooth',
+    ],
   },
   {
-    id: "facility-estudios",
+    id: 'facility-estudios',
     icon: Sparkles,
-    title: "Estudios Colectivos Premium",
-    badge: "Audio & Iluminación Pro",
-    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80",
+    title: 'Estudios Colectivos Premium',
+    badge: 'Audio & Iluminación Pro',
+    image:
+      'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80',
     description:
-      "Salas climatizadas con piso de alto impacto y sonido envolvente para clases de Yoga, Pilates, Spinning y CrossTraining.",
-    features: ["Pisos amortiguados", "Ambiente climatizado", "Entrenadores en vivo"],
+      'Salas climatizadas con piso de alto impacto y sonido envolvente para clases de Yoga, Pilates, Spinning y CrossTraining.',
+    features: [
+      'Pisos amortiguados',
+      'Ambiente climatizado',
+      'Entrenadores en vivo',
+    ],
   },
   {
-    id: "facility-nutricion",
+    id: 'facility-nutricion',
     icon: Coffee,
-    title: "FitBar & Nutrición",
-    badge: "Recarga Saludable",
-    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80",
+    title: 'FitBar & Nutrición',
+    badge: 'Recarga Saludable',
+    image:
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     description:
-      "Smoothies de proteína personalizados, bebidas hidratantes, cafés de especialidad y suplementación de alta gama.",
-    features: ["Batidos proteicos 100% naturales", "Opciones veganas y sin gluten", "Asesoría nutricional"],
+      'Smoothies de proteína personalizados, bebidas hidratantes, cafés de especialidad y suplementación de alta gama.',
+    features: [
+      'Batidos proteicos 100% naturales',
+      'Opciones veganas y sin gluten',
+      'Asesoría nutricional',
+    ],
   },
   {
-    id: "facility-lockers",
+    id: 'facility-lockers',
     icon: ShieldCheck,
-    title: "Vestidores & Lockers VIP",
-    badge: "Máximo Confort",
-    image: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80",
+    title: 'Vestidores & Lockers VIP',
+    badge: 'Máximo Confort',
+    image:
+      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80',
     description:
-      "Espacios amplios y pulcros con regaderas privadas, saunas, casilleros con cerradura digital y amenities de higiene.",
-    features: ["Lockers digitales inteligentes", "Duchas de agua caliente", "Servicio de toallas gratuito"],
+      'Espacios amplios y pulcros con regaderas privadas, saunas, casilleros con cerradura digital y amenities de higiene.',
+    features: [
+      'Lockers digitales inteligentes',
+      'Duchas de agua caliente',
+      'Servicio de toallas gratuito',
+    ],
   },
   {
-    id: "facility-recuperacion",
+    id: 'facility-recuperacion',
     icon: HeartPulse,
-    title: "Área de Recuperación & Relax",
-    badge: "Bienestar Integral",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80",
+    title: 'Área de Recuperación & Relax',
+    badge: 'Bienestar Integral',
+    image:
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80',
     description:
-      "Zona equipada con pistolas de percusión, rodillos de espuma, estiramientos guiados y sillones de terapia de masaje.",
-    features: ["Botas de presoterapia", "Rodillos y bandas de movilidad", "Sillones ergonómicos masajeadores"],
+      'Zona equipada con pistolas de percusión, rodillos de espuma, estiramientos guiados y sillones de terapia de masaje.',
+    features: [
+      'Botas de presoterapia',
+      'Rodillos y bandas de movilidad',
+      'Sillones ergonómicos masajeadores',
+    ],
   },
 ];
 
@@ -108,7 +146,8 @@ const AboutFacilitiesSection = () => {
           </h2>
 
           <p className="mt-4 font-sans text-base sm:text-lg text-text-muted leading-relaxed">
-            Diseñamos un espacio moderno, seguro y motivador para que cada sesión de entrenamiento sea una experiencia extraordinaria.
+            Diseñamos un espacio moderno, seguro y motivador para que cada
+            sesión de entrenamiento sea una experiencia extraordinaria.
           </p>
         </div>
 
@@ -163,7 +202,10 @@ const AboutFacilitiesSection = () => {
                     {/* Feature Highlights List */}
                     <ul className="mt-6 space-y-2 border-t border-border/60 pt-4">
                       {facility.features.map((feat, idx) => (
-                        <li key={`${facility.id}-feat-${idx}`} className="flex items-center gap-2 text-xs font-medium text-text-muted">
+                        <li
+                          key={`${facility.id}-feat-${idx}`}
+                          className="flex items-center gap-2 text-xs font-medium text-text-muted"
+                        >
                           <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span>{feat}</span>
                         </li>
@@ -181,4 +223,3 @@ const AboutFacilitiesSection = () => {
 };
 
 export default AboutFacilitiesSection;
-
