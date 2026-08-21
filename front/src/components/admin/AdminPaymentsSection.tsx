@@ -4,6 +4,7 @@ import DataTable, { type DataTableColumn } from "./DataTable";
 import RegisterPaymentForm from "./RegisterPaymentForm";
 import { getPayments } from "../../services/payment.service";
 import { formatDateOnly } from "../../lib/date";
+import { formatPriceDisplay } from "../../lib/currency";
 import type { Payment } from "../../types/payment";
 
 const AdminPaymentsSection = () => {
@@ -35,7 +36,7 @@ const AdminPaymentsSection = () => {
       cell: (p) =>
         p.subscription?.user ? `${p.subscription.user.name} ${p.subscription.user.surname}` : "—",
     },
-    { header: "Monto", cell: (p) => `$${p.amount}` },
+    { header: "Monto", cell: (p) => `$${formatPriceDisplay(p.amount)}` },
     { header: "Método", cell: (p) => p.payMethod },
     { header: "Registrado por", cell: (p) => (p.registeredByDni ? `DNI ${p.registeredByDni}` : "—") },
   ];

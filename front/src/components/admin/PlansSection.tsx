@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, RotateCcw, Plus } from "lucide-react";
+import { Pencil, Trash2, RotateCcw, Plus, X, Check } from "lucide-react";
 import Button from "../common/Button";
 import InputField from "../common/InputField";
 import FormAlert from "../common/FormAlert";
@@ -14,7 +14,8 @@ import {
   deletePlan,
   restorePlan,
 } from "../../services/plan.service";
-import type { Plan } from "../../types/plan";
+import type { Plan, PlanFeature } from "../../types/plan";
+import { parsePriceInput, formatPriceDisplay } from "../../lib/currency";
 
 const emptyForm: Plan = { name: "", description: "", price: 0, numDays: 30 };
 
@@ -27,6 +28,14 @@ const PlansSection = () => {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState<Plan>(emptyForm);
+  // Precio y días se editan como texto libre, no como number: si converimos
+  // a Number en cada tecla, escribir "19.995" nunca llega a completarse —
+  // Number("19.") es 19, así que el "." recién tipeado desaparece del input
+  // controlado apenas se re-renderiza. Se guarda el texto tal cual y se
+  // convierte una sola vez, al guardar.
+  const [priceText, setPriceText] = useState("");
+  const [numDaysText, setNumDaysText] = useState("");
+  const [featuresForm, setFeaturesForm] = useState<PlanFeature[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -54,14 +63,32 @@ const PlansSection = () => {
 
   const openCreate = () => {
     setForm(emptyForm);
+    setPriceText("");
+    setNumDaysText(String(emptyForm.numDays));
+    setFeaturesForm([]);
     setFormError(null);
     setIsCreating(true);
   };
 
   const openEdit = (plan: Plan) => {
     setForm(plan);
+    setPriceText(formatPriceDisplay(plan.price));
+    setNumDaysText(String(plan.numDays));
+    setFeaturesForm(plan.features ?? []);
     setFormError(null);
     setEditing(plan);
+  };
+
+  const addFeatureRow = () => {
+    setFeaturesForm((prev) => [...prev, { label: "", available: true }]);
+  };
+
+  const updateFeatureRow = (index: number, patch: Partial<PlanFeature>) => {
+    setFeaturesForm((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+  };
+
+  const removeFeatureRow = (index: number) => {
+    setFeaturesForm((prev) => prev.filter((_, i) => i !== index));
   };
 
   const closeModal = () => {
@@ -71,17 +98,26 @@ const PlansSection = () => {
 
   const handleSubmit = async () => {
     setFormError(null);
-    if (!form.name.trim() || form.price <= 0 || form.numDays <= 0) {
+
+    const price = parsePriceInput(priceText);
+    const numDays = Number(numDaysText);
+
+    if (!form.name.trim() || !priceText || !Number.isFinite(price) || price <= 0 || !numDays || numDays <= 0) {
       setFormError("Nombre, precio y días son obligatorios y deben ser mayores a cero.");
       return;
     }
 
+    const features = featuresForm
+      .map((f) => ({ ...f, label: f.label.trim() }))
+      .filter((f) => f.label.length > 0);
+    const payload: Plan = { ...form, price, numDays, features };
+
     setIsSaving(true);
     try {
       if (isCreating) {
-        await createPlan(form);
+        await createPlan(payload);
       } else {
-        await updatePlan(form);
+        await updatePlan(payload);
       }
       closeModal();
       await load();
@@ -113,7 +149,7 @@ const PlansSection = () => {
 
   const columns: DataTableColumn<Plan>[] = [
     { header: "Nombre", cell: (p) => p.name },
-    { header: "Precio", cell: (p) => `$${p.price}` },
+    { header: "Precio", cell: (p) => `$${formatPriceDisplay(p.price)}` },
     { header: "Días", cell: (p) => p.numDays },
     {
       header: "Acciones",
@@ -192,19 +228,89 @@ const PlansSection = () => {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
             <div className="grid gap-4 sm:grid-cols-2">
-              <InputField
-                label="Precio"
-                type="number"
-                value={form.price || ""}
-                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-              />
+              <div>
+                <InputField
+                  label="Precio"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ej: 19995 o 19.995,50"
+                  value={priceText}
+                  onChange={(e) => setPriceText(e.target.value)}
+                />
+                {priceText && Number.isFinite(parsePriceInput(priceText)) && parsePriceInput(priceText) > 0 && (
+                  <p className="mt-1 text-xs text-primary">
+                    Se va a guardar como ${formatPriceDisplay(parsePriceInput(priceText))}
+                  </p>
+                )}
+              </div>
               <InputField
                 label="Días"
                 type="number"
-                value={form.numDays || ""}
-                onChange={(e) => setForm({ ...form, numDays: Number(e.target.value) })}
+                value={numDaysText}
+                onChange={(e) => setNumDaysText(e.target.value)}
               />
             </div>
+
+            <div className="border-t border-border pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <label className="font-body text-xs sm:text-sm font-medium text-text">
+                  Características
+                </label>
+                <button
+                  type="button"
+                  onClick={addFeatureRow}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
+                >
+                  <Plus className="h-3 w-3" />
+                  Agregar
+                </button>
+              </div>
+
+              {featuresForm.length === 0 ? (
+                <p className="text-xs text-text-muted">
+                  Sin características cargadas todavía. "Agregar" para sumar la primera.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {featuresForm.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateFeatureRow(index, { available: !feature.available })}
+                        aria-label={feature.available ? "Marcar como no incluida" : "Marcar como incluida"}
+                        aria-pressed={feature.available}
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                          feature.available
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border text-text-muted"
+                        }`}
+                      >
+                        {feature.available ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                      </button>
+                      <input
+                        type="text"
+                        value={feature.label}
+                        onChange={(e) => updateFeatureRow(index, { label: e.target.value })}
+                        placeholder="Ej: Clases grupales ilimitadas"
+                        className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFeatureRow(index)}
+                        aria-label="Quitar característica"
+                        className="shrink-0 rounded-lg p-1.5 text-text-muted hover:text-red-400"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-xs text-text-muted">
+                El ícono a la izquierda marca si la característica está incluida en el plan o no.
+              </p>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSubmit} disabled={isSaving} className="flex-1">
                 {isSaving ? "Guardando..." : "Guardar"}

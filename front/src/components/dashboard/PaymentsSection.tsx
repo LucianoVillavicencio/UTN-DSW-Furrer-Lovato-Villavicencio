@@ -3,6 +3,7 @@ import { Info, Receipt, Loader2 } from "lucide-react";
 import Card from "../common/Card";
 import { getMyPayments } from "../../services/payment.service";
 import { formatDateOnly } from "../../lib/date";
+import { formatPriceDisplay } from "../../lib/currency";
 import type { Payment } from "../../types/payment";
 
 const stateBadge: Record<string, string> = {
@@ -66,7 +67,7 @@ const PaymentsSection = () => {
               {payments.map((p) => (
                 <tr key={p.id} className="bg-background font-body text-text">
                   <td className="px-4 py-3">{formatDateOnly(p.date.slice(0, 10))}</td>
-                  <td className="px-4 py-3">${p.amount}</td>
+                  <td className="px-4 py-3">${formatPriceDisplay(p.amount)}</td>
                   <td className="px-4 py-3 capitalize">{p.payMethod}</td>
                   <td className="px-4 py-3">
                     <span

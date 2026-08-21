@@ -7,6 +7,7 @@ import Modal from "./Modal";
 import ConfirmDialog from "./ConfirmDialog";
 import RegisterPaymentForm from "./RegisterPaymentForm";
 import { formatDateOnly } from "../../lib/date";
+import { formatPriceDisplay } from "../../lib/currency";
 import {
   adminUpdateUser,
   deleteUser,
@@ -235,7 +236,7 @@ const UserDetailPanel = ({ user, currentAdminDni, onClose, onChanged }: UserDeta
               {payments.map((p) => (
                 <li key={p.id} className="flex justify-between text-text-muted">
                   <span>{formatDateOnly(p.date.slice(0, 10))}</span>
-                  <span>${p.amount}</span>
+                  <span>${formatPriceDisplay(p.amount)}</span>
                   <span className="capitalize">{p.payMethod}</span>
                 </li>
               ))}

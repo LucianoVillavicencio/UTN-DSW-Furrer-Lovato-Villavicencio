@@ -8,6 +8,7 @@ import { getMyPayments } from "../../services/payment.service";
 import type { Subscription } from "../../types/subscription";
 import type { Payment } from "../../types/payment";
 import { formatDateOnly } from "../../lib/date";
+import { formatPriceDisplay } from "../../lib/currency";
 
 interface OverviewSectionProps {
   onNavigate: (tab: string) => void;
@@ -79,7 +80,7 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
             <p className="mt-3 text-sm text-text-muted">Cargando...</p>
           ) : lastPayment ? (
             <>
-              <p className="mt-3 font-display text-2xl font-bold text-text">${lastPayment.amount}</p>
+              <p className="mt-3 font-display text-2xl font-bold text-text">${formatPriceDisplay(lastPayment.amount)}</p>
               <p className="mt-1 text-sm text-text-muted capitalize">
                 {formatDateOnly(lastPayment.date.slice(0, 10))} · {lastPayment.payMethod}
               </p>

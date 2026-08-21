@@ -90,7 +90,7 @@ const ContactChannels = () => {
                   </span>
                 </div>
                 <p className="font-body text-xs text-text-muted mt-0.5">
-                  Chateá en vivo con el equipo ({WHATSAPP_DISPLAY})
+                  Chateá en vivo con el equipo
                 </p>
               </div>
             </div>

@@ -1,5 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export interface PlanFeature {
+  label: string;
+  available: boolean;
+}
+
 @Entity('plans')
 export class Plan {
   @PrimaryGeneratedColumn()
@@ -16,6 +21,9 @@ export class Plan {
 
   @Column({ type: Number, nullable: false })
   numDays!: number;
+
+  @Column({ type: 'json', nullable: true })
+  features?: PlanFeature[] | null;
 
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;

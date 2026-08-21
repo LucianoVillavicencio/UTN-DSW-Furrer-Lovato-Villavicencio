@@ -6,6 +6,7 @@ import FormAlert from "../common/FormAlert";
 import { searchUsers } from "../../services/user.service";
 import { getSubscriptionsByUser } from "../../services/subscription.service";
 import { createManualPayment } from "../../services/payment.service";
+import { parsePriceInput, formatPriceDisplay } from "../../lib/currency";
 import type { User } from "../../types/user";
 import type { Subscription } from "../../types/subscription";
 import type { Payment } from "../../types/payment";
@@ -51,7 +52,9 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
         setSubscriptions(subs);
         const active = subs.find((s) => s.state?.toLowerCase() === "activa" && !s.deleted);
         setSelectedSubId(active?.id ?? subs[0]?.id ?? "");
-        if (active?.plan?.price) setAmount(String(active.plan.price));
+        if (active?.plan?.price) {
+          setAmount(formatPriceDisplay(active.plan.price));
+        }
       })
       .catch((err) => setSearchError(err instanceof Error ? err.message : "No se pudieron cargar las suscripciones."))
       .finally(() => setIsLoadingSubs(false));
@@ -79,7 +82,9 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
   const handleSelectSub = (subId: number) => {
     setSelectedSubId(subId);
     const sub = subscriptions.find((s) => s.id === subId);
-    if (sub?.plan?.price) setAmount(String(sub.plan.price));
+    if (sub?.plan?.price) {
+      setAmount(formatPriceDisplay(sub.plan.price));
+    }
   };
 
   const handleSubmit = async () => {
@@ -90,8 +95,8 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
       setFormError("Elegí una suscripción.");
       return;
     }
-    const amountNum = Number(amount);
-    if (!amountNum || amountNum <= 0) {
+    const amountNum = parsePriceInput(amount);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
       setFormError("Ingresá un monto válido.");
       return;
     }
@@ -103,7 +108,7 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
         amount: amountNum,
         payMethod: payMethod as "efectivo" | "debito" | "credito" | "transferencia",
       });
-      setSuccess(`Pago de $${amountNum} registrado correctamente.`);
+      setSuccess(`Pago de $${formatPriceDisplay(amountNum)} registrado correctamente.`);
       setAmount("");
       onRegistered?.(payment);
     } catch (err) {
@@ -215,12 +220,21 @@ const RegisterPaymentForm = ({ presetUser, onRegistered }: RegisterPaymentFormPr
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <InputField
-                  label="Monto"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
+                <div>
+                  <InputField
+                    label="Monto"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ej: 19995 o 19.995,50"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                  {amount && Number.isFinite(parsePriceInput(amount)) && parsePriceInput(amount) > 0 && (
+                    <p className="mt-1 text-xs text-primary">
+                      Se va a registrar como ${formatPriceDisplay(parsePriceInput(amount))}
+                    </p>
+                  )}
+                </div>
                 <div>
                   <label className="mb-1.5 block font-body text-xs sm:text-sm font-medium text-text">
                     Método
