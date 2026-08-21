@@ -7,9 +7,14 @@ import {
   Wind, 
   Sparkles 
 } from "lucide-react";
-import type { TurnoClase } from "../../types/classSession";
+import type { Class } from "../../types/class";
+import type { ClassSession, TurnoClase } from "../../types/classSession";
 import type { TipoClase } from "../../types/typeClass";
 
+// Vista de una clase tal como la consumen las tarjetas y el modal.
+// Los datos reales vienen del backend (GET /api/v1/class) y se adaptan acá con
+// toMasterClassData; los campos de agenda (diasClase / explicacionDias) son
+// texto de presentación, porque la entidad Class no los almacena.
 export interface MasterClassData {
   id: number;
   nombre: string;
@@ -28,6 +33,11 @@ export interface MasterClassData {
   };
 }
 
+// Días y horarios de atención del gimnasio (cerrado los domingos).
+export const CLASS_DAYS_LABEL = "Lunes a Sábado";
+const OPENING_HOUR = 7;
+const CLOSING_HOUR = 22;
+
 // Helper for timezone-safe YYYY-MM-DD local date formatting
 export const getLocalYMD = (d: Date | string): string => {
   const dateObj = typeof d === "string" ? new Date(d) : d;
@@ -44,7 +54,7 @@ export const normalizeText = (text?: string): string => {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036F]/g, "");
 };
 
 // Helper function returning static JSX icon elements directly
@@ -59,72 +69,58 @@ export const renderCategoryIcon = (tipoNombre?: string, className?: string) => {
   return <Sparkles className={className} />;
 };
 
+// Texto de agenda armado con los datos reales de la clase.
+const buildScheduleExplanation = (cls: Class): string => {
+  const trainerName = cls.trainer
+    ? `${cls.trainer.name} ${cls.trainer.surname}`
+    : "nuestro equipo de profesores";
 
+  return `La clase de ${cls.name} se dicta de ${CLASS_DAYS_LABEL} de ${String(OPENING_HOUR).padStart(2, "0")}:00 a ${CLOSING_HOUR}:00 hs a cargo del Prof. ${trainerName}. Cada sesión dura 1 hora exacta (el último turno posible inicia a las ${CLOSING_HOUR - 1}:00 hs ya que el gimnasio cierra a las ${CLOSING_HOUR}:00 hs).`;
+};
 
-// Master definitions of classes with schedule days description
-export const MASTER_CLASSES: MasterClassData[] = [
-  {
-    id: 1,
-    nombre: "Entrenamiento de Fuerza Elite",
-    descripcion: "Desarrolla masa muscular, potencia y fuerza bruta con musculación libre y guiada por nuestros profesionales.",
-    diasClase: "Lunes a Viernes",
-    explicacionDias: "Esta clase de Fuerza Elite se dicta de Lunes a Viernes de 07:00 a 22:00 hs. Cada sesión dura 1 hora exacta (el último turno posible inicia a las 21:00 hs ya que el gimnasio cierra a las 22:00 hs).",
-    tipoClaseId: 1,
-    tipoClase: { id: 1, nombre: "Fuerza", descripcion: "Entrenamiento de pesas y musculación" },
-    profesorDni: 12345678,
-    profesor: { dni: 12345678, nombre: "Marcos", apellido: "Gómez", email: "marcos@fit.com", telefono: "123456" }
+// Adapta la entidad Class del backend (campos en inglés) a la vista.
+export const toMasterClassData = (cls: Class): MasterClassData => ({
+  id: cls.id ?? 0,
+  nombre: cls.name,
+  descripcion: cls.description ?? "",
+  diasClase: CLASS_DAYS_LABEL,
+  explicacionDias: buildScheduleExplanation(cls),
+  tipoClaseId: cls.typeClassId,
+  tipoClase: {
+    id: cls.typeClass?.id ?? cls.typeClassId,
+    nombre: cls.typeClass?.name ?? cls.typeClass?.nombre,
+    descripcion: cls.typeClass?.description ?? cls.typeClass?.descripcion,
   },
-  {
-    id: 2,
-    nombre: "HIIT Full Burn",
-    descripcion: "Circuitos metabólicos por intervalos de alta intensidad para máxima quema calórica y resistencia cardiovascular.",
-    diasClase: "Lunes a Sábado",
-    explicacionDias: "Las clases de HIIT Full Burn están programadas de Lunes a Sábado. Ofrecemos turnos matutinos, por la tarde y nocturnos entre las 07:00 y las 21:00 hs.",
-    tipoClaseId: 2,
-    tipoClase: { id: 2, nombre: "HIIT", descripcion: "Alta intensidad por intervalos" },
-    profesorDni: 87654321,
-    profesor: { dni: 87654321, nombre: "Sofía", apellido: "Valenzuela", email: "sofia@fit.com", telefono: "654321" }
+  profesorDni: cls.trainerDni,
+  profesor: {
+    dni: cls.trainer?.dni ?? cls.trainerDni,
+    nombre: cls.trainer?.name ?? "",
+    apellido: cls.trainer?.surname ?? "",
+    email: cls.trainer?.email ?? "",
+    telefono: cls.trainer?.phone ?? undefined,
   },
-  {
-    id: 3,
-    nombre: "Spinning Revolution",
-    descripcion: "Ciclismo indoor de alta energía al ritmo de las mejores listas de reproducción y playlists motivadoras.",
-    diasClase: "Lunes a Sábado",
-    explicacionDias: "Spinning Revolution cuenta con bicicletas fijas de última generación. Las clases se dictan de Lunes a Sábado con turnos continuos de 1 hora.",
-    tipoClaseId: 3,
-    tipoClase: { id: 3, nombre: "Spinning", descripcion: "Ciclismo indoor" },
-    profesorDni: 12345678,
-    profesor: { dni: 12345678, nombre: "Marcos", apellido: "Gómez", email: "marcos@fit.com", telefono: "123456" }
-  },
-  {
-    id: 4,
-    nombre: "Yoga Flow & Balance",
-    descripcion: "Mejora tu flexibilidad, reduce el estrés diario y fortalece tu postura corporal mediante asanas y respiración.",
-    diasClase: "Lunes a Viernes",
-    explicacionDias: "Nuestras clases de Yoga Flow se realizan de Lunes a Viernes en ambiente climatizado y guiado. Selecciona tu horario preferido para reservar tu mat.",
-    tipoClaseId: 4,
-    tipoClase: { id: 4, nombre: "Yoga", descripcion: "Flexibilidad y paz mental" },
-    profesorDni: 87654321,
-    profesor: { dni: 87654321, nombre: "Sofía", apellido: "Valenzuela", email: "sofia@fit.com", telefono: "654321" }
-  },
-  {
-    id: 5,
-    nombre: "Pilates Reformer & Core",
-    descripcion: "Ejercicios de tonificación muscular profunda, control corporal y alineación de la columna y zona media.",
-    diasClase: "Lunes a Viernes",
-    explicacionDias: "Pilates Reformer se imparte de Lunes a Viernes. Cada clase cuenta con cupos reducidos para asegurar una atención personalizada.",
-    tipoClaseId: 5,
-    tipoClase: { id: 5, nombre: "Pilates", descripcion: "Control corporal y core" },
-    profesorDni: 12345678,
-    profesor: { dni: 12345678, nombre: "Marcos", apellido: "Gómez", email: "marcos@fit.com", telefono: "123456" }
-  }
-];
+});
 
-// Generator for hourly class schedules across the week (from 07:00 to 21:00 hs - gym closes at 22:00 hs)
-export const generateFullWeekTurnos = (): TurnoClase[] => {
+// Adapta un turno del backend (ClassSession, campos en inglés) al shape que
+// usan la grilla de horarios y el resumen de inscripción.
+export const toTurnoClase = (session: ClassSession): TurnoClase => ({
+  ...session,
+  claseId: session.classId ?? session.claseId,
+  clase: session.class ?? session.clase,
+  fechaHora: session.dateTime ?? session.fechaHora,
+  cupoMaximo: session.maxCapacity ?? session.cupoMaximo,
+  cupoDisponible: session.availableSpots ?? session.cupoDisponible,
+});
+
+// Generador de turnos por hora para la semana, usado como respaldo cuando el
+// backend todavía no tiene turnos cargados (de 07:00 a 21:00 hs).
+export const generateFullWeekTurnos = (masterClasses: MasterClassData[]): TurnoClase[] => {
   const turnosList: TurnoClase[] = [];
   let idCounter = 1000;
-  const hourlySlots = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+  const hourlySlots = Array.from(
+    { length: CLOSING_HOUR - OPENING_HOUR },
+    (_, i) => OPENING_HOUR + i,
+  );
 
   for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
     const baseDate = new Date();
@@ -133,7 +129,7 @@ export const generateFullWeekTurnos = (): TurnoClase[] => {
     if (baseDate.getDay() === 0) continue; // Gym closed on Sunday
 
     hourlySlots.forEach((hour) => {
-      MASTER_CLASSES.forEach((clsDef, cIndex) => {
+      masterClasses.forEach((clsDef, cIndex) => {
         if ((hour + cIndex + dayOffset) % 2 === 0) {
           const slotDate = new Date(baseDate);
           slotDate.setHours(hour, 0, 0, 0);

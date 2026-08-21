@@ -1,87 +1,76 @@
-import { Clock, Users } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import Card from "../common/Card";
 import Badge from "../common/badge/Badge";
-import RatingBadge from "../common/badge/RatingBadge";
 import Button from "../common/Button";
+import { useAuth } from "../../context/AuthContext";
+import type { Trainer } from "../../types/trainer";
 
 interface TrainerCardProps {
-  photo: string;
-  rating: number;
-  name: string;
-  specialty: string;
-  experienceYears: number;
-  sessions: number;
-  description: string;
-  certifications: string[];
+  trainer: Trainer;
 }
 
-const TrainerCard = ({
-  photo,
-  rating,
-  name,
-  specialty,
-  experienceYears,
-  sessions,
-  description,
-  certifications,
-}: TrainerCardProps) => {
-  const isUserLoggedIn = Boolean(localStorage.getItem("user"));
-  const bookingHref = isUserLoggedIn ? "/class" : "/login";
+// Iniciales para el avatar: la entidad Trainer del backend no guarda foto.
+const getInitials = (name: string, surname: string): string =>
+  `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
+
+const TrainerCard = ({ trainer }: TrainerCardProps) => {
+  const { isAuthenticated } = useAuth();
+  const bookingHref = isAuthenticated ? "/class" : "/login";
+
+  const fullName = `${trainer.name} ${trainer.surname}`;
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden p-0">
-      <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-lg">
-        <img
-          src={photo}
-          alt={`Foto de ${name}`}
-          className="h-full w-full object-cover object-center"
-        />
+    <Card className="flex h-full flex-col overflow-hidden">
+      <div className="flex items-center gap-4">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-extrabold text-primary">
+          {getInitials(trainer.name, trainer.surname)}
+        </span>
 
-        <RatingBadge rating={rating} className="absolute right-3 top-3" />
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold text-text">
+            Prof. {fullName}
+          </h3>
+          <p className="text-sm font-medium text-primary">
+            {trainer.speciality || "Entrenamiento general"}
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-6">
-        <h3 className="text-lg font-semibold text-text">{name}</h3>
+      <div className="mt-5 flex-1 space-y-2.5 border-t border-border/40 pt-4 text-xs text-text-muted">
+        <span className="flex items-center gap-2">
+          <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <a
+            href={`mailto:${trainer.email}`}
+            className="truncate transition-colors hover:text-text"
+          >
+            {trainer.email}
+          </a>
+        </span>
 
-        <p className="text-sm font-medium text-primary">{specialty}</p>
-
-        <div className="mt-3 flex items-center gap-4 text-xs text-text-muted">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {experienceYears} años de experiencia
+        {trainer.phone && (
+          <span className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 shrink-0 text-primary" />
+            {trainer.phone}
           </span>
+        )}
 
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
-            {sessions} sesiones
-          </span>
-        </div>
-
-        <div className="flex-1">
-          <p className="mt-4 min-h-96px text-sm text-text-muted">
-            {description}
-          </p>
-
-          <div className="mt-4 min-h-88px">
-            <p className="text-xs font-semibold text-text">Certificaciones:</p>
-
+        {trainer.speciality && (
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-text">Especialidad:</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {certifications.map((cert) => (
-                <Badge key={cert} variant="neutral" className="text-xs">
-                  {cert}
-                </Badge>
-              ))}
+              <Badge variant="neutral" className="text-xs">
+                {trainer.speciality}
+              </Badge>
             </div>
           </div>
-        </div>
-
-        <Button href={bookingHref} size="sm" className="mt-6 w-full">
-          Reservar sesión
-        </Button>
+        )}
       </div>
+
+      <Button href={bookingHref} size="sm" className="mt-6 w-full">
+        Reservar sesión
+      </Button>
     </Card>
   );
 };
 
 export default TrainerCard;
-

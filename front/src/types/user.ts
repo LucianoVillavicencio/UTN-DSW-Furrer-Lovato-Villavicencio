@@ -39,6 +39,9 @@ export interface AuthResponse {
   user: Pick<User, "dni" | "email" | "name" | "surname" | "phone" | "role">;
 }
 
+// Perfil del usuario logueado que expone el AuthContext (el que viaja en el JWT).
+export type AuthUser = AuthResponse["user"];
+
 // Body de PATCH /user/me. El dni nunca viaja acá: lo resuelve el backend
 // desde el JWT.
 export interface UpdateProfilePayload {

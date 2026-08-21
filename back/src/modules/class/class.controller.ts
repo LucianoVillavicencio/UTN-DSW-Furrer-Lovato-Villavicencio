@@ -17,6 +17,9 @@ import { Role } from '../../common/enum/rol.enum';
 
 @Controller('api/v1/class')
 @ApiTags('Classes')
+
+// Los GET del catálogo quedan públicos (la landing y /class los muestran sin
+// login). Todo lo que modifica datos lleva @Auth(Role.ADMIN) en el endpoint.
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 

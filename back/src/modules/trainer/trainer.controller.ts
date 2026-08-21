@@ -17,6 +17,9 @@ import { Role } from '../../common/enum/rol.enum';
 
 @Controller('api/v1/trainer')
 @ApiTags('Trainers')
+
+// Mismo criterio que ClassController: el listado de profesores es público
+// (página /trainers) y el alta/baja/modificación sólo para ADMIN.
 export class TrainerController {
   constructor(private readonly trainerService: TrainerService) {}
 
