@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsNumber, IsPositive } from 'class-validator';
 
-// userDni nunca viaja acá: el controller lo resuelve desde el JWT
-// (@ActiveUser), igual que UpdateProfileDto para /user/me.
+// userDni never travels in this body: the controller resolves it from the JWT
+// (@ActiveUser), the same way UpdateProfileDto does for /user/me.
 export class ChangePlanDto {
   @IsNumber()
   @IsPositive()

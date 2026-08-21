@@ -13,23 +13,23 @@ import { ApiTags } from '@nestjs/swagger';
 import { ClassService } from './class.service';
 import { ClassDto } from './dto/class-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/class')
 @ApiTags('Classes')
 
-// Los GET del catálogo quedan públicos (la landing y /class los muestran sin
-// login). Todo lo que modifica datos lleva @Auth(Role.ADMIN) en el endpoint.
+// The catalogue GETs stay public — the landing page and /class render them
+// without a login. Everything that writes carries @Auth(Role.ADMIN).
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
   @Post()
   @Auth(Role.ADMIN)
-  createClass(@Body() claseDto: ClassDto) {
-    return this.classService.createClass(claseDto);
+  createClass(@Body() classDto: ClassDto) {
+    return this.classService.createClass(classDto);
   }
 
-  // Lectura pública: la usan las páginas /class y el picker de turnos.
+  // Public read: used by the /class pages and the session picker.
   @Get()
   getClasses() {
     return this.classService.findAll();
@@ -48,8 +48,8 @@ export class ClassController {
 
   @Put()
   @Auth(Role.ADMIN)
-  updateClass(@Body() claseDto: ClassDto) {
-    return this.classService.updateClass(claseDto);
+  updateClass(@Body() classDto: ClassDto) {
+    return this.classService.updateClass(classDto);
   }
 
   @Delete('/:id')

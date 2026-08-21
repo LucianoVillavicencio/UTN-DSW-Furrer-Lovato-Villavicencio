@@ -1,5 +1,5 @@
-import type { TypeClass } from "./typeClass";
-import type { Trainer } from "./trainer";
+import type { TypeClass } from './typeClass';
+import type { Trainer } from './trainer';
 
 export interface Class {
   id?: number;

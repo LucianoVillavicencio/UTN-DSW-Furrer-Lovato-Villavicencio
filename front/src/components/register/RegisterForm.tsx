@@ -1,29 +1,31 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import FormAlert from "../common/FormAlert";
-import GoogleAuthButton from "../common/GoogleAuthButton";
-import RegisterFieldsGroup from "./RegisterFieldsGroup";
-import RegisterSubmitButton from "./RegisterSubmitButton";
-import { useAuth } from "../../context/AuthContext";
+import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import FormAlert from '../common/FormAlert';
+import GoogleAuthButton from '../common/GoogleAuthButton';
+import RegisterFieldsGroup from './RegisterFieldsGroup';
+import RegisterSubmitButton from './RegisterSubmitButton';
+import { useAuth } from '../../context/useAuth';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const RegisterForm = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [dni, setDni] = useState("");
-  const [name, setName] = useState("");
-  const [surname, setSurname] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [dni, setDni] = useState('');
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>(
+    {},
+  );
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string | null> = {};
@@ -34,63 +36,66 @@ const RegisterForm = () => {
     const cleanDni = dni.trim();
     const numericDni = Number(cleanDni);
     if (!cleanDni) {
-      newErrors.dni = "El DNI es requerido.";
+      newErrors.dni = 'El DNI es requerido.';
       isValid = false;
     } else if (isNaN(numericDni) || numericDni <= 0 || cleanDni.length < 6) {
-      newErrors.dni = "Ingresa un número de DNI válido.";
+      newErrors.dni = 'Ingresa un número de DNI válido.';
       isValid = false;
     }
 
     // Name check
     if (!name.trim()) {
-      newErrors.name = "El nombre es requerido.";
+      newErrors.name = 'El nombre es requerido.';
       isValid = false;
     }
 
     // Surname check
     if (!surname.trim()) {
-      newErrors.surname = "El apellido es requerido.";
+      newErrors.surname = 'El apellido es requerido.';
       isValid = false;
     }
 
     // Email check
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      newErrors.email = "El correo electrónico es requerido.";
+      newErrors.email = 'El correo electrónico es requerido.';
       isValid = false;
     } else if (!EMAIL_REGEX.test(cleanEmail)) {
-      newErrors.email = "Ingresa un correo electrónico válido (ej. usuario@dominio.com).";
+      newErrors.email =
+        'Ingresa un correo electrónico válido (ej. usuario@dominio.com).';
       isValid = false;
     }
 
     // Phone check
     const cleanPhone = phone.trim();
     if (!cleanPhone) {
-      newErrors.phone = "El teléfono es requerido.";
+      newErrors.phone = 'El teléfono es requerido.';
       isValid = false;
     } else if (cleanPhone.length < 6) {
-      newErrors.phone = "Ingresa un número de teléfono válido.";
+      newErrors.phone = 'Ingresa un número de teléfono válido.';
       isValid = false;
     }
 
-    // Password check (mínimo 8: debe coincidir con RegisterDto del backend)
+    // Password check: minimum 8, matching the backend RegisterDto.
     if (!password) {
-      newErrors.password = "La contraseña es requerida.";
+      newErrors.password = 'La contraseña es requerida.';
       isValid = false;
     } else if (password.length < 8) {
-      newErrors.password = "La contraseña debe tener al menos 8 caracteres.";
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres.';
       isValid = false;
     }
 
     // Confirm password check
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Las contraseñas no coinciden.";
+      newErrors.confirmPassword = 'Las contraseñas no coinciden.';
       isValid = false;
     }
 
     // Terms & Conditions check
     if (!acceptTerms) {
-      setError("Debes aceptar los términos y condiciones para crear tu cuenta.");
+      setError(
+        'Debes aceptar los términos y condiciones para crear tu cuenta.',
+      );
       isValid = false;
     }
 
@@ -110,8 +115,8 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      // register() del AuthContext ya persiste el token/user Y actualiza el
-      // estado global (así Navbar se entera al toque, sin necesitar un refresh).
+      // register() from AuthContext persists the token/user and updates the
+      // global state, so the Navbar reacts immediately without a refresh.
       await register({
         dni: Number(dni.trim()),
         name: name.trim(),
@@ -121,12 +126,15 @@ const RegisterForm = () => {
         password,
       });
 
-      setSuccess("¡Cuenta creada con éxito! Sesión iniciada. Redirigiendo al inicio...");
+      setSuccess(
+        '¡Cuenta creada con éxito! Sesión iniciada. Redirigiendo al inicio...',
+      );
       setTimeout(() => {
-        navigate("/");
+        navigate('/');
       }, 1000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al registrar la cuenta.";
+      const message =
+        err instanceof Error ? err.message : 'Error al registrar la cuenta.';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -142,37 +150,44 @@ const RegisterForm = () => {
         dni={dni}
         setDni={(v) => {
           setDni(v);
-          if (fieldErrors.dni) setFieldErrors((prev) => ({ ...prev, dni: null }));
+          if (fieldErrors.dni)
+            setFieldErrors((prev) => ({ ...prev, dni: null }));
         }}
         name={name}
         setName={(v) => {
           setName(v);
-          if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));
+          if (fieldErrors.name)
+            setFieldErrors((prev) => ({ ...prev, name: null }));
         }}
         surname={surname}
         setSurname={(v) => {
           setSurname(v);
-          if (fieldErrors.surname) setFieldErrors((prev) => ({ ...prev, surname: null }));
+          if (fieldErrors.surname)
+            setFieldErrors((prev) => ({ ...prev, surname: null }));
         }}
         email={email}
         setEmail={(v) => {
           setEmail(v);
-          if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
+          if (fieldErrors.email)
+            setFieldErrors((prev) => ({ ...prev, email: null }));
         }}
         phone={phone}
         setPhone={(v) => {
           setPhone(v);
-          if (fieldErrors.phone) setFieldErrors((prev) => ({ ...prev, phone: null }));
+          if (fieldErrors.phone)
+            setFieldErrors((prev) => ({ ...prev, phone: null }));
         }}
         password={password}
         setPassword={(v) => {
           setPassword(v);
-          if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: null }));
+          if (fieldErrors.password)
+            setFieldErrors((prev) => ({ ...prev, password: null }));
         }}
         confirmPassword={confirmPassword}
         setConfirmPassword={(v) => {
           setConfirmPassword(v);
-          if (fieldErrors.confirmPassword) setFieldErrors((prev) => ({ ...prev, confirmPassword: null }));
+          if (fieldErrors.confirmPassword)
+            setFieldErrors((prev) => ({ ...prev, confirmPassword: null }));
         }}
         disabled={isLoading}
         errors={fieldErrors}
@@ -189,15 +204,22 @@ const RegisterForm = () => {
           onChange={(e) => setAcceptTerms(e.target.checked)}
           className="w-4 h-4 mt-0.5 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background cursor-pointer accent-primary shrink-0 disabled:opacity-50"
         />
-        <label htmlFor="accept-terms" className="text-xs text-text-muted leading-snug cursor-pointer select-none">
-          Acepto los{" "}
+        <label
+          htmlFor="accept-terms"
+          className="text-xs text-text-muted leading-snug cursor-pointer select-none"
+        >
+          Acepto los{' '}
           <a href="/terms" className="text-primary hover:underline font-medium">
             términos y condiciones
-          </a>{" "}
-          y la{" "}
-          <a href="/privacy" className="text-primary hover:underline font-medium">
+          </a>{' '}
+          y la{' '}
+          <a
+            href="/privacy"
+            className="text-primary hover:underline font-medium"
+          >
             política de privacidad
-          </a>.
+          </a>
+          .
         </label>
       </div>
 
@@ -220,8 +242,11 @@ const RegisterForm = () => {
       />
 
       <p className="text-center font-body text-sm text-text-muted pt-1">
-        ¿Ya tienes una cuenta?{" "}
-        <a href="/login" className="font-semibold text-primary hover:text-primary-hover transition-colors">
+        ¿Ya tienes una cuenta?{' '}
+        <a
+          href="/login"
+          className="font-semibold text-primary hover:text-primary-hover transition-colors"
+        >
           Inicia sesión aquí
         </a>
       </p>

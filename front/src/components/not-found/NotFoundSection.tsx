@@ -1,6 +1,6 @@
-import { Dumbbell, Home, Search } from "lucide-react";
-import Container from "../common/Container";
-import Button from "../common/Button";
+import { Dumbbell, Home, Search } from 'lucide-react';
+import Container from '../common/Container';
+import Button from '../common/Button';
 
 const NotFoundSection = () => {
   return (
@@ -23,7 +23,8 @@ const NotFoundSection = () => {
         ¡Uy! Te has salido de la rutina
       </h2>
       <p className="mt-3 max-w-md font-body text-base text-text-muted sm:text-lg">
-        La página o el ejercicio que buscas no existe o fue movida a otra sesión de entrenamiento.
+        La página o el ejercicio que buscas no existe o fue movida a otra sesión
+        de entrenamiento.
       </p>
 
       {/* Action Buttons */}
@@ -45,21 +46,29 @@ const NotFoundSection = () => {
           className="flex flex-col items-center rounded-xl border border-border bg-surface p-5 transition-all duration-300 hover:border-primary hover:-translate-y-1"
         >
           <span className="font-display font-semibold text-text">Clases</span>
-          <span className="mt-1 text-xs text-text-muted">Explora nuestros entrenamientos</span>
+          <span className="mt-1 text-xs text-text-muted">
+            Explora nuestros entrenamientos
+          </span>
         </a>
         <a
           href="/trainers"
           className="flex flex-col items-center rounded-xl border border-border bg-surface p-5 transition-all duration-300 hover:border-primary hover:-translate-y-1"
         >
-          <span className="font-display font-semibold text-text">Entrenadores</span>
-          <span className="mt-1 text-xs text-text-muted">Conoce a nuestro equipo</span>
+          <span className="font-display font-semibold text-text">
+            Entrenadores
+          </span>
+          <span className="mt-1 text-xs text-text-muted">
+            Conoce a nuestro equipo
+          </span>
         </a>
         <a
           href="/membership"
           className="flex flex-col items-center rounded-xl border border-border bg-surface p-5 transition-all duration-300 hover:border-primary hover:-translate-y-1"
         >
           <span className="font-display font-semibold text-text">Planes</span>
-          <span className="mt-1 text-xs text-text-muted">Encuentra la mejor membresía</span>
+          <span className="mt-1 text-xs text-text-muted">
+            Encuentra la mejor membresía
+          </span>
         </a>
       </div>
     </Container>

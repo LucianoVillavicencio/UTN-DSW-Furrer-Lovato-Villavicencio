@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { CreditCard, Receipt } from "lucide-react";
-import Card from "../common/Card";
-import Button from "../common/Button";
-import { useAuth } from "../../context/AuthContext";
-import { getMySubscription } from "../../services/subscription.service";
-import { getMyPayments } from "../../services/payment.service";
-import type { Subscription } from "../../types/subscription";
-import type { Payment } from "../../types/payment";
-import { formatDateOnly } from "../../lib/date";
-import { formatPriceDisplay } from "../../lib/currency";
+import { useEffect, useState } from 'react';
+import { CreditCard, Receipt } from 'lucide-react';
+import Card from '../common/Card';
+import Button from '../common/Button';
+import { useAuth } from '../../context/useAuth';
+import { getMySubscription } from '../../services/subscription.service';
+import { getMyPayments } from '../../services/payment.service';
+import type { Subscription } from '../../types/subscription';
+import type { Payment } from '../../types/payment';
+import { formatDateOnly } from '../../lib/date';
+import { formatPriceDisplay } from '../../lib/currency';
 
 interface OverviewSectionProps {
   onNavigate: (tab: string) => void;
@@ -43,7 +43,9 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
         <Card className="hover:-translate-y-0 hover:shadow-lg">
           <div className="flex items-center gap-2 text-primary">
             <CreditCard className="h-5 w-5" />
-            <h3 className="font-display text-sm font-semibold uppercase tracking-wide">Mi plan</h3>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wide">
+              Mi plan
+            </h3>
           </div>
           {isLoading ? (
             <p className="mt-3 text-sm text-text-muted">Cargando...</p>
@@ -57,15 +59,17 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
               </p>
             </>
           ) : (
-            <p className="mt-3 text-sm text-text-muted">No tenés un plan activo.</p>
+            <p className="mt-3 text-sm text-text-muted">
+              No tenés un plan activo.
+            </p>
           )}
           <Button
             variant="secondary"
             size="sm"
             className="mt-4"
-            onClick={() => onNavigate("plan")}
+            onClick={() => onNavigate('plan')}
           >
-            {subscription ? "Cambiar plan" : "Elegir un plan"}
+            {subscription ? 'Cambiar plan' : 'Elegir un plan'}
           </Button>
         </Card>
 
@@ -80,19 +84,24 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
             <p className="mt-3 text-sm text-text-muted">Cargando...</p>
           ) : lastPayment ? (
             <>
-              <p className="mt-3 font-display text-2xl font-bold text-text">${formatPriceDisplay(lastPayment.amount)}</p>
+              <p className="mt-3 font-display text-2xl font-bold text-text">
+                ${formatPriceDisplay(lastPayment.amount)}
+              </p>
               <p className="mt-1 text-sm text-text-muted capitalize">
-                {formatDateOnly(lastPayment.date.slice(0, 10))} · {lastPayment.payMethod}
+                {formatDateOnly(lastPayment.date.slice(0, 10))} ·{' '}
+                {lastPayment.payMethod}
               </p>
             </>
           ) : (
-            <p className="mt-3 text-sm text-text-muted">Sin pagos registrados.</p>
+            <p className="mt-3 text-sm text-text-muted">
+              Sin pagos registrados.
+            </p>
           )}
           <Button
             variant="secondary"
             size="sm"
             className="mt-4"
-            onClick={() => onNavigate("pagos")}
+            onClick={() => onNavigate('pagos')}
           >
             Ver historial
           </Button>

@@ -1,10 +1,10 @@
-import Navbar from "../../components/layout/Navbar";
-import Footer from "../../components/layout/Footer";
-import PageHeader from "../../components/common/PageHeader";
-import CTASection from "../../components/common/CTASection";
-import TrainersSection from "../../components/trainers/TrainersSection";
-import WhyChooseUsSection from "../../components/trainers/WhyChooseUsSection";
-import { UserCheck } from "lucide-react";
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import PageHeader from '../../components/common/PageHeader';
+import CTASection from '../../components/common/CTASection';
+import TrainersSection from '../../components/trainers/TrainersSection';
+import WhyChooseUsSection from '../../components/trainers/WhyChooseUsSection';
+import { UserCheck } from 'lucide-react';
 
 function Trainers() {
   return (
@@ -17,7 +17,7 @@ function Trainers() {
           icon={UserCheck}
           title={
             <>
-              Conocé a nuestros{" "}
+              Conocé a nuestros{' '}
               <span className="text-primary">entrenadores expertos</span>
             </>
           }
@@ -32,8 +32,8 @@ function Trainers() {
           title="¿Listo para entrenar con un profesional?"
           subtitle="Reservá una consulta con uno de nuestros entrenadores expertos y empezá tu transformación hoy."
           primaryButton={{
-            label: "Ver planes de entrenamiento",
-            href: "/plans",
+            label: 'Ver planes de entrenamiento',
+            href: '/plans',
           }}
         />
       </main>

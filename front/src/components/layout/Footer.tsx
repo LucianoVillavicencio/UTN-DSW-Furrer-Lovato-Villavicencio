@@ -1,20 +1,20 @@
-import { Link } from "react-router-dom";
-import { Dumbbell } from "lucide-react";
-import Container from "../common/Container";
+import { Link } from 'react-router-dom';
+import { Dumbbell } from 'lucide-react';
+import Container from '../common/Container';
 
 const footerLinks = {
   class: [
-    { label: "Entrenamiento Fuerza", href: "/class" },
-    { label: "HIIT", href: "/class" },
-    { label: "Yoga & Wellness", href: "/class" },
-    { label: "Spinning", href: "/class" },
+    { label: 'Entrenamiento Fuerza', href: '/class' },
+    { label: 'HIIT', href: '/class' },
+    { label: 'Yoga & Wellness', href: '/class' },
+    { label: 'Spinning', href: '/class' },
   ],
   company: [
-    { label: "Sobre nosotros", href: "/about" },
-    { label: "Clases", href: "/class" },
-    { label: "Entrenadores", href: "/trainers" },
-    { label: "Planes", href: "/plan" },
-    { label: "Contacto", href: "/contact" },
+    { label: 'Sobre nosotros', href: '/about' },
+    { label: 'Clases', href: '/class' },
+    { label: 'Entrenadores', href: '/trainers' },
+    { label: 'Planes', href: '/plan' },
+    { label: 'Contacto', href: '/contact' },
   ],
 };
 
@@ -92,4 +92,3 @@ const Footer = () => {
 };
 
 export default Footer;
-

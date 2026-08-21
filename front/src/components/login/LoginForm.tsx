@@ -1,12 +1,12 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Mail } from "lucide-react";
-import InputField from "../common/InputField";
-import PasswordField from "../common/PasswordField";
-import FormAlert from "../common/FormAlert";
-import GoogleAuthButton from "../common/GoogleAuthButton";
-import LoginSubmitButton from "./LoginSubmitButton";
-import { useAuth } from "../../context/AuthContext";
+import { useState, type FormEvent } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Mail } from 'lucide-react';
+import InputField from '../common/InputField';
+import PasswordField from '../common/PasswordField';
+import FormAlert from '../common/FormAlert';
+import GoogleAuthButton from '../common/GoogleAuthButton';
+import LoginSubmitButton from './LoginSubmitButton';
+import { useAuth } from '../../context/useAuth';
 
 // Simple RFC 5322 regex for client-side email format validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -17,10 +17,11 @@ const LoginForm = () => {
   const { login } = useAuth();
 
   // Determine redirect target (fallback to home /)
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -36,18 +37,20 @@ const LoginForm = () => {
 
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      setEmailError("El correo electrónico es requerido.");
+      setEmailError('El correo electrónico es requerido.');
       isValid = false;
     } else if (!EMAIL_REGEX.test(cleanEmail)) {
-      setEmailError("Ingresa un correo electrónico válido (ej. usuario@dominio.com).");
+      setEmailError(
+        'Ingresa un correo electrónico válido (ej. usuario@dominio.com).',
+      );
       isValid = false;
     }
 
     if (!password) {
-      setPasswordError("La contraseña es requerida.");
+      setPasswordError('La contraseña es requerida.');
       isValid = false;
     } else if (password.length < 8) {
-      setPasswordError("La contraseña debe tener al menos 8 caracteres.");
+      setPasswordError('La contraseña debe tener al menos 8 caracteres.');
       isValid = false;
     }
 
@@ -66,23 +69,26 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // login() del AuthContext persiste el token/user Y actualiza el estado
-      // global (así Navbar se entera al toque, sin necesitar un refresh).
+      // login() from AuthContext persists the token/user and updates the global
+      // state, so the Navbar reacts immediately without a refresh.
       await login(email, password);
 
-      setSuccess("¡Inicio de sesión exitoso! Redirigiendo...");
+      setSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
 
       if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email.trim());
+        localStorage.setItem('rememberedEmail', email.trim());
       } else {
-        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem('rememberedEmail');
       }
 
       setTimeout(() => {
         navigate(from, { replace: true });
       }, 800);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "No se pudo iniciar sesión. Por favor verifica tus credenciales.";
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'No se pudo iniciar sesión. Por favor verifica tus credenciales.';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -165,8 +171,11 @@ const LoginForm = () => {
       />
 
       <p className="text-center font-body text-sm text-text-muted pt-2">
-        ¿No tienes una cuenta aún?{" "}
-        <a href="/register" className="font-semibold text-primary hover:text-primary-hover transition-colors">
+        ¿No tienes una cuenta aún?{' '}
+        <a
+          href="/register"
+          className="font-semibold text-primary hover:text-primary-hover transition-colors"
+        >
           Regístrate gratis
         </a>
       </p>

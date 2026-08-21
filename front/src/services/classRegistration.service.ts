@@ -1,96 +1,98 @@
-import type { ClassRegistration } from "../types/classRegistration";
+import type { ClassRegistration } from '../types/classRegistration';
+import api from './api';
+import { getApiErrorMessage } from './api-error';
 
-
-const API_URL = 'http://localhost:3000/api/v1/classRegistration';
+// Uses the shared `api` instance rather than raw fetch: the backend gates this
+// controller behind a JWT, and a bare fetch sends no Authorization header, so
+// every call here used to fail once the guard was added. It also keeps the base
+// URL in one place instead of hardcoding localhost.
 
 export const getClassRegistration = async (): Promise<ClassRegistration[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : 'Error al obtener inscripciones';
-    throw new Error(message);
+  try {
+    const { data } = await api.get<ClassRegistration[]>('/classRegistration');
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener inscripciones'),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
 
-export const getClassRegistrationById = async (id: number): Promise<ClassRegistration> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : `Error al obtener inscripción ${id}`;
-    throw new Error(message);
+export const getClassRegistrationById = async (
+  id: number,
+): Promise<ClassRegistration> => {
+  try {
+    const { data } = await api.get<ClassRegistration>(
+      `/classRegistration/${id}`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al obtener inscripción ${id}`),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
 
 export const createClassRegistration = async (
   registration: ClassRegistration,
 ): Promise<ClassRegistration> => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(registration),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : 'Error al registrar inscripción';
-    throw new Error(message);
+  try {
+    const { data } = await api.post<ClassRegistration>(
+      '/classRegistration',
+      registration,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al registrar inscripción'),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
 
 export const updateClassRegistration = async (
   registration: ClassRegistration,
 ): Promise<ClassRegistration> => {
-  const response = await fetch(API_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(registration),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : 'Error al actualizar inscripción';
-    throw new Error(message);
+  try {
+    const { data } = await api.put<ClassRegistration>(
+      '/classRegistration',
+      registration,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al actualizar inscripción'),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
 
 export const deleteClassRegistration = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : `Error al eliminar inscripción ${id}`;
-    throw new Error(message);
+  try {
+    const { data } = await api.delete<boolean>(`/classRegistration/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al eliminar inscripción ${id}`),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
 
-export const restoreClassRegistration = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: 'PATCH' });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.message
-      ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message)
-      : `Error al restaurar inscripción ${id}`;
-    throw new Error(message);
+export const restoreClassRegistration = async (
+  id: number,
+): Promise<boolean> => {
+  try {
+    const { data } = await api.patch<boolean>(
+      `/classRegistration/restore/${id}`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al restaurar inscripción ${id}`),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
-
-export const getInscripcionesClase = getClassRegistration;
-export const getInscripcionClaseById = getClassRegistrationById;
-export const createInscripcionClase = createClassRegistration;
-export const updateInscripcionClase = updateClassRegistration;
-export const deleteInscripcionClase = deleteClassRegistration;
-
-

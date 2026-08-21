@@ -1,12 +1,15 @@
-import { LogIn, Loader2 } from "lucide-react";
-import Button from "../common/Button";
+import { LogIn, Loader2 } from 'lucide-react';
+import Button from '../common/Button';
 
 interface LoginSubmitButtonProps {
   isLoading: boolean;
   disabled?: boolean;
 }
 
-const LoginSubmitButton = ({ isLoading, disabled = false }: LoginSubmitButtonProps) => {
+const LoginSubmitButton = ({
+  isLoading,
+  disabled = false,
+}: LoginSubmitButtonProps) => {
   return (
     <Button
       type="submit"

@@ -18,28 +18,25 @@ import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/user')
 @ApiTags('Usuarios')
-
-
-//Al ponerlo arriba ya protege todos los endpoints. Es igual que ponerlo en cada uno
+// Declared at class level, so every endpoint is admin-only unless the handler
+// overrides it with its own @Auth() (see updateMyProfile).
 @Auth(Role.ADMIN)
-
 export class UserController {
   constructor(private userService: UserService) {}
 
-  //Create user
   @Post()
   createUsers(@Body() user: UsersDto) {
     return this.userService.createUsers(user);
   }
-  
-  // Self-service: cualquier usuario autenticado edita su propio perfil.
-  // @Auth() a nivel método reemplaza el @Auth(Role.ADMIN) de la clase
-  // (RolesGuard usa getAllAndOverride, así que el método gana) — sigue
-  // exigiendo estar logueado, ya no exige rol admin.
+
+  // Self-service: any authenticated user edits their own profile. A
+  // method-level @Auth() replaces the class-level @Auth(Role.ADMIN) because
+  // RolesGuard uses getAllAndOverride and the handler wins — a login is still
+  // required, the admin role no longer is.
   @Patch('me')
   @Auth()
   updateMyProfile(
@@ -49,15 +46,14 @@ export class UserController {
     return this.userService.updateProfile(activeUser.sub, dto);
   }
 
-  //Get all user
   @Get()
   getUsers() {
     return this.userService.findAll();
   }
 
-  // Búsqueda de usuarios por DNI, email o nombre/apellido (admin). Tiene
-  // que declararse ANTES de '/:dni' — si no, Nest/Express toma "search"
-  // como si fuera un valor de :dni y esta ruta nunca se alcanza.
+  // User search by DNI, email or name/surname (admin). It has to be declared
+  // BEFORE '/:dni' or Nest/Express reads "search" as a :dni value and this
+  // route is never reached.
   @Get('search')
   searchUsers(
     @Query('dni') dni?: string,
@@ -73,20 +69,18 @@ export class UserController {
     });
   }
 
-  //Get deleted user
   @Get('filter/deleted')
   getUsersDeleted() {
     return this.userService.findAllDeleted();
   }
 
-  //Get one user by dni
   @Get('/:dni')
   getUserById(@Param('dni') dni: number) {
     return this.userService.findUser(dni);
   }
 
-  // Edición por parte de un admin — ver AdminUpdateUserDto para por qué no
-  // reutiliza el viejo PUT /user (UsersDto exige password en cada update).
+  // Admin-side edit — see AdminUpdateUserDto for why this does not reuse the
+  // older PUT /user, whose UsersDto demands a password on every update.
   @Patch('/:dni')
   adminUpdateUser(
     @Param('dni', ParseIntPipe) dni: number,
@@ -95,22 +89,16 @@ export class UserController {
     return this.userService.adminUpdateUser(dni, dto);
   }
 
-
-  //Update user
   @Put()
   updateUsers(@Body() user: UsersDto) {
     return this.userService.updateUsers(user);
   }
 
-
-  //Delete user
   @Delete('/:dni')
   deleteUsers(@Param('dni') dni: number) {
     return this.userService.deleteUsers(dni);
   }
 
-
-  // Restore user
   @Patch('/restore/:dni')
   restoreUsers(@Param('dni') dni: number) {
     return this.userService.restoreUsers(dni);

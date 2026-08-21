@@ -1,47 +1,50 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Dumbbell, Menu, X, LogOut, User as UserIcon, ShieldCheck } from "lucide-react";
-import Container from "../common/Container";
-import Button from "../common/Button";
-import { useAuth } from "../../context/AuthContext";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Dumbbell,
+  Menu,
+  X,
+  LogOut,
+  User as UserIcon,
+  ShieldCheck,
+} from 'lucide-react';
+import Container from '../common/Container';
+import Button from '../common/Button';
+import { useAuth } from '../../context/useAuth';
 
 interface NavLink {
   label: string;
   href: string;
 }
 
-
-// Navbar publico/home
+// Public navigation, shown when nobody is signed in.
 const publicLinks: NavLink[] = [
-  { label: "Inicio", href: "/" },
-  { label: "Clases", href: "/class" },
-  { label: "Entrenadores", href: "/trainers" },
-  { label: "Planes", href: "/membership" },
-  { label: "Sobre nosotros", href: "/about" },
-  { label: "Contacto", href: "/contact" },
+  { label: 'Inicio', href: '/' },
+  { label: 'Clases', href: '/class' },
+  { label: 'Entrenadores', href: '/trainers' },
+  { label: 'Planes', href: '/membership' },
+  { label: 'Sobre nosotros', href: '/about' },
+  { label: 'Contacto', href: '/contact' },
 ];
 
-
-// Navbar user logeado
+// Navigation for a signed-in member.
 const userLinks: NavLink[] = [
-  { label: "Inicio", href: "/" },
-  { label: "Clases", href: "/class" },
-  { label: "Entrenadores", href: "/trainers" },
-  { label: "Mi cuenta", href: "/dashboard" },
-  { label: "Planes", href: "/membership" },
-  { label: "Sobre nosotros", href: "/about" },
-  { label: "Contacto", href: "/contact" },
-
+  { label: 'Inicio', href: '/' },
+  { label: 'Clases', href: '/class' },
+  { label: 'Entrenadores', href: '/trainers' },
+  { label: 'Mi cuenta', href: '/dashboard' },
+  { label: 'Planes', href: '/membership' },
+  { label: 'Sobre nosotros', href: '/about' },
+  { label: 'Contacto', href: '/contact' },
 ];
 
-
-// Navbar admin
+// Navigation for an admin.
 const adminLinks: NavLink[] = [
-  { label: "Inicio", href: "/" },
-  { label: "Clases", href: "/class" },
-  { label: "Entrenadores", href: "/trainers" },
-  { label: "Planes", href: "/membership" },
-  { label: "Contacto", href: "/contact" },
+  { label: 'Inicio', href: '/' },
+  { label: 'Clases', href: '/class' },
+  { label: 'Entrenadores', href: '/trainers' },
+  { label: 'Planes', href: '/membership' },
+  { label: 'Contacto', href: '/contact' },
 ];
 
 const Navbar = () => {
@@ -49,8 +52,7 @@ const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
-
-  // Defino que array usar dependiendo si es el admin o user
+  // Which set of links to render depends on the role.
   let navLinks = publicLinks;
   if (isAdmin) {
     navLinks = adminLinks;
@@ -61,11 +63,10 @@ const Navbar = () => {
   const handleLogout = () => {
     logout(); // Borra accessToken y user
     setIsOpen(false);
-    navigate("/");
+    navigate('/');
   };
 
   return (
-    // Define header
     <header className="sticky top-0 z-50 border-b border-border bg-bg-terciary/60 backdrop-blur-sm">
       <Container className="flex h-20 items-center justify-between">
         {/* Logo  */}
@@ -86,7 +87,6 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
-
 
           {/* NAVBAR ADMIN */}
           {isAdmin && (
@@ -111,7 +111,12 @@ const Navbar = () => {
                 <UserIcon className="h-4 w-4 text-primary" />
                 Hola, {user?.name}
               </Link>
-              <Button onClick={handleLogout} variant="secondary" size="sm" className="flex items-center gap-1">
+              <Button
+                onClick={handleLogout}
+                variant="secondary"
+                size="sm"
+                className="flex items-center gap-1"
+              >
                 <LogOut className="h-4 w-4" />
                 Salir
               </Button>
@@ -141,14 +146,14 @@ const Navbar = () => {
         <button
           onClick={() => setIsOpen((prev) => !prev)} // When you click on the three lines, the state changes from false to true and vice versa.
           className="text-text lg:hidden"
-          aria-label={isOpen ? "Cerrar menu" : "Abrir menu"}
+          aria-label={isOpen ? 'Cerrar menu' : 'Abrir menu'}
         >
           {/* If it's open, display X; otherwise, display the three-line button */}
           {isOpen ? (
             <X className="h-7 w-7 " />
           ) : (
             <Menu className="h-7 w-7" />
-          )}{" "}
+          )}{' '}
         </button>
       </Container>
 
@@ -188,7 +193,12 @@ const Navbar = () => {
                   <UserIcon className="h-4 w-4 text-primary" />
                   Hola, {user?.name}
                 </Link>
-                <Button onClick={handleLogout} variant="secondary" size="sm" className="w-full">
+                <Button
+                  onClick={handleLogout}
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                >
                   Cerrar sesión
                 </Button>
               </div>

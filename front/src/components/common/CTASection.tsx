@@ -1,5 +1,5 @@
-import Button from "./Button";
-import Container from "./Container";
+import Button from './Button';
+import Container from './Container';
 
 interface CTAbutton {
   label: string;

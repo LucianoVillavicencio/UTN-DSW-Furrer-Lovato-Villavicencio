@@ -1,7 +1,7 @@
-import { Clock } from "lucide-react";
-import Container from "../common/Container";
-import ContactForm from "./ContactForm";
-import ContactChannels from "./ContactChannels";
+import { Clock } from 'lucide-react';
+import Container from '../common/Container';
+import ContactForm from './ContactForm';
+import ContactChannels from './ContactChannels';
 
 const ContactSection = () => {
   return (
@@ -10,7 +10,10 @@ const ContactSection = () => {
         <div className="mb-8 flex items-center justify-center gap-2 text-sm text-text-muted">
           <Clock className="h-4 w-4 text-primary shrink-0" />
           <span className="font-body ">
-            Respuesta garantizada en <strong className="text-primary font-semibold">24 horas hábiles</strong>
+            Respuesta garantizada en{' '}
+            <strong className="text-primary font-semibold">
+              24 horas hábiles
+            </strong>
           </span>
         </div>
 

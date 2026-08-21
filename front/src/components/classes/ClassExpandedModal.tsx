@@ -1,27 +1,32 @@
-import { User as UserIcon, X, Info } from "lucide-react";
-import FormAlert from "../common/FormAlert";
-import { renderCategoryIcon, type MasterClassData } from "./master-classes.data";
-import ClassDaySelector from "./ClassDaySelector";
-import ClassHourGrid from "./ClassHourGrid";
-import SelectedHourSummary from "./SelectedHourSummary";
+import { User as UserIcon, X, Info } from 'lucide-react';
+import FormAlert from '../common/FormAlert';
+import {
+  renderCategoryIcon,
+  type MasterClassData,
+} from './master-classes.data';
+import ClassDaySelector from './ClassDaySelector';
+import ClassHourGrid from './ClassHourGrid';
+import SelectedHourSummary from './SelectedHourSummary';
 
-import type { TurnoClase } from "../../types/classSession";
-import type { AuthUser } from "../../types/user";
+import type { ClassSession } from '../../types/classSession';
+import type { AuthUser } from '../../types/user';
 
 interface ClassExpandedModalProps {
   activeExpandedClass: MasterClassData | null;
   onClose: () => void;
   selectedDayOffset: number;
   setSelectedDayOffset: (offset: number) => void;
-  turnosForActiveExpandedDay: TurnoClase[];
-  selectedHourTurno: TurnoClase | null;
-  setSelectedHourTurno: (turno: TurnoClase | null) => void;
-  isEnrolledInTurno: (turnoId?: number) => boolean;
-  handleEnrollTurno: (turno: TurnoClase) => void;
-  handleCancelTurno: (turno: TurnoClase) => void;
+  sessionsForActiveExpandedDay: ClassSession[];
+  activeClassHasSessions: boolean;
+  selectedSession: ClassSession | null;
+  setSelectedSession: (session: ClassSession | null) => void;
+  isEnrolledInSession: (sessionId?: number) => boolean;
+  hasActivePlan: boolean;
+  handleEnrollSession: (session: ClassSession) => void;
+  handleCancelSession: (session: ClassSession) => void;
   currentUser: AuthUser | null;
   actionLoading: boolean;
-  actionFeedback: { type: "success" | "error"; message: string } | null;
+  actionFeedback: { type: 'success' | 'error'; message: string } | null;
 }
 
 const ClassExpandedModal = ({
@@ -29,12 +34,14 @@ const ClassExpandedModal = ({
   onClose,
   selectedDayOffset,
   setSelectedDayOffset,
-  turnosForActiveExpandedDay,
-  selectedHourTurno,
-  setSelectedHourTurno,
-  isEnrolledInTurno,
-  handleEnrollTurno,
-  handleCancelTurno,
+  sessionsForActiveExpandedDay,
+  activeClassHasSessions,
+  selectedSession,
+  setSelectedSession,
+  isEnrolledInSession,
+  hasActivePlan,
+  handleEnrollSession,
+  handleCancelSession,
   currentUser,
   actionLoading,
   actionFeedback,
@@ -55,22 +62,23 @@ const ClassExpandedModal = ({
         {/* Class Header */}
         <div className="flex items-center gap-3">
           <span className="rounded-2xl bg-primary/10 p-3.5 text-primary">
-            {renderCategoryIcon(activeExpandedClass.tipoClase?.nombre, "h-7 w-7")}
+            {renderCategoryIcon(activeExpandedClass.typeClass?.name, 'h-7 w-7')}
           </span>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              {activeExpandedClass.tipoClase?.nombre}
+              {activeExpandedClass.typeClass?.name}
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-text">
-              {activeExpandedClass.nombre}
+              {activeExpandedClass.name}
             </h2>
           </div>
         </div>
 
         {/* Instructor info */}
         <p className="mt-3 text-xs font-semibold text-text-muted flex items-center gap-2">
-          <UserIcon className="h-4 w-4 text-primary" /> Prof.{" "}
-          {activeExpandedClass.profesor?.nombre} {activeExpandedClass.profesor?.apellido}
+          <UserIcon className="h-4 w-4 text-primary" /> Prof.{' '}
+          {activeExpandedClass.trainer?.name}{' '}
+          {activeExpandedClass.trainer?.surname}
         </p>
 
         {/* EXPANDED EXPLANATION OF DAYS & SCHEDULES */}
@@ -78,9 +86,11 @@ const ClassExpandedModal = ({
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-sm font-bold text-primary">Detalle y Días de Dictado</h4>
+              <h4 className="text-sm font-bold text-primary">
+                Detalle y Días de Dictado
+              </h4>
               <p className="mt-1 text-xs text-text leading-relaxed">
-                {activeExpandedClass.explicacionDias}
+                {activeExpandedClass.scheduleExplanation}
               </p>
             </div>
           </div>
@@ -89,7 +99,10 @@ const ClassExpandedModal = ({
         {/* Feedback alert */}
         {actionFeedback && (
           <div className="mt-4">
-            <FormAlert type={actionFeedback.type} message={actionFeedback.message} />
+            <FormAlert
+              type={actionFeedback.type}
+              message={actionFeedback.message}
+            />
           </div>
         )}
 
@@ -98,27 +111,29 @@ const ClassExpandedModal = ({
           selectedDayOffset={selectedDayOffset}
           onSelectDay={(offset) => {
             setSelectedDayOffset(offset);
-            setSelectedHourTurno(null);
+            setSelectedSession(null);
           }}
         />
 
         {/* ALL HOURS SELECTION GRID FOR SELECTED DAY */}
         <ClassHourGrid
-          turnosForActiveExpandedDay={turnosForActiveExpandedDay}
-          selectedHourTurno={selectedHourTurno}
-          onSelectHour={(t) => setSelectedHourTurno(t)}
-          isEnrolledInTurno={isEnrolledInTurno}
+          sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
+          activeClassHasSessions={activeClassHasSessions}
+          selectedSession={selectedSession}
+          onSelectHour={(t) => setSelectedSession(t)}
+          isEnrolledInSession={isEnrolledInSession}
         />
 
         {/* SELECTED HOUR SUMMARY & ENROLL ACTION */}
-        {selectedHourTurno && (
+        {selectedSession && (
           <SelectedHourSummary
-            selectedHourTurno={selectedHourTurno}
-            isEnrolled={isEnrolledInTurno(selectedHourTurno.id)}
+            selectedSession={selectedSession}
+            isEnrolled={isEnrolledInSession(selectedSession.id)}
+            hasActivePlan={hasActivePlan}
             currentUser={currentUser}
             actionLoading={actionLoading}
-            onEnroll={handleEnrollTurno}
-            onCancel={handleCancelTurno}
+            onEnroll={handleEnrollSession}
+            onCancel={handleCancelSession}
           />
         )}
       </div>

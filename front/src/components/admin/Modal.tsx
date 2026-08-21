@@ -1,6 +1,6 @@
-import { useEffect, type ReactNode } from "react";
-import { X } from "lucide-react";
-import Card from "../common/Card";
+import { useEffect, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+import Card from '../common/Card';
 
 interface ModalProps {
   title: string;
@@ -11,10 +11,10 @@ interface ModalProps {
 const Modal = ({ title, onClose, children }: ModalProps) => {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
   return (
@@ -30,7 +30,9 @@ const Modal = ({ title, onClose, children }: ModalProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border pb-4">
-          <h3 className="font-display text-lg font-semibold text-text">{title}</h3>
+          <h3 className="font-display text-lg font-semibold text-text">
+            {title}
+          </h3>
           <button
             type="button"
             onClick={onClose}

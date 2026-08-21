@@ -1,9 +1,8 @@
-import Navbar from "../../components/layout/Navbar";
-import Footer from "../../components/layout/Footer";
-import PageHeader from "../../components/common/PageHeader";
-import ClassEnrollmentSection from "../../components/classes/ClassEnrollmentSection";
-import { LayoutGridIcon } from "lucide-react";
-
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+import PageHeader from '../../components/common/PageHeader';
+import ClassEnrollmentSection from '../../components/classes/ClassEnrollmentSection';
+import { LayoutGridIcon } from 'lucide-react';
 
 function Classes() {
   return (
@@ -26,5 +25,3 @@ function Classes() {
 }
 
 export default Classes;
-
-

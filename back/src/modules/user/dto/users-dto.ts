@@ -38,5 +38,3 @@ export class UsersDto {
   @IsOptional()
   deleted?: boolean;
 }
-
-

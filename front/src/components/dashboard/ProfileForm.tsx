@@ -1,32 +1,34 @@
-import { useState, type FormEvent } from "react";
-import { Mail, Phone, User as UserIcon, ChevronDown } from "lucide-react";
-import Card from "../common/Card";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import PasswordField from "../common/PasswordField";
-import FormAlert from "../common/FormAlert";
-import { useAuth } from "../../context/AuthContext";
-import { updateMyProfile } from "../../services/user.service";
+import { useState, type FormEvent } from 'react';
+import { Mail, Phone, User as UserIcon, ChevronDown } from 'lucide-react';
+import Card from '../common/Card';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import PasswordField from '../common/PasswordField';
+import FormAlert from '../common/FormAlert';
+import { useAuth } from '../../context/useAuth';
+import { updateMyProfile } from '../../services/user.service';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const ProfileForm = () => {
   const { user, updateUser } = useAuth();
 
-  const [name, setName] = useState(user?.name ?? "");
-  const [surname, setSurname] = useState(user?.surname ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [name, setName] = useState(user?.name ?? '');
+  const [surname, setSurname] = useState(user?.surname ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
 
   const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>(
+    {},
+  );
 
   if (!user) return null;
 
@@ -40,21 +42,22 @@ const ProfileForm = () => {
   const validate = (): boolean => {
     const errors: Record<string, string | null> = {};
 
-    if (!name.trim()) errors.name = "El nombre es requerido.";
-    if (!surname.trim()) errors.surname = "El apellido es requerido.";
+    if (!name.trim()) errors.name = 'El nombre es requerido.';
+    if (!surname.trim()) errors.surname = 'El apellido es requerido.';
     if (!email.trim() || !EMAIL_REGEX.test(email.trim())) {
-      errors.email = "Ingresá un correo electrónico válido.";
+      errors.email = 'Ingresá un correo electrónico válido.';
     }
 
     if (newPassword) {
       if (!currentPassword) {
-        errors.currentPassword = "Ingresá tu contraseña actual para cambiarla.";
+        errors.currentPassword = 'Ingresá tu contraseña actual para cambiarla.';
       }
       if (newPassword.length < 8) {
-        errors.newPassword = "La nueva contraseña debe tener al menos 8 caracteres.";
+        errors.newPassword =
+          'La nueva contraseña debe tener al menos 8 caracteres.';
       }
       if (newPassword !== confirmPassword) {
-        errors.confirmPassword = "Las contraseñas no coinciden.";
+        errors.confirmPassword = 'Las contraseñas no coinciden.';
       }
     }
 
@@ -89,13 +92,15 @@ const ProfileForm = () => {
         phone: updated.phone ?? undefined,
       });
 
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       setShowPasswordSection(false);
-      setSuccess("Tus datos se guardaron correctamente.");
+      setSuccess('Tus datos se guardaron correctamente.');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar los cambios.");
+      setError(
+        err instanceof Error ? err.message : 'No se pudo guardar los cambios.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -103,12 +108,12 @@ const ProfileForm = () => {
 
   const handleCancel = () => {
     setName(user.name);
-    setSurname(user.surname ?? "");
+    setSurname(user.surname ?? '');
     setEmail(user.email);
-    setPhone(user.phone ?? "");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setPhone(user.phone ?? '');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setFieldErrors({});
     setError(null);
     setSuccess(null);
@@ -118,7 +123,7 @@ const ProfileForm = () => {
     <Card className="mx-auto w-full max-w-xl hover:-translate-y-0 hover:shadow-lg">
       <div className="flex items-center gap-4 border-b border-border pb-6">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-lg font-semibold text-primary">
-          {(name || "U").charAt(0).toUpperCase()}
+          {(name || 'U').charAt(0).toUpperCase()}
         </div>
         <div>
           <p className="font-display text-lg font-semibold text-text">
@@ -132,13 +137,10 @@ const ProfileForm = () => {
         <FormAlert type="error" message={error} />
         <FormAlert type="success" message={success} />
 
-        <InputField
-          label="DNI"
-          value={user.dni}
-          disabled
-          readOnly
-        />
-        <p className="-mt-3 text-xs text-text-muted">El DNI no puede modificarse.</p>
+        <InputField label="DNI" value={user.dni} disabled readOnly />
+        <p className="-mt-3 text-xs text-text-muted">
+          El DNI no puede modificarse.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <InputField
@@ -186,14 +188,15 @@ const ProfileForm = () => {
           >
             Cambiar contraseña
             <ChevronDown
-              className={`h-4 w-4 text-text-muted transition-transform ${showPasswordSection ? "rotate-180" : ""}`}
+              className={`h-4 w-4 text-text-muted transition-transform ${showPasswordSection ? 'rotate-180' : ''}`}
             />
           </button>
 
           {showPasswordSection && (
             <div className="mt-4 space-y-4">
               <p className="text-xs text-text-muted">
-                Si tu cuenta inició sesión con Google, no vas a tener una contraseña local para cambiar.
+                Si tu cuenta inició sesión con Google, no vas a tener una
+                contraseña local para cambiar.
               </p>
               <PasswordField
                 id="current-password"
@@ -233,8 +236,12 @@ const ProfileForm = () => {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={!isDirty || isSaving} className="flex-1">
-            {isSaving ? "Guardando..." : "Guardar cambios"}
+          <Button
+            type="submit"
+            disabled={!isDirty || isSaving}
+            className="flex-1"
+          >
+            {isSaving ? 'Guardando...' : 'Guardar cambios'}
           </Button>
           <Button
             type="button"

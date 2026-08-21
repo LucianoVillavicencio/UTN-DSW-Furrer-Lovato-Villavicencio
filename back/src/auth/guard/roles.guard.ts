@@ -1,20 +1,14 @@
-
-//RolesGuard => Corre despues de authGuard y decide si el rol alcanza.
-
-
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/rol.decorator';
-import { Role } from '../../common/enum/rol.enum';
+import { ROLES_KEY } from '../decorators/role.decorator';
+import { Role } from '../../common/enum/role.enum';
+import type { AuthenticatedRequest } from '../../common/interfaces/user-active.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-
-
-
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -24,15 +18,19 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    const { user } = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    const { user } = context.switchToHttp().getRequest();
+    // AuthGuard runs first and always sets it; without a user there is no role
+    // to check, so deny instead of reading through an undefined.
+    if (!user) {
+      return false;
+    }
 
-    // Le doy acceso o privilegio siempre a ADMIN. Sin importar que roles pida el endpoint
-    if(user.role === Role.ADMIN) {
+    // ADMIN passes every check, whatever roles the endpoint asks for.
+    if (user.role === Role.ADMIN) {
       return true;
     }
 
     return requiredRoles.includes(user.role);
-    
   }
 }

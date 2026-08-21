@@ -13,7 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { TypeClassDto } from './dto/typeClass-dto';
 import { TypeClassService } from './typeClass.service';
 import { Auth } from '../../auth/decorators/auth.decorator';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/typeClass')
 @ApiTags('Types of classes')
@@ -26,7 +26,7 @@ export class TypeClassController {
     return this.typeClassService.createTypeClass(typeClassDto);
   }
 
-  // Lectura pública: la usa el selector de tipo de clase en el form de Clases.
+  // Public read: used by the class-type selector in the Classes form.
   @Get()
   getTypesClass() {
     return this.typeClassService.findAll();

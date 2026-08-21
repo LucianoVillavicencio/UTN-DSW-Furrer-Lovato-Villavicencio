@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -14,7 +14,7 @@ const InputField = ({
   error,
   id,
   disabled,
-  className = "",
+  className = '',
   ...props
 }: InputFieldProps) => {
   const generatedId = useId();
@@ -39,13 +39,13 @@ const InputField = ({
           disabled={disabled}
           {...props}
           className={`w-full rounded-xl border bg-surface py-2.5 ${
-            icon ? "pl-10" : "pl-4"
+            icon ? 'pl-10' : 'pl-4'
           } ${
-            rightElement ? "pr-10" : "pr-4"
+            rightElement ? 'pr-10' : 'pr-4'
           } text-sm text-text placeholder-text-muted/60 font-body transition-all duration-200 ${
             error
-              ? "border-red-500/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/30"
-              : "border-border hover:border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/40"
+              ? 'border-red-500/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
+              : 'border-border hover:border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/40'
           } focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface/50 ${className}`}
         />
         {rightElement && (

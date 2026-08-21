@@ -1,11 +1,16 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
-import { Role } from '../../../common/enum/rol.enum';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+import { Role } from '../../../common/enum/role.enum';
 
-// Edición de un usuario por parte de un admin (panel de Usuarios). A
-// propósito no tiene `password`: UsersDto (usado por el PUT /user viejo)
-// la exige en cada update, lo que fuerza a mandar algo que termina
-// guardado sin hashear — este DTO evita ese hueco y se enfoca en los
-// campos que un admin realmente necesita tocar.
+// Admin-side edit of a user (Users panel). It deliberately has no `password`:
+// UsersDto, used by the older PUT /user, requires one on every update, which
+// forces the caller to send something that ends up stored unhashed. This DTO
+// closes that hole and sticks to the fields an admin actually needs.
 export class AdminUpdateUserDto {
   @IsString()
   @MinLength(1)

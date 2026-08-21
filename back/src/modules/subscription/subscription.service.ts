@@ -7,12 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { Subscription } from './entity/subscription.entity';
-import { SubscriptionState } from './enum/subscription-state-enum';
+import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 
-// Formatea usando los componentes de fecha LOCALES (no UTC), para que
-// "hoy" en el timezone del servidor no se convierta al día anterior/
-// siguiente al pasar por una columna 'date' de MySQL.
+// Formats using the LOCAL date parts, not UTC, so that "today" in the server's
+// timezone does not shift to the previous or next day on its way into a MySQL
+// 'date' column.
 function toDateOnly(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -28,10 +28,10 @@ export class subscriptionService {
     private readonly planService: PlanService,
   ) {}
 
-  // Cambia de plan al usuario autenticado: cierra la suscripción activa (si
-  // hay una) y abre una nueva sobre el plan elegido. No es un pago — el
-  // estado del cobro se resuelve aparte (pago presencial o, más adelante,
-  // Mercado Pago); ver specs.md §2.3.
+  // Moves the authenticated user to another plan: closes the active
+  // subscription, if there is one, and opens a new one on the chosen plan. This
+  // is not a payment — the charge is settled separately (in person for now,
+  // through Mercado Pago later); see specs.md §2.3.
   async changePlan(userDni: number, planId: number) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
@@ -54,10 +54,10 @@ export class subscriptionService {
       await this.subscriptionRepository.save(currentActive);
     }
 
-    // Fechas como string 'YYYY-MM-DD' (no Date con hora) para que la
-    // columna 'date' de MySQL no las corra un día por conversión de
-    // timezone al serializar — mismo criterio que ya usa el front en
-    // Plan.tsx con toISOString().split('T')[0].
+    // Dates as 'YYYY-MM-DD' strings rather than a Date carrying a time, so the
+    // MySQL 'date' column cannot shift them by a day through timezone
+    // conversion — the same approach the frontend already uses in Plan.tsx with
+    // toISOString().split('T')[0].
     const today = new Date();
     const start = toDateOnly(today);
     const endJs = new Date(today);
@@ -78,8 +78,8 @@ export class subscriptionService {
     );
   }
 
-  // Historial completo de suscripciones de un usuario puntual (panel admin
-  // de Usuarios), más recientes primero.
+  // Full subscription history of one specific user (admin Users panel), most
+  // recent first.
   async findByUser(userDni: number) {
     return this.subscriptionRepository.find({
       where: { userDni, deleted: false },
@@ -88,7 +88,7 @@ export class subscriptionService {
     });
   }
 
-  // Suscripción activa del usuario autenticado (o null si no tiene).
+  // The authenticated user's active subscription, or null if there is none.
   async findActiveForUser(userDni: number) {
     return this.subscriptionRepository.findOne({
       where: { userDni, state: SubscriptionState.ACTIVE, deleted: false },

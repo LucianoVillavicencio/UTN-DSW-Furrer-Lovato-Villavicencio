@@ -1,11 +1,8 @@
+// Reads the JWT stored in the browser.
 
-// DecodeToken => Decodifica el token del navegador
+// A JWT is header.payload.signature; only the payload is needed here.
 
-
-// JWT tiene tres partes separadas : header.payload.signature . Solo queremos payload.
-
-
-import type { Role } from "../types/user";
+import type { Role } from '../types/user';
 
 export interface JwtPayload {
   sub: number;
@@ -17,15 +14,15 @@ export interface JwtPayload {
 
 export function decodeToken(token: string): JwtPayload | null {
   try {
-    const [, payloadB64] = token.split(".");
+    const [, payloadB64] = token.split('.');
     if (!payloadB64) return null;
 
-    const base64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
     const json = decodeURIComponent(
       atob(base64)
-        .split("")
-        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join(""),
+        .split('')
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join(''),
     );
 
     return JSON.parse(json) as JwtPayload;

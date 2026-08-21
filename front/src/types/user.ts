@@ -1,7 +1,4 @@
-
-
-export type Role = "user" | "admin";
-
+export type Role = 'user' | 'admin';
 
 export interface User {
   dni: number;
@@ -30,20 +27,19 @@ export interface LoginCredentials {
   password: string;
 }
 
-
-// Pick<User  : Construye un tipo nuevo tomando solo algunas propiedades de User.
-// Lo usamos por que authResponse no trae todos lso campos de user
+// authResponse carries only part of the user, so the type is picked from User
+// rather than duplicated.
 
 export interface AuthResponse {
   token: string;
-  user: Pick<User, "dni" | "email" | "name" | "surname" | "phone" | "role">;
+  user: Pick<User, 'dni' | 'email' | 'name' | 'surname' | 'phone' | 'role'>;
 }
 
-// Perfil del usuario logueado que expone el AuthContext (el que viaja en el JWT).
-export type AuthUser = AuthResponse["user"];
+// The signed-in profile AuthContext exposes, as carried in the JWT.
+export type AuthUser = AuthResponse['user'];
 
-// Body de PATCH /user/me. El dni nunca viaja acá: lo resuelve el backend
-// desde el JWT.
+// Body of PATCH /user/me. The dni never travels here: the backend resolves it
+// from the JWT.
 export interface UpdateProfilePayload {
   name?: string;
   surname?: string;

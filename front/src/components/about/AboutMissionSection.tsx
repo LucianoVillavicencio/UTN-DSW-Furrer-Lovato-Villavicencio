@@ -1,38 +1,38 @@
-import { Heart, Users, ShieldCheck, Zap } from "lucide-react";
-import Container from "../common/Container";
+import { Heart, Users, ShieldCheck, Zap } from 'lucide-react';
+import Container from '../common/Container';
 
 const missionItems = [
   {
-    id: "mission-pasion",
+    id: 'mission-pasion',
     icon: Heart,
-    title: "Pasión",
+    title: 'Pasión',
     description:
-      "Nos mueve ayudar a cada persona a descubrir su fuerza interior y alcanzar metas que nunca creyeron posibles.",
-    badge: "Energía & Motivación",
+      'Nos mueve ayudar a cada persona a descubrir su fuerza interior y alcanzar metas que nunca creyeron posibles.',
+    badge: 'Energía & Motivación',
   },
   {
-    id: "mission-comunidad",
+    id: 'mission-comunidad',
     icon: Users,
-    title: "Comunidad",
+    title: 'Comunidad',
     description:
-      "Nuestra comunidad crea vínculos duraderos y un entorno de apoyo constante para que nunca entrenes solo.",
-    badge: "Familia FitCore",
+      'Nuestra comunidad crea vínculos duraderos y un entorno de apoyo constante para que nunca entrenes solo.',
+    badge: 'Familia FitCore',
   },
   {
-    id: "mission-excelencia",
+    id: 'mission-excelencia',
     icon: ShieldCheck,
-    title: "Excelencia",
+    title: 'Excelencia',
     description:
-      "Mantenemos los más altos estándares en equipamiento, entrenadores certificados y servicio de primer nivel.",
-    badge: "Calidad Garantizada",
+      'Mantenemos los más altos estándares en equipamiento, entrenadores certificados y servicio de primer nivel.',
+    badge: 'Calidad Garantizada',
   },
   {
-    id: "mission-innovacion",
+    id: 'mission-innovacion',
     icon: Zap,
-    title: "Innovación",
+    title: 'Innovación',
     description:
-      "Evolucionamos continuamente nuestros programas de entrenamiento y tecnología para ofrecer la mejor experiencia.",
-    badge: "Tecnología Vanguardista",
+      'Evolucionamos continuamente nuestros programas de entrenamiento y tecnología para ofrecer la mejor experiencia.',
+    badge: 'Tecnología Vanguardista',
   },
 ];
 
@@ -56,7 +56,9 @@ const AboutMissionSection = () => {
           </h2>
 
           <p className="mt-4 font-sans text-base sm:text-lg text-text-muted leading-relaxed">
-            En FitCore, cada programa, cada clase y cada entrenador está enfocado en empoderarte para alcanzar tu mejor versión física y mental.
+            En FitCore, cada programa, cada clase y cada entrenador está
+            enfocado en empoderarte para alcanzar tu mejor versión física y
+            mental.
           </p>
         </div>
 
@@ -97,4 +99,3 @@ const AboutMissionSection = () => {
 };
 
 export default AboutMissionSection;
-

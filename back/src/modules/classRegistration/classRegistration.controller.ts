@@ -14,7 +14,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { ClassRegistrationService } from './classRegistration.service';
 import { ClassRegistrationDto } from './dto/classRegistration-dto';
 
-
 @Controller('api/v1/classRegistration')
 @ApiTags('Class registration')
 export class ClassRegistrationController {
@@ -24,7 +23,9 @@ export class ClassRegistrationController {
 
   @Post()
   createClassRegistration(@Body() registrationClassDto: ClassRegistrationDto) {
-    return this.classRegistrationService.createClassRegistration(registrationClassDto);
+    return this.classRegistrationService.createClassRegistration(
+      registrationClassDto,
+    );
   }
 
   @Get()
@@ -44,7 +45,9 @@ export class ClassRegistrationController {
 
   @Put()
   updateClassRegistration(@Body() registrationClassDto: ClassRegistrationDto) {
-    return this.classRegistrationService.updateClassRegistration(registrationClassDto);
+    return this.classRegistrationService.updateClassRegistration(
+      registrationClassDto,
+    );
   }
 
   @Delete('/:id')

@@ -1,28 +1,28 @@
-import { Bike, Dumbbell, Flame } from "lucide-react";
-import Container from "../common/Container";
-import SectionTitle from "../common/SectionTitle";
-import Button from "../common/Button";
-import IconFeatureCard from "../common/IconFeatureCard";
+import { Bike, Dumbbell, Flame } from 'lucide-react';
+import Container from '../common/Container';
+import SectionTitle from '../common/SectionTitle';
+import Button from '../common/Button';
+import IconFeatureCard from '../common/IconFeatureCard';
 
 const classes = [
   {
     icon: Dumbbell,
-    title: "Entrenamiento de fuerza",
+    title: 'Entrenamiento de fuerza',
     descripcion:
-      "Desarrolla músculo y aumenta tu fuerza con nuestras c integrales de entrenamiento con pesas. ",
+      'Desarrolla músculo y aumenta tu fuerza con nuestras c integrales de entrenamiento con pesas. ',
   },
   {
     icon: Flame,
-    title: "Entrenamiento HIIT",
+    title: 'Entrenamiento HIIT',
     descripcion:
-      "Entrenamiento de intervalos de alta intensidad para una máxima quema de calorías y salud cardiovascular. ",
+      'Entrenamiento de intervalos de alta intensidad para una máxima quema de calorías y salud cardiovascular. ',
   },
 
   {
     icon: Bike,
-    title: "Clases de spinning",
+    title: 'Clases de spinning',
     descripcion:
-      "Maximiza tu potencia y quema calorías al ritmo de la música con entrenamientos de ciclismo indoor que desafían tus límites y fortalecen tus piernas. ",
+      'Maximiza tu potencia y quema calorías al ritmo de la música con entrenamientos de ciclismo indoor que desafían tus límites y fortalecen tus piernas. ',
   },
 ];
 

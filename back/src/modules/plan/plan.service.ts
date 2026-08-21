@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
@@ -9,11 +10,11 @@ import { Repository, UpdateResult } from 'typeorm';
 import { Plan, PlanFeature } from './entity/plan.entity';
 import { PlanDto } from './dto/plan-dto';
 
-// Los mismos tres sets que antes vivían hardcodeados en el front
-// (plans.data.ts), adivinados a partir del NOMBRE del plan — se portan acá
-// para usarlos como contenido por defecto al: 1) sembrar los 3 planes base
-// en una base vacía, y 2) rellenar planes que ya existían antes de que
-// `features` existiera como columna (ver backfillMissingFeatures).
+// The same three sets that used to live hardcoded in the frontend
+// (plans.data.ts), guessed from the plan NAME. They are ported here to serve as
+// default content when: 1) seeding the three base plans into an empty database,
+// and 2) filling in plans that existed before `features` was a column at all
+// (see backfillMissingFeatures).
 const BASIC_FEATURES: PlanFeature[] = [
   { label: 'Acceso 24/7 al gimnasio', available: true },
   { label: 'Cardio y equipamiento de fuerza', available: true },
@@ -44,7 +45,9 @@ const ELITE_FEATURES: PlanFeature[] = [
 function guessDefaultFeatures(name: string): PlanFeature[] {
   const normName = (name || '').toLowerCase();
   const isElite =
-    normName.includes('elite') || normName.includes('vip') || normName.includes('pro');
+    normName.includes('elite') ||
+    normName.includes('vip') ||
+    normName.includes('pro');
   const isBasic = normName.includes('básico') || normName.includes('basico');
 
   if (isElite) return ELITE_FEATURES;
@@ -54,6 +57,8 @@ function guessDefaultFeatures(name: string): PlanFeature[] {
 
 @Injectable()
 export class PlanService implements OnModuleInit {
+  private readonly logger = new Logger(PlanService.name);
+
   constructor(
     @InjectRepository(Plan)
     private planRepository: Repository<Plan>,
@@ -66,7 +71,8 @@ export class PlanService implements OnModuleInit {
         const defaultPlans = [
           {
             name: 'Básico',
-            description: 'Perfecto para empezar tu camino fitness. Acceso al gimnasio y área de cardio.',
+            description:
+              'Perfecto para empezar tu camino fitness. Acceso al gimnasio y área de cardio.',
             price: 29,
             numDays: 30,
             features: BASIC_FEATURES,
@@ -74,7 +80,8 @@ export class PlanService implements OnModuleInit {
           },
           {
             name: 'Premium',
-            description: 'Nuestro plan más popular con todo lo que necesitás y clases grupales.',
+            description:
+              'Nuestro plan más popular con todo lo que necesitás y clases grupales.',
             price: 59,
             numDays: 30,
             features: PREMIUM_FEATURES,
@@ -82,7 +89,8 @@ export class PlanService implements OnModuleInit {
           },
           {
             name: 'Elite',
-            description: 'Experiencia fitness definitiva con beneficios premium y entrenamiento personalizado.',
+            description:
+              'Experiencia fitness definitiva con beneficios premium y entrenamiento personalizado.',
             price: 99,
             numDays: 30,
             features: ELITE_FEATURES,
@@ -93,15 +101,19 @@ export class PlanService implements OnModuleInit {
       } else {
         await this.backfillMissingFeatures();
       }
-    } catch (e) {
-      // Table might not be ready during certain migrations/tests
+    } catch (error) {
+      // The table may not exist yet during certain migrations or tests, and a
+      // missing seed must not stop the whole application from booting.
+      this.logger.warn(
+        'Plan seeding skipped',
+        error instanceof Error ? error.stack : error,
+      );
     }
   }
 
-  // Rellena con un set por defecto (adivinado por nombre, ver arriba) los
-  // planes que ya existían antes de que `features` fuera una columna real
-  // — sin esto quedarían con `null` y la página de planes se vería vacía
-  // hasta que un admin entre a cargarlos a mano.
+  // Fills plans that predate the `features` column with a default set (guessed
+  // by name, see above). Without this they would keep a `null` value and the
+  // plans page would look empty until an admin loaded them by hand.
   private async backfillMissingFeatures() {
     const plansWithoutFeatures = await this.planRepository
       .createQueryBuilder('plan')
@@ -147,7 +159,7 @@ export class PlanService implements OnModuleInit {
     }
     return await this.planRepository.save({
       ...planDto,
-      // Si no mandan features en este update puntual, no las borramos.
+      // If this particular update carries no features, keep the stored ones.
       features: planDto.features ?? exists.features,
     });
   }

@@ -1,19 +1,14 @@
-import type { User } from "./user";
-import type { ClassSession } from "./classSession";
+import type { User } from './user';
+import type { ClassSession } from './classSession';
 
 export interface ClassRegistration {
   id?: number;
   userDni: number;
   user?: User;
   classSessionId?: number;
-  turnoClaseId?: number;
   classSession?: ClassSession;
-  dateRegistration?: string;
-  fechaInscripcion?: string;
+  // The backend column is `date` (ClassRegistrationDto), not dateRegistration.
+  date?: string;
   state?: string;
-  estado?: string;
   deleted?: boolean;
 }
-
-export type InscripcionClase = ClassRegistration;
-

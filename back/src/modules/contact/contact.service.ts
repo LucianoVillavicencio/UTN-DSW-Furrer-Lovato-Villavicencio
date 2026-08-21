@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contact } from './entity/contact.entity';
 import { MailService } from './mail.service';
-import { ContactDto } from './dto/contact.dto';
-
+import { ContactDto } from './dto/contact-dto';
 
 @Injectable()
 export class ContactService {

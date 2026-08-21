@@ -64,7 +64,7 @@ Funcionalidades principales:
 
 ## Capturas
 
-<img src="front/src/assets/hero.png" alt="Landing de FLG Gym" width="720" />
+<img src="assets/MD.drawio.png" alt="Landing de FLG Gym" width="720" />
 
 Diagrama del modelo de dominio: [`assets/MD.drawio.png`](assets/MD.drawio.png).
 

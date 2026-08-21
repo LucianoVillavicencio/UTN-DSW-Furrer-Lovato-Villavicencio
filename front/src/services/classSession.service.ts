@@ -1,72 +1,99 @@
-import type { ClassSession } from "../types/classSession";
+import type { ClassSession } from '../types/classSession';
+import api from './api';
+import { getApiErrorMessage } from './api-error';
 
-const API_URL = "http://localhost:3000/api/v1/classSession";
+// Uses the shared `api` instance so the JWT travels: reading sessions is public,
+// but creating, updating, deleting and restoring them require the ADMIN role.
 
 export const getClassSession = async (): Promise<ClassSession[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Error al obtener turnos de clase");
+  try {
+    const { data } = await api.get<ClassSession[]>('/classSession');
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Error al obtener turnos'), {
+      cause: error,
+    });
   }
-  return await response.json();
+};
+
+export const getDeletedClassSessions = async (): Promise<ClassSession[]> => {
+  try {
+    const { data } = await api.get<ClassSession[]>(
+      '/classSession/filter/deleted',
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener turnos eliminados'),
+      { cause: error },
+    );
+  }
 };
 
 export const getClassSessionById = async (
   id: number,
 ): Promise<ClassSession> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener turno de clase ${id}`);
+  try {
+    const { data } = await api.get<ClassSession>(`/classSession/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al obtener turno ${id}`), {
+      cause: error,
+    });
   }
-  return await response.json();
 };
 
 export const createClassSession = async (
   classSession: ClassSession,
 ): Promise<ClassSession> => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(classSession),
-  });
-  if (!response.ok) {
-    throw new Error("Error al crear turno de clase");
+  try {
+    const { data } = await api.post<ClassSession>(
+      '/classSession',
+      classSession,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Error al crear el turno'), {
+      cause: error,
+    });
   }
-  return await response.json();
 };
 
 export const updateClassSession = async (
   classSession: ClassSession,
 ): Promise<ClassSession> => {
-  const response = await fetch(API_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(classSession),
-  });
-  if (!response.ok) {
-    throw new Error("Error al actualizar turno de clase");
+  try {
+    const { data } = await api.put<ClassSession>('/classSession', classSession);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Error al actualizar el turno'), {
+      cause: error,
+    });
   }
-  return await response.json();
 };
 
 export const deleteClassSession = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar turno de clase ${id}`);
+  try {
+    const { data } = await api.delete<boolean>(`/classSession/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al eliminar turno ${id}`),
+      {
+        cause: error,
+      },
+    );
   }
-  return await response.json();
 };
 
 export const restoreClassSession = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: "PATCH" });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar turno de clase ${id}`);
+  try {
+    const { data } = await api.patch<boolean>(`/classSession/restore/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al restaurar turno ${id}`),
+      { cause: error },
+    );
   }
-  return await response.json();
 };
-
-export const getTurnosClase = getClassSession;
-export const getTurnoClaseById = getClassSessionById;
-export const createTurnoClase = createClassSession;
-export const updateTurnoClase = updateClassSession;
-export const deleteTurnoClase = deleteClassSession;
-

@@ -1,13 +1,5 @@
-
-
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-import type { AuthResponse, RegisterUserData, Role } from "../types/user";
+import { useState, type ReactNode } from 'react';
+import type { Role } from '../types/user';
 import {
   loginUser as loginRequest,
   registerUser as registerRequest,
@@ -15,31 +7,23 @@ import {
   logoutUser as clearSession,
   getStoredToken,
   getStoredUser,
-} from "../services/auth.service";
-import { decodeToken, isTokenExpired } from "../lib/jwt";
+} from '../services/auth.service';
+import { decodeToken, isTokenExpired } from '../lib/jwt';
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthUser,
+} from './auth-context';
 
-type AuthUser = AuthResponse["user"];
-
-interface AuthContextValue {
+interface Session {
   user: AuthUser | null;
   role: Role | null;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
-  register: (data: RegisterUserData) => Promise<AuthResponse>;
-  loginWithGoogle: (idToken: string) => Promise<AuthResponse>;
-  logout: () => void;
-  // Refresca los datos de perfil en memoria + localStorage tras un PATCH
-  // /user/me exitoso, sin re-loguear (el rol no cambia en ese flujo).
-  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-// Lee token + user de localStorage. Si el token no está, es inválido o ya
-// venció, la sesión se considera cerrada (y se limpia lo que haya quedado).
-function resolveSession(): { user: AuthUser | null; role: Role | null } {
+// Reads token + user from localStorage. If the token is missing, malformed or
+// already expired the session counts as closed, and whatever was left behind is
+// cleared.
+function resolveSession(): Session {
   const token = getStoredToken();
   if (!token) return { user: null, role: null };
 
@@ -49,67 +33,56 @@ function resolveSession(): { user: AuthUser | null; role: Role | null } {
     return { user: null, role: null };
   }
 
-  // El rol sale del token (fuente de verdad, mismo claim que usa el backend);
-  // el resto del perfil (nombre, etc.) sale del "user" guardado en el login.
+  // The role comes from the token — the source of truth, the same claim the
+  // backend reads. The rest of the profile comes from the stored "user".
   return { user: getStoredUser(), role: payload.role };
 }
 
-
-// Chequea que useAuth sea usado dentro de un <AuthProvider> 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Resolved during the first render instead of in an effect: reading
+  // localStorage is synchronous, and doing it in an effect rendered one frame
+  // of "logged out" before the real session landed.
+  const [session, setSession] = useState<Session>(resolveSession);
 
-  useEffect(() => {
-    const session = resolveSession();
-    setUser(session.user);
-    setRole(session.role);
-    setIsLoading(false);
-  }, []);
-
-  const login: AuthContextValue["login"] = async (email, password) => {
+  const login: AuthContextValue['login'] = async (email, password) => {
     const data = await loginRequest(email, password);
-    setUser(data.user);
-    setRole(data.user.role);
+    setSession({ user: data.user, role: data.user.role });
     return data;
   };
 
-  const register: AuthContextValue["register"] = async (payload) => {
+  const register: AuthContextValue['register'] = async (payload) => {
     const data = await registerRequest(payload);
-    setUser(data.user);
-    setRole(data.user.role);
+    setSession({ user: data.user, role: data.user.role });
     return data;
   };
 
-  const loginWithGoogle: AuthContextValue["loginWithGoogle"] = async (idToken) => {
+  const loginWithGoogle: AuthContextValue['loginWithGoogle'] = async (
+    idToken,
+  ) => {
     const data = await loginWithGoogleRequest(idToken);
-    setUser(data.user);
-    setRole(data.user.role);
+    setSession({ user: data.user, role: data.user.role });
     return data;
   };
 
   const logout = () => {
     clearSession();
-    setUser(null);
-    setRole(null);
+    setSession({ user: null, role: null });
   };
 
-  const updateUser: AuthContextValue["updateUser"] = (patch) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...patch };
-      localStorage.setItem("user", JSON.stringify(next));
-      return next;
+  const updateUser: AuthContextValue['updateUser'] = (patch) => {
+    setSession((prev) => {
+      if (!prev.user) return prev;
+      const next = { ...prev.user, ...patch };
+      localStorage.setItem('user', JSON.stringify(next));
+      return { ...prev, user: next };
     });
   };
 
   const value: AuthContextValue = {
-    user,
-    role,
-    isAuthenticated: !!user,
-    isAdmin: role === "admin",
-    isLoading,
+    user: session.user,
+    role: session.role,
+    isAuthenticated: !!session.user,
+    isAdmin: session.role === 'admin',
     login,
     register,
     loginWithGoogle,
@@ -117,13 +90,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUser,
   };
 
-  return <AuthContext.Provider value={value} >{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth debe usarse dentro de un <AuthProvider>.");
-  }
-  return ctx;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

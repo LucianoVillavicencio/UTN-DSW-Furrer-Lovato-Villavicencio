@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Loader2, Inbox } from "lucide-react";
+import type { ReactNode } from 'react';
+import { Loader2, Inbox } from 'lucide-react';
 
 export interface DataTableColumn<T> {
   header: string;
@@ -21,7 +21,7 @@ function DataTable<T>({
   rows,
   rowKey,
   isLoading = false,
-  emptyMessage = "No hay resultados.",
+  emptyMessage = 'No hay resultados.',
   onRowClick,
 }: DataTableProps<T>) {
   return (
@@ -43,13 +43,19 @@ function DataTable<T>({
         <tbody className="divide-y divide-border">
           {isLoading ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-10 text-center text-text-muted">
+              <td
+                colSpan={columns.length}
+                className="px-4 py-10 text-center text-text-muted"
+              >
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
               </td>
             </tr>
           ) : rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-10 text-center text-text-muted">
+              <td
+                colSpan={columns.length}
+                className="px-4 py-10 text-center text-text-muted"
+              >
                 <Inbox className="mx-auto h-8 w-8 text-text-muted" />
                 <p className="mt-2 text-sm">{emptyMessage}</p>
               </td>
@@ -60,11 +66,14 @@ function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={`bg-background font-body text-text transition-colors ${
-                  onRowClick ? "cursor-pointer hover:bg-surface" : ""
+                  onRowClick ? 'cursor-pointer hover:bg-surface' : ''
                 }`}
               >
                 {columns.map((col) => (
-                  <td key={col.header} className={`px-4 py-3 ${col.className ?? ""}`}>
+                  <td
+                    key={col.header}
+                    className={`px-4 py-3 ${col.className ?? ''}`}
+                  >
                     {col.cell(row)}
                   </td>
                 ))}

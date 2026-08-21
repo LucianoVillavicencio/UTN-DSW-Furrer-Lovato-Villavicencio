@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { Pencil, Trash2, RotateCcw, Plus, X, Check } from "lucide-react";
-import Button from "../common/Button";
-import InputField from "../common/InputField";
-import FormAlert from "../common/FormAlert";
-import DataTable, { type DataTableColumn } from "./DataTable";
-import Modal from "./Modal";
-import ConfirmDialog from "./ConfirmDialog";
+import { useEffect, useState } from 'react';
+import { Pencil, Trash2, RotateCcw, Plus, X, Check } from 'lucide-react';
+import Button from '../common/Button';
+import InputField from '../common/InputField';
+import FormAlert from '../common/FormAlert';
+import DataTable, { type DataTableColumn } from './DataTable';
+import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import {
   getPlans,
   getDeletedPlans,
@@ -13,11 +13,11 @@ import {
   updatePlan,
   deletePlan,
   restorePlan,
-} from "../../services/plan.service";
-import type { Plan, PlanFeature } from "../../types/plan";
-import { parsePriceInput, formatPriceDisplay } from "../../lib/currency";
+} from '../../services/plan.service';
+import type { Plan, PlanFeature } from '../../types/plan';
+import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
 
-const emptyForm: Plan = { name: "", description: "", price: 0, numDays: 30 };
+const emptyForm: Plan = { name: '', description: '', price: 0, numDays: 30 };
 
 const PlansSection = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -28,13 +28,12 @@ const PlansSection = () => {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState<Plan>(emptyForm);
-  // Precio y días se editan como texto libre, no como number: si converimos
-  // a Number en cada tecla, escribir "19.995" nunca llega a completarse —
-  // Number("19.") es 19, así que el "." recién tipeado desaparece del input
-  // controlado apenas se re-renderiza. Se guarda el texto tal cual y se
-  // convierte una sola vez, al guardar.
-  const [priceText, setPriceText] = useState("");
-  const [numDaysText, setNumDaysText] = useState("");
+  // Price and days are edited as free text, not as numbers: converting on every
+  // keystroke means "19.995" can never be finished — Number("19.") is 19, so the
+  // dot just typed vanishes from the controlled input on the next render. The
+  // text is kept as typed and converted once, on save.
+  const [priceText, setPriceText] = useState('');
+  const [numDaysText, setNumDaysText] = useState('');
   const [featuresForm, setFeaturesForm] = useState<PlanFeature[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,7 +49,9 @@ const PlansSection = () => {
       const data = showDeleted ? await getDeletedPlans() : await getPlans();
       setPlans(data);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudo cargar la lista.");
+      setLoadError(
+        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ const PlansSection = () => {
 
   const openCreate = () => {
     setForm(emptyForm);
-    setPriceText("");
+    setPriceText('');
     setNumDaysText(String(emptyForm.numDays));
     setFeaturesForm([]);
     setFormError(null);
@@ -80,11 +81,13 @@ const PlansSection = () => {
   };
 
   const addFeatureRow = () => {
-    setFeaturesForm((prev) => [...prev, { label: "", available: true }]);
+    setFeaturesForm((prev) => [...prev, { label: '', available: true }]);
   };
 
   const updateFeatureRow = (index: number, patch: Partial<PlanFeature>) => {
-    setFeaturesForm((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+    setFeaturesForm((prev) =>
+      prev.map((f, i) => (i === index ? { ...f, ...patch } : f)),
+    );
   };
 
   const removeFeatureRow = (index: number) => {
@@ -102,8 +105,17 @@ const PlansSection = () => {
     const price = parsePriceInput(priceText);
     const numDays = Number(numDaysText);
 
-    if (!form.name.trim() || !priceText || !Number.isFinite(price) || price <= 0 || !numDays || numDays <= 0) {
-      setFormError("Nombre, precio y días son obligatorios y deben ser mayores a cero.");
+    if (
+      !form.name.trim() ||
+      !priceText ||
+      !Number.isFinite(price) ||
+      price <= 0 ||
+      !numDays ||
+      numDays <= 0
+    ) {
+      setFormError(
+        'Nombre, precio y días son obligatorios y deben ser mayores a cero.',
+      );
       return;
     }
 
@@ -122,7 +134,7 @@ const PlansSection = () => {
       closeModal();
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
       setIsSaving(false);
     }
@@ -141,18 +153,20 @@ const PlansSection = () => {
       setPendingDelete(null);
       await load();
     } catch (err) {
-      setListError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+      setListError(
+        err instanceof Error ? err.message : 'No se pudo completar la acción.',
+      );
     } finally {
       setIsDeleting(false);
     }
   };
 
   const columns: DataTableColumn<Plan>[] = [
-    { header: "Nombre", cell: (p) => p.name },
-    { header: "Precio", cell: (p) => `$${formatPriceDisplay(p.price)}` },
-    { header: "Días", cell: (p) => p.numDays },
+    { header: 'Nombre', cell: (p) => p.name },
+    { header: 'Precio', cell: (p) => `$${formatPriceDisplay(p.price)}` },
+    { header: 'Días', cell: (p) => p.numDays },
     {
-      header: "Acciones",
+      header: 'Acciones',
       cell: (p) => (
         <div className="flex gap-2">
           {!showDeleted && (
@@ -168,10 +182,16 @@ const PlansSection = () => {
           <button
             type="button"
             onClick={() => setPendingDelete(p)}
-            aria-label={showDeleted ? `Restaurar ${p.name}` : `Eliminar ${p.name}`}
+            aria-label={
+              showDeleted ? `Restaurar ${p.name}` : `Eliminar ${p.name}`
+            }
             className="rounded-lg p-1.5 text-text-muted hover:text-red-400"
           >
-            {showDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+            {showDeleted ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </button>
         </div>
       ),
@@ -192,7 +212,11 @@ const PlansSection = () => {
             />
             Mostrar eliminados
           </label>
-          <Button size="sm" onClick={openCreate} className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            onClick={openCreate}
+            className="flex items-center gap-1.5"
+          >
             <Plus className="h-4 w-4" />
             Agregar
           </Button>
@@ -200,7 +224,8 @@ const PlansSection = () => {
       </div>
 
       <p className="text-xs text-text-muted">
-        Cambiar el precio no afecta a las suscripciones ya activas, solo a las nuevas.
+        Cambiar el precio no afecta a las suscripciones ya activas, solo a las
+        nuevas.
       </p>
 
       <FormAlert type="error" message={loadError ?? listError} />
@@ -210,11 +235,18 @@ const PlansSection = () => {
         rows={plans}
         rowKey={(p) => p.id ?? p.name}
         isLoading={isLoading}
-        emptyMessage={showDeleted ? "No hay planes eliminados." : "Todavía no hay planes cargados."}
+        emptyMessage={
+          showDeleted
+            ? 'No hay planes eliminados.'
+            : 'Todavía no hay planes cargados.'
+        }
       />
 
       {(isCreating || editing) && (
-        <Modal title={isCreating ? "Agregar plan" : "Editar plan"} onClose={closeModal}>
+        <Modal
+          title={isCreating ? 'Agregar plan' : 'Editar plan'}
+          onClose={closeModal}
+        >
           <div className="space-y-4">
             <FormAlert type="error" message={formError} />
             <InputField
@@ -224,8 +256,10 @@ const PlansSection = () => {
             />
             <InputField
               label="Descripción"
-              value={form.description ?? ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              value={form.description ?? ''}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -237,11 +271,14 @@ const PlansSection = () => {
                   value={priceText}
                   onChange={(e) => setPriceText(e.target.value)}
                 />
-                {priceText && Number.isFinite(parsePriceInput(priceText)) && parsePriceInput(priceText) > 0 && (
-                  <p className="mt-1 text-xs text-primary">
-                    Se va a guardar como ${formatPriceDisplay(parsePriceInput(priceText))}
-                  </p>
-                )}
+                {priceText &&
+                  Number.isFinite(parsePriceInput(priceText)) &&
+                  parsePriceInput(priceText) > 0 && (
+                    <p className="mt-1 text-xs text-primary">
+                      Se va a guardar como $
+                      {formatPriceDisplay(parsePriceInput(priceText))}
+                    </p>
+                  )}
               </div>
               <InputField
                 label="Días"
@@ -268,7 +305,8 @@ const PlansSection = () => {
 
               {featuresForm.length === 0 ? (
                 <p className="text-xs text-text-muted">
-                  Sin características cargadas todavía. "Agregar" para sumar la primera.
+                  Sin características cargadas todavía. "Agregar" para sumar la
+                  primera.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -276,21 +314,35 @@ const PlansSection = () => {
                     <li key={index} className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => updateFeatureRow(index, { available: !feature.available })}
-                        aria-label={feature.available ? "Marcar como no incluida" : "Marcar como incluida"}
+                        onClick={() =>
+                          updateFeatureRow(index, {
+                            available: !feature.available,
+                          })
+                        }
+                        aria-label={
+                          feature.available
+                            ? 'Marcar como no incluida'
+                            : 'Marcar como incluida'
+                        }
                         aria-pressed={feature.available}
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
                           feature.available
-                            ? "border-primary/40 bg-primary/10 text-primary"
-                            : "border-border text-text-muted"
+                            ? 'border-primary/40 bg-primary/10 text-primary'
+                            : 'border-border text-text-muted'
                         }`}
                       >
-                        {feature.available ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                        {feature.available ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </button>
                       <input
                         type="text"
                         value={feature.label}
-                        onChange={(e) => updateFeatureRow(index, { label: e.target.value })}
+                        onChange={(e) =>
+                          updateFeatureRow(index, { label: e.target.value })
+                        }
                         placeholder="Ej: Clases grupales ilimitadas"
                         className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                       />
@@ -307,15 +359,24 @@ const PlansSection = () => {
                 </ul>
               )}
               <p className="mt-2 text-xs text-text-muted">
-                El ícono a la izquierda marca si la característica está incluida en el plan o no.
+                El ícono a la izquierda marca si la característica está incluida
+                en el plan o no.
               </p>
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleSubmit} disabled={isSaving} className="flex-1">
-                {isSaving ? "Guardando..." : "Guardar"}
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="flex-1"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar'}
               </Button>
-              <Button variant="secondary" onClick={closeModal} disabled={isSaving}>
+              <Button
+                variant="secondary"
+                onClick={closeModal}
+                disabled={isSaving}
+              >
                 Cancelar
               </Button>
             </div>
@@ -325,13 +386,13 @@ const PlansSection = () => {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={showDeleted ? "Restaurar plan" : "Eliminar plan"}
+          title={showDeleted ? 'Restaurar plan' : 'Eliminar plan'}
           description={
             showDeleted
               ? `"${pendingDelete.name}" volverá a estar disponible.`
               : `"${pendingDelete.name}" se va a dar de baja (baja lógica) — se puede restaurar después.`
           }
-          confirmLabel={showDeleted ? "Restaurar" : "Eliminar"}
+          confirmLabel={showDeleted ? 'Restaurar' : 'Eliminar'}
           danger={!showDeleted}
           isLoading={isDeleting}
           onConfirm={confirmDelete}

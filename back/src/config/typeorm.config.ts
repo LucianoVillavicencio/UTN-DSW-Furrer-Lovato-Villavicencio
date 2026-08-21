@@ -8,7 +8,7 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASSWORD ?? 'root',
   database: process.env.DB_NAME ?? 'flg',
   autoLoadEntities: true,
-  // Nunca en producción: aplica cambios de schema automáticamente a partir
-  // de las entities, sin migraciones ni revisión.
+  // Never in production: it applies schema changes straight from the entities,
+  // with no migration and no review.
   synchronize: process.env.NODE_ENV !== 'production',
 };

@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import Card from "./Card";
+import type { LucideIcon } from 'lucide-react';
+import Card from './Card';
 
 interface IconFeatureCardProps {
   icon: LucideIcon;

@@ -1,43 +1,43 @@
-import { Bike, Dumbbell, Flame, Zap, Heart, Wind } from "lucide-react";
-import Container from "../common/Container";
-import IconFeatureCard from "../common/IconFeatureCard";
+import { Bike, Dumbbell, Flame, Zap, Heart, Wind } from 'lucide-react';
+import Container from '../common/Container';
+import IconFeatureCard from '../common/IconFeatureCard';
 
 const allClasses = [
   {
     icon: Dumbbell,
-    title: "Entrenamiento de fuerza",
-    descripcion:
-      "Desarrolla músculo y aumenta tu fuerza con nuestras clases integrales de entrenamiento con pesas.",
+    title: 'Entrenamiento de fuerza',
+    description:
+      'Desarrolla músculo y aumenta tu fuerza con nuestras clases integrales de entrenamiento con pesas.',
   },
   {
     icon: Flame,
-    title: "Entrenamiento HIIT",
-    descripcion:
-      "Entrenamiento de intervalos de alta intensidad para una máxima quema de calorías y salud cardiovascular.",
+    title: 'Entrenamiento HIIT',
+    description:
+      'Entrenamiento de intervalos de alta intensidad para una máxima quema de calorías y salud cardiovascular.',
   },
   {
     icon: Bike,
-    title: "Clases de spinning",
-    descripcion:
-      "Maximiza tu potencia y quema calorías al ritmo de la música con entrenamientos de ciclismo indoor.",
+    title: 'Clases de spinning',
+    description:
+      'Maximiza tu potencia y quema calorías al ritmo de la música con entrenamientos de ciclismo indoor.',
   },
   {
     icon: Zap,
-    title: "Entrenamiento funcional",
-    descripcion:
-      "Ejercicios que mejoran tu fuerza, flexibilidad y equilibrio con movimientos prácticos del día a día.",
+    title: 'Entrenamiento funcional',
+    description:
+      'Ejercicios que mejoran tu fuerza, flexibilidad y equilibrio con movimientos prácticos del día a día.',
   },
   {
     icon: Heart,
-    title: "Yoga y flexibilidad",
-    descripcion:
-      "Mejora tu flexibilidad, reduce el estrés y encuentra el equilibrio mental con nuestras clases de yoga.",
+    title: 'Yoga y flexibilidad',
+    description:
+      'Mejora tu flexibilidad, reduce el estrés y encuentra el equilibrio mental con nuestras clases de yoga.',
   },
   {
     icon: Wind,
-    title: "Pilates",
-    descripcion:
-      "Fortalece tu core y mejora tu postura con ejercicios de pilates diseñados para tonificar y estirar.",
+    title: 'Pilates',
+    description:
+      'Fortalece tu core y mejora tu postura con ejercicios de pilates diseñados para tonificar y estirar.',
   },
 ];
 
@@ -51,7 +51,7 @@ const AllClassesSection = () => {
               key={classItem.title}
               icon={classItem.icon}
               title={classItem.title}
-              description={classItem.descripcion}
+              description={classItem.description}
             />
           ))}
         </div>

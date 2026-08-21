@@ -1,7 +1,7 @@
-import { Dumbbell, Trophy, Flame, Target } from "lucide-react";
-import Container from "../common/Container";
-import Card from "../common/Card";
-import RegisterForm from "./RegisterForm";
+import { Dumbbell, Trophy, Flame, Target } from 'lucide-react';
+import Container from '../common/Container';
+import Card from '../common/Card';
+import RegisterForm from './RegisterForm';
 
 const RegisterSection = () => {
   return (
@@ -24,7 +24,8 @@ const RegisterSection = () => {
                 Comienza hoy tu transformación física
               </h2>
               <p className="mt-3 font-body text-sm text-text-muted leading-relaxed">
-                Únete a la plataforma líder de entrenamiento, reserva clases personalizadas y alcanza tus metas.
+                Únete a la plataforma líder de entrenamiento, reserva clases
+                personalizadas y alcanza tus metas.
               </p>
             </div>
 
@@ -35,8 +36,12 @@ const RegisterSection = () => {
                   <Flame className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Rutinas Personalizadas</h4>
-                  <p className="font-body text-xs text-text-muted">Diseñadas especialmente según tu nivel actual.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Rutinas Personalizadas
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Diseñadas especialmente según tu nivel actual.
+                  </p>
                 </div>
               </div>
 
@@ -45,8 +50,12 @@ const RegisterSection = () => {
                   <Trophy className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Pase Libre a Clases</h4>
-                  <p className="font-body text-xs text-text-muted">Acceso a clases grupales con entrenadores certificados.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Pase Libre a Clases
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Acceso a clases grupales con entrenadores certificados.
+                  </p>
                 </div>
               </div>
 
@@ -55,8 +64,12 @@ const RegisterSection = () => {
                   <Target className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-display text-xs font-semibold text-text">Seguimiento de Metas</h4>
-                  <p className="font-body text-xs text-text-muted">Estadísticas reales de tus progresos semana a semana.</p>
+                  <h4 className="font-display text-xs font-semibold text-text">
+                    Seguimiento de Metas
+                  </h4>
+                  <p className="font-body text-xs text-text-muted">
+                    Estadísticas reales de tus progresos semana a semana.
+                  </p>
                 </div>
               </div>
             </div>
@@ -64,7 +77,8 @@ const RegisterSection = () => {
             {/* Motivational Footer Note */}
             <div className="relative z-10 border-t border-border/50 pt-4">
               <p className="font-body text-xs italic text-text-muted">
-                "El primer paso no te lleva a donde quieres ir, pero te saca de donde estás."
+                "El primer paso no te lleva a donde quieres ir, pero te saca de
+                donde estás."
               </p>
             </div>
           </div>
@@ -75,7 +89,9 @@ const RegisterSection = () => {
             <div className="mb-5 lg:mb-6 text-center lg:text-left">
               <div className="flex justify-center lg:justify-start items-center gap-2 mb-2 lg:hidden">
                 <Dumbbell className="h-7 w-7 text-primary" />
-                <span className="font-display text-xl font-bold text-text">FLG</span>
+                <span className="font-display text-xl font-bold text-text">
+                  FLG
+                </span>
               </div>
               <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text">
                 Crear una Cuenta

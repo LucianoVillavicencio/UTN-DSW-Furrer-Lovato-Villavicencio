@@ -1,6 +1,6 @@
 export enum PaymentState {
   PENDING = 'pendiente',
   COMPLETED = 'completado',
-  FAILED = 'rechazado',      // Si la tarjeta o el medio de pago falló
-  REFUNDED = 'reembolsado'   // Si le devuelven el dinero al cliente
+  FAILED = 'rechazado', // The card or the payment method was rejected
+  REFUNDED = 'reembolsado', // The money was returned to the member
 }

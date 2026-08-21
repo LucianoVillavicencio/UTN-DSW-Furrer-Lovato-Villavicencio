@@ -1,21 +1,21 @@
-import { Mail, Phone } from "lucide-react";
-import Card from "../common/Card";
-import Badge from "../common/badge/Badge";
-import Button from "../common/Button";
-import { useAuth } from "../../context/AuthContext";
-import type { Trainer } from "../../types/trainer";
+import { Mail, Phone } from 'lucide-react';
+import Card from '../common/Card';
+import Badge from '../common/badge/Badge';
+import Button from '../common/Button';
+import { useAuth } from '../../context/useAuth';
+import type { Trainer } from '../../types/trainer';
 
 interface TrainerCardProps {
   trainer: Trainer;
 }
 
-// Iniciales para el avatar: la entidad Trainer del backend no guarda foto.
+// Initials for the avatar: the backend Trainer entity stores no picture.
 const getInitials = (name: string, surname: string): string =>
   `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
 
 const TrainerCard = ({ trainer }: TrainerCardProps) => {
   const { isAuthenticated } = useAuth();
-  const bookingHref = isAuthenticated ? "/class" : "/login";
+  const bookingHref = isAuthenticated ? '/class' : '/login';
 
   const fullName = `${trainer.name} ${trainer.surname}`;
 
@@ -31,7 +31,7 @@ const TrainerCard = ({ trainer }: TrainerCardProps) => {
             Prof. {fullName}
           </h3>
           <p className="text-sm font-medium text-primary">
-            {trainer.speciality || "Entrenamiento general"}
+            {trainer.speciality || 'Entrenamiento general'}
           </p>
         </div>
       </div>

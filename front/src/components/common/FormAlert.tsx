@@ -1,14 +1,14 @@
-import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface FormAlertProps {
-  type: "error" | "success" | "warning";
+  type: 'error' | 'success' | 'warning';
   message: string | null;
 }
 
 const FormAlert = ({ type, message }: FormAlertProps) => {
   if (!message) return null;
 
-  if (type === "error") {
+  if (type === 'error') {
     return (
       <div
         role="alert"
@@ -21,7 +21,7 @@ const FormAlert = ({ type, message }: FormAlertProps) => {
     );
   }
 
-  if (type === "warning") {
+  if (type === 'warning') {
     return (
       <div
         role="alert"
