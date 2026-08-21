@@ -1,43 +1,38 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { TurnoClase } from "../../types/classSession";
 import type { TipoClase } from "../../types/typeClass";
-import type { User } from "../../types/user";
 import type { InscripcionClase } from "../../types/classRegistration";
 
+import { useAuth } from "../../context/AuthContext";
+import { getClass } from "../../services/class.service";
 import { getTurnosClase } from "../../services/classSession.service";
 import { getTiposClase } from "../../services/typeClass.service";
-import { 
-  createInscripcionClase, 
-  getInscripcionesClase, 
-  deleteInscripcionClase 
+import {
+  createInscripcionClase,
+  getInscripcionesClase,
+  deleteInscripcionClase
 } from "../../services/classRegistration.service";
 
-import { 
-  MASTER_CLASSES, 
-  generateFullWeekTurnos, 
+import {
+  generateFullWeekTurnos,
   getLocalYMD,
   normalizeText,
-  type MasterClassData 
+  toMasterClassData,
+  toTurnoClase,
+  type MasterClassData
 } from "./master-classes.data";
 
 export const useClassEnrollment = () => {
+  const [masterClasses, setMasterClasses] = useState<MasterClassData[]>([]);
   const [turnos, setTurnos] = useState<TurnoClase[]>([]);
   const [tiposClase, setTiposClase] = useState<TipoClase[]>([]);
   const [userInscripciones, setUserInscripciones] = useState<InscripcionClase[]>([]);
 
-  // Initialize currentUser synchronously from localStorage to prevent cascading renders on mount
-  const [currentUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("user");
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error("Error parsing stored user", e);
-      return null;
-    }
-  });
+  // El usuario sale del AuthContext (token ya validado), no de localStorage crudo.
+  const { user: currentUser, isAuthenticated } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Filters state
   const [selectedTipoId, setSelectedTipoId] = useState<number | "ALL">("ALL");
@@ -55,48 +50,69 @@ export const useClassEnrollment = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      try {
-        const [fetchedTurnos, fetchedTipos, fetchedInscripciones] = await Promise.allSettled([
+      setLoadError(null);
+
+      const [fetchedClasses, fetchedTurnos, fetchedTipos, fetchedInscripciones] =
+        await Promise.allSettled([
+          getClass(),
           getTurnosClase(),
           getTiposClase(),
-          getInscripcionesClase(),
+          // Las inscripciones sólo tienen sentido con la sesión iniciada.
+          isAuthenticated ? getInscripcionesClase() : Promise.resolve([]),
         ]);
 
-        if (fetchedTurnos.status === "fulfilled" && Array.isArray(fetchedTurnos.value) && fetchedTurnos.value.length > 0) {
-          setTurnos(fetchedTurnos.value);
-        } else {
-          setTurnos(generateFullWeekTurnos());
-        }
+      // Catálogo de clases: sale del backend, sin datos de respaldo. Si falla se
+      // muestra el error en pantalla en lugar de inventar clases inexistentes.
+      const classesFromApi =
+        fetchedClasses.status === "fulfilled" && Array.isArray(fetchedClasses.value)
+          ? fetchedClasses.value.map(toMasterClassData)
+          : [];
 
-        if (fetchedTipos.status === "fulfilled" && Array.isArray(fetchedTipos.value) && fetchedTipos.value.length > 0) {
-          setTiposClase(fetchedTipos.value);
-        } else {
-          setTiposClase([
-            { id: 1, nombre: "Fuerza" },
-            { id: 2, nombre: "HIIT" },
-            { id: 3, nombre: "Spinning" },
-            { id: 4, nombre: "Yoga" },
-            { id: 5, nombre: "Pilates" },
-          ]);
-        }
-
-        if (fetchedInscripciones.status === "fulfilled" && Array.isArray(fetchedInscripciones.value)) {
-          setUserInscripciones(fetchedInscripciones.value);
-        }
-      } catch (err) {
-        console.warn("Using fallback full-week schedules", err);
-        setTurnos(generateFullWeekTurnos());
-      } finally {
-        setIsLoading(false);
+      if (fetchedClasses.status === "rejected") {
+        setLoadError(
+          fetchedClasses.reason instanceof Error
+            ? fetchedClasses.reason.message
+            : "Error al obtener lista de clases",
+        );
       }
+
+      setMasterClasses(classesFromApi);
+
+      // Turnos reales del backend; si todavía no hay ninguno cargado se arma la
+      // grilla semanal de respaldo sobre las clases que sí existen.
+      if (fetchedTurnos.status === "fulfilled" && Array.isArray(fetchedTurnos.value) && fetchedTurnos.value.length > 0) {
+        setTurnos(fetchedTurnos.value.map(toTurnoClase));
+      } else {
+        setTurnos(generateFullWeekTurnos(classesFromApi));
+      }
+
+      // Disciplinas del filtro: el endpoint de tipos de clase y, si falla, las
+      // que ya vienen embebidas en las clases obtenidas.
+      if (fetchedTipos.status === "fulfilled" && Array.isArray(fetchedTipos.value) && fetchedTipos.value.length > 0) {
+        setTiposClase(
+          fetchedTipos.value.map((tipo) => ({ ...tipo, nombre: tipo.name ?? tipo.nombre })),
+        );
+      } else {
+        const tiposDeClases = new Map<number, TipoClase>();
+        classesFromApi.forEach((cls) => {
+          if (cls.tipoClaseId) tiposDeClases.set(cls.tipoClaseId, cls.tipoClase);
+        });
+        setTiposClase([...tiposDeClases.values()]);
+      }
+
+      if (fetchedInscripciones.status === "fulfilled" && Array.isArray(fetchedInscripciones.value)) {
+        setUserInscripciones(fetchedInscripciones.value);
+      }
+
+      setIsLoading(false);
     };
 
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
-  // Filter master class cards with accent-normalization
+  // Filter class cards with accent-normalization
   const filteredMasterClasses = useMemo(() => {
-    return MASTER_CLASSES.filter((cls) => {
+    return masterClasses.filter((cls) => {
       if (selectedTipoId !== "ALL" && cls.tipoClaseId !== selectedTipoId) return false;
       if (searchQuery.trim()) {
         const normQuery = normalizeText(searchQuery);
@@ -115,7 +131,7 @@ export const useClassEnrollment = () => {
       }
       return true;
     });
-  }, [selectedTipoId, searchQuery]);
+  }, [masterClasses, selectedTipoId, searchQuery]);
 
   // Helper: check if user is enrolled in a specific turno
   const isEnrolledInTurno = useCallback((turnoId?: number) => {
@@ -289,6 +305,7 @@ export const useClassEnrollment = () => {
 
   return {
     isLoading,
+    loadError,
     tiposClase,
     selectedTipoId,
     setSelectedTipoId,

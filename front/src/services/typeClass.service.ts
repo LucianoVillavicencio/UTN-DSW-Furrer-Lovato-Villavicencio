@@ -1,66 +1,62 @@
 import type { TypeClass } from "../types/typeClass";
+import api from "./api";
+import { getApiErrorMessage } from "./api-error";
 
-
-const API_URL = "http://localhost:3000/api/v1/tipo-clase";
+// La ruta del backend es /api/v1/typeClass (ver TypeClassController).
+// Se usa desde el filtro de disciplinas de la página de clases.
 
 export const getTypeClass = async (): Promise<TypeClass[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Error al obtener tipos de clase");
+  try {
+    const { data } = await api.get<TypeClass[]>("/typeClass");
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al obtener tipos de clase"), { cause: error });
   }
-  return await response.json();
 };
 
 export const getTypeClassById = async (id: number): Promise<TypeClass> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener tipo de clase ${id}`);
+  try {
+    const { data } = await api.get<TypeClass>(`/typeClass/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al obtener tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
-export const createTypeClass = async (
-  typeClass: TypeClass,
-): Promise<TypeClass> => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(typeClass),
-  });
-  if (!response.ok) {
-    throw new Error("Error al crear tipo de clase");
+export const createTypeClass = async (typeClass: TypeClass): Promise<TypeClass> => {
+  try {
+    const { data } = await api.post<TypeClass>("/typeClass", typeClass);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al crear tipo de clase"), { cause: error });
   }
-  return await response.json();
 };
 
-export const updateTypeClass = async (
-  typeClass: TypeClass,
-): Promise<TypeClass> => {
-  const response = await fetch(API_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(typeClass),
-  });
-  if (!response.ok) {
-    throw new Error("Error al actualizar tipo de clase");
+export const updateTypeClass = async (typeClass: TypeClass): Promise<TypeClass> => {
+  try {
+    const { data } = await api.put<TypeClass>("/typeClass", typeClass);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al actualizar tipo de clase"), { cause: error });
   }
-  return await response.json();
 };
 
-export const deleteTypeClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar tipo de clase ${id}`);
+export const deleteTypeClass = async (id: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.delete<{ message: string }>(`/typeClass/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al eliminar tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
-export const restoreTypeClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: "PATCH" });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar tipo de clase ${id}`);
+export const restoreTypeClass = async (id: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.patch<{ message: string }>(`/typeClass/restore/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al restaurar tipo de clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
 export const getTiposClase = getTypeClass;
@@ -68,4 +64,3 @@ export const getTipoClaseById = getTypeClassById;
 export const createTipoClase = createTypeClass;
 export const updateTipoClase = updateTypeClass;
 export const deleteTipoClase = deleteTypeClass;
-

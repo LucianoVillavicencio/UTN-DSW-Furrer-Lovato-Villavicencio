@@ -2,6 +2,7 @@ import { Calendar } from "lucide-react";
 import Container from "../common/Container";
 import Button from "../common/Button";
 
+import FormAlert from "../common/FormAlert";
 import ClassFilterBar from "./ClassFilterBar";
 import ClassCardItem from "./ClassCardItem";
 import ClassExpandedModal from "./ClassExpandedModal";
@@ -10,6 +11,7 @@ import { useClassEnrollment } from "./useClassEnrollment";
 const ClassEnrollmentSection = () => {
   const {
     isLoading,
+    loadError,
     tiposClase,
     selectedTipoId,
     setSelectedTipoId,
@@ -43,6 +45,13 @@ const ClassEnrollmentSection = () => {
           setSelectedTipoId={setSelectedTipoId}
           tiposClase={tiposClase}
         />
+
+        {/* Error al traer el catálogo desde el backend */}
+        {loadError && (
+          <div className="mb-8">
+            <FormAlert type="error" message={loadError} />
+          </div>
+        )}
 
         {/* STAGE 1: INITIAL CLASS CARDS GRID */}
         {isLoading ? (

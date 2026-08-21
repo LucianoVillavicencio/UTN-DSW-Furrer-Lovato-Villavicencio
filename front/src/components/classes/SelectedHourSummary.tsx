@@ -1,12 +1,12 @@
 import { Clock, CheckCircle2, UserCheck, AlertCircle } from "lucide-react";
 import Button from "../common/Button";
 import type { TurnoClase } from "../../types/classSession";
-import type { User } from "../../types/user";
+import type { AuthUser } from "../../types/user";
 
 interface SelectedHourSummaryProps {
   selectedHourTurno: TurnoClase;
   isEnrolled: boolean;
-  currentUser: User | null;
+  currentUser: AuthUser | null;
   actionLoading: boolean;
   onEnroll: (turno: TurnoClase) => void;
   onCancel: (turno: TurnoClase) => void;

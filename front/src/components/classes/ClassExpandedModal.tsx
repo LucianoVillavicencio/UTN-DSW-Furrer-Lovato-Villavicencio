@@ -6,7 +6,7 @@ import ClassHourGrid from "./ClassHourGrid";
 import SelectedHourSummary from "./SelectedHourSummary";
 
 import type { TurnoClase } from "../../types/classSession";
-import type { User } from "../../types/user";
+import type { AuthUser } from "../../types/user";
 
 interface ClassExpandedModalProps {
   activeExpandedClass: MasterClassData | null;
@@ -19,7 +19,7 @@ interface ClassExpandedModalProps {
   isEnrolledInTurno: (turnoId?: number) => boolean;
   handleEnrollTurno: (turno: TurnoClase) => void;
   handleCancelTurno: (turno: TurnoClase) => void;
-  currentUser: User | null;
+  currentUser: AuthUser | null;
   actionLoading: boolean;
   actionFeedback: { type: "success" | "error"; message: string } | null;
 }

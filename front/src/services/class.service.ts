@@ -1,59 +1,70 @@
 import type { Class } from "../types/class";
+import api from "./api";
+import { getApiErrorMessage } from "./api-error";
 
-const API_URL = "http://localhost:3000/api/v1/class";
+// Usa la instancia "api" (axios) en lugar de fetch: así cada request sale con
+// el header Authorization del JWT y el interceptor limpia la sesión ante un 401.
+// GET es público en el backend; POST/PUT/DELETE/PATCH exigen rol ADMIN.
 
 export const getClass = async (): Promise<Class[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Error al obtener lista de clases");
+  try {
+    const { data } = await api.get<Class[]>("/class");
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al obtener lista de clases"), { cause: error });
   }
-  return await response.json();
 };
 
 export const getClassById = async (id: number): Promise<Class> => {
-  const response = await fetch(`${API_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener clase ${id}`);
+  try {
+    const { data } = await api.get<Class>(`/class/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al obtener clase ${id}`), { cause: error });
   }
-  return await response.json();
+};
+
+export const getClassDeleted = async (): Promise<Class[]> => {
+  try {
+    const { data } = await api.get<Class[]>("/class/filter/deleted");
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al obtener las clases eliminadas"), { cause: error });
+  }
 };
 
 export const createClass = async (clase: Class): Promise<Class> => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(clase),
-  });
-  if (!response.ok) {
-    throw new Error("Error al crear clase");
+  try {
+    const { data } = await api.post<Class>("/class", clase);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al crear clase"), { cause: error });
   }
-  return await response.json();
 };
 
 export const updateClass = async (clase: Class): Promise<Class> => {
-  const response = await fetch(API_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(clase),
-  });
-  if (!response.ok) {
-    throw new Error("Error al actualizar clase");
+  try {
+    const { data } = await api.put<Class>("/class", clase);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al actualizar clase"), { cause: error });
   }
-  return await response.json();
 };
 
-export const deleteClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar clase ${id}`);
+export const deleteClass = async (id: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.delete<{ message: string }>(`/class/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al eliminar clase ${id}`), { cause: error });
   }
-  return await response.json();
 };
 
-export const restoreClass = async (id: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${id}`, { method: "PATCH" });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar clase ${id}`);
+export const restoreClass = async (id: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.patch<{ message: string }>(`/class/restore/${id}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al restaurar clase ${id}`), { cause: error });
   }
-  return await response.json();
 };

@@ -1,62 +1,69 @@
 import type { Trainer } from "../types/trainer";
+import api from "./api";
+import { getApiErrorMessage } from "./api-error";
 
-
-const API_URL = "http://localhost:3000/api/v1/trainer";
+// Mismo criterio que class.service.ts: axios con JWT automático.
+// El listado de profesores es público; el ABM requiere rol ADMIN.
 
 export const getTrainers = async (): Promise<Trainer[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Error al obtener lista de profesores");
+  try {
+    const { data } = await api.get<Trainer[]>("/trainer");
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al obtener lista de profesores"), { cause: error });
   }
-  return await response.json();
 };
 
 export const getTrainerByDni = async (dni: number): Promise<Trainer> => {
-  const response = await fetch(`${API_URL}/${dni}`);
-  if (!response.ok) {
-    throw new Error(`Error al obtener profesor con DNI ${dni}`);
+  try {
+    const { data } = await api.get<Trainer>(`/trainer/${dni}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al obtener profesor con DNI ${dni}`), { cause: error });
   }
-  return await response.json();
+};
+
+export const getTrainersDeleted = async (): Promise<Trainer[]> => {
+  try {
+    const { data } = await api.get<Trainer[]>("/trainer/filter/deleted");
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al obtener los profesores eliminados"), { cause: error });
+  }
 };
 
 export const createTrainer = async (profesor: Trainer): Promise<Trainer> => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(profesor),
-  });
-  if (!response.ok) {
-    throw new Error("Error al crear profesor");
+  try {
+    const { data } = await api.post<Trainer>("/trainer", profesor);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al crear profesor"), { cause: error });
   }
-  return await response.json();
 };
 
 export const updateTrainer = async (profesor: Trainer): Promise<Trainer> => {
-  const response = await fetch(API_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(profesor),
-  });
-  if (!response.ok) {
-    throw new Error("Error al actualizar profesor");
+  try {
+    const { data } = await api.put<Trainer>("/trainer", profesor);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Error al actualizar profesor"), { cause: error });
   }
-  return await response.json();
 };
 
-export const deleteTrainer = async (dni: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/${dni}`, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Error al eliminar profesor con DNI ${dni}`);
+export const deleteTrainer = async (dni: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.delete<{ message: string }>(`/trainer/${dni}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al eliminar profesor con DNI ${dni}`), { cause: error });
   }
-  return await response.json();
 };
 
-export const restoreTrainer = async (dni: number): Promise<boolean> => {
-  const response = await fetch(`${API_URL}/restore/${dni}`, {
-    method: "PATCH",
-  });
-  if (!response.ok) {
-    throw new Error(`Error al restaurar profesor con DNI ${dni}`);
+export const restoreTrainer = async (dni: number): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.patch<{ message: string }>(`/trainer/restore/${dni}`);
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, `Error al restaurar profesor con DNI ${dni}`), { cause: error });
   }
-  return await response.json();
 };

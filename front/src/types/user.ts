@@ -38,3 +38,6 @@ export interface AuthResponse {
   token: string;
   user: Pick<User, "dni" | "email" | "name" | "surname" | "phone" | "role">;
 }
+
+// Perfil del usuario logueado que expone el AuthContext (el que viaja en el JWT).
+export type AuthUser = AuthResponse["user"];
