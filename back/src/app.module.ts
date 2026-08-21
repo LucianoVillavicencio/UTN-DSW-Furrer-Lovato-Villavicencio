@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { typeOrmConfig } from './config/typerom.config';
+import { typeOrmConfig } from './config/typeorm.config';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PlanModule } from './modules/plan/plan.module';
@@ -13,7 +13,6 @@ import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
-
 
 @Module({
   imports: [

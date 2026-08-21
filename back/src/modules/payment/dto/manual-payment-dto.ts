@@ -1,8 +1,15 @@
-import { IsIn, IsNotEmpty, IsNumber, IsPositive, IsString } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
-// Pago presencial cargado por un admin. subscriptionId identifica a QUIÉN
-// se le cobra — nunca se acepta un userDni acá, así no hay forma de
-// registrar un pago "a nombre de" alguien sin pasar por su suscripción real.
+// In-person payment recorded by an admin. subscriptionId is what identifies
+// WHO is being charged — a userDni is never accepted here, so there is no way
+// to record a payment "on behalf of" someone without going through their real
+// subscription.
 export class ManualPaymentDto {
   @IsNumber()
   @IsPositive()

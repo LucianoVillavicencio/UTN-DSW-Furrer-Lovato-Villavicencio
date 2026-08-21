@@ -7,8 +7,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 
-// Self-service: a diferencia de UsersDto, no trae dni ni role — esos los
-// resuelve el controller desde el JWT (@ActiveUser), nunca desde el body.
+// Self-service: unlike UsersDto it carries no dni and no role — the controller
+// resolves both from the JWT (@ActiveUser), never from the body.
 export class UpdateProfileDto {
   @IsString()
   @MinLength(1)
@@ -28,13 +28,15 @@ export class UpdateProfileDto {
   @IsOptional()
   phone?: string;
 
-  // Solo obligatoria si se manda newPassword.
+  // Required only when newPassword is sent.
   @ValidateIf((dto: UpdateProfileDto) => !!dto.newPassword)
   @IsString()
   @MinLength(1)
   currentPassword?: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @MinLength(8)
   @IsOptional()

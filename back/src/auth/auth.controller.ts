@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register-dto';
 import { LoginDto } from './dto/login-dto';
-import { Role } from '../common/enum/rol.enum';
+import { Role } from '../common/enum/role.enum';
 import { Auth } from './decorators/auth.decorator';
 import { ActiveUser } from '../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../common/interfaces/user-active.interface';

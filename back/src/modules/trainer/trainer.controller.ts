@@ -13,13 +13,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { TrainerDto } from './dto/trainer-dto';
 import { TrainerService } from './trainer.service';
 import { Auth } from '../../auth/decorators/auth.decorator';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/trainer')
 @ApiTags('Trainers')
 
-// Mismo criterio que ClassController: el listado de profesores es público
-// (página /trainers) y el alta/baja/modificación sólo para ADMIN.
+// Same criterion as ClassController: the trainer listing is public (the
+// /trainers page) and creating, updating or deleting is ADMIN-only.
 export class TrainerController {
   constructor(private readonly trainerService: TrainerService) {}
 
@@ -29,7 +29,7 @@ export class TrainerController {
     return this.trainerService.createTrainer(trainerDto);
   }
 
-  // Lectura pública: la usa la página /trainers.
+  // Public read: used by the /trainers page.
   @Get()
   getTrainers() {
     return this.trainerService.findAll();

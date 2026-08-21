@@ -19,8 +19,8 @@ export class PaymentService {
     private readonly subscriptionService: subscriptionService,
   ) {}
 
-  // Pago presencial cargado por un admin (ver specs.md §3.5). Sigue siendo
-  // el único camino para escribir un pago hasta que Mercado Pago exista.
+  // In-person payment recorded by an admin (see specs.md §3.5). Still the
+  // only way a payment gets written until Mercado Pago exists.
   async createManualPayment(dto: ManualPaymentDto, adminDni: number) {
     const subscription = await this.subscriptionService.findSubscription(
       dto.subscriptionId,
@@ -43,14 +43,14 @@ export class PaymentService {
     return this.paymentRepository.save(newPayment);
   }
 
-  // Historial de pagos del usuario autenticado (a través de sus propias
-  // suscripciones). userDni sale del JWT — nunca aceptar uno por parámetro
-  // acá o cualquiera podría leer el historial de pagos de otra persona.
+  // Payment history of the authenticated user, through their own
+  // subscriptions. userDni comes from the JWT — never accept one as a
+  // parameter here or anyone could read another person's payment history.
   async findMineForUser(userDni: number) {
     return this.findByUser(userDni);
   }
 
-  // Historial de pagos de un usuario puntual (panel admin de Usuarios).
+  // Payment history of one specific user (admin Users panel).
   async findByUser(userDni: number) {
     return this.paymentRepository
       .createQueryBuilder('payment')
@@ -82,8 +82,8 @@ export class PaymentService {
   async findAll() {
     return await this.paymentRepository.find({
       where: { deleted: false },
-      // relations explícitas hasta 'user'/'plan': eager:true en la entity
-      // Subscription no se puede dar por hecho que cascadee acá.
+      // Explicit relations down to 'user'/'plan': eager:true on the
+      // Subscription entity cannot be assumed to cascade here.
       relations: { subscription: { user: true, plan: true } },
     });
   }

@@ -16,25 +16,25 @@ import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
-// Todo el módulo de pagos es admin-only salvo /me (self-service, ver abajo):
-// no hay ninguna página pública que dependa de leer/escribir pagos ajenos.
+// The whole payment module is admin-only except /me (self-service, below):
+// no public page depends on reading or writing someone else's payments.
 @Controller('api/v1/Payment')
 @ApiTags('Payments')
 @Auth(Role.ADMIN)
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // Self-service: historial de pagos del usuario autenticado (ver
-  // specs.md §2.2/§3.5). userDni sale del JWT, nunca de un param.
+  // Self-service: payment history of the authenticated user (see specs.md
+  // §2.2/§3.5). userDni comes from the JWT, never from a param.
   @Get('me')
   @Auth()
   getMyPayments(@ActiveUser() user: UserActiveInterface) {
     return this.paymentService.findMineForUser(user.sub);
   }
 
-  // Pago presencial cargado por un admin (specs.md §3.5).
+  // In-person payment recorded by an admin (specs.md §3.5).
   @Post('manual')
   createManualPayment(
     @ActiveUser() admin: UserActiveInterface,
@@ -58,8 +58,8 @@ export class PaymentController {
     return this.paymentService.findAllDeleted();
   }
 
-  // Historial de pagos de un usuario puntual (panel de Usuarios). Antes de
-  // '/:id' por el mismo motivo que 'search'/'by-user' en los otros módulos.
+  // Payment history of one specific user (Users panel). Declared before
+  // '/:id' for the same reason as 'search'/'by-user' in the other modules.
   @Get('by-user/:dni')
   getPaymentsByUser(@Param('dni', ParseIntPipe) dni: number) {
     return this.paymentService.findByUser(dni);

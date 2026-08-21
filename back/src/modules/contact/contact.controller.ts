@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ContactService } from './contact.service';
-import { ContactDto } from './dto/contact.dto';
+import { ContactDto } from './dto/contact-dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @Controller('api/v1/contact')
@@ -22,5 +22,4 @@ export class ContactController {
   getContactById(@Param('id') id: string) {
     return this.contactService.findOne(+id);
   }
-
 }

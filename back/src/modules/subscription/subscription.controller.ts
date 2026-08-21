@@ -16,19 +16,20 @@ import { subscriptionService } from './subscription.service';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
-// Admin-only salvo /change-plan y /me (self-service, ver abajo): antes este
-// controller no tenía ningún guard — cualquiera podía listar las
-// suscripciones (con nombre/email/teléfono de cada usuario) o editarlas.
+// Admin-only except /change-plan and /me (self-service, below). This
+// controller used to have no guard at all: anyone could list every
+// subscription — with each user's name, email and phone — or edit them.
 @Controller('api/v1/subscription')
 @ApiTags('subscriptiones')
 @Auth(Role.ADMIN)
 export class subscriptionController {
   constructor(private readonly subscriptionService: subscriptionService) {}
 
-  // Self-service: crea/renueva la suscripción del usuario autenticado sobre
-  // otro plan. userDni sale del JWT, nunca del body — ver ChangePlanDto.
+  // Self-service: creates or renews the authenticated user's subscription on a
+  // different plan. userDni comes from the JWT, never from the body — see
+  // ChangePlanDto.
   @Post('change-plan')
   @Auth()
   changePlan(
@@ -38,9 +39,9 @@ export class subscriptionController {
     return this.subscriptionService.changePlan(user.sub, dto.planId);
   }
 
-  // Self-service: suscripción activa del usuario autenticado (para el tab
-  // "Mi plan" del dashboard). Antes de esto no había forma de pedir "la mía"
-  // sin traer la lista completa de todos los usuarios.
+  // Self-service: the authenticated user's active subscription, for the
+  // dashboard's "Mi plan" tab. Before this there was no way to ask for "mine"
+  // without pulling the full list of every user.
   @Get('me')
   @Auth()
   getMySubscription(@ActiveUser() user: UserActiveInterface) {
@@ -62,8 +63,8 @@ export class subscriptionController {
     return this.subscriptionService.findAllDeleted();
   }
 
-  // Historial de suscripciones de un usuario puntual (panel de Usuarios).
-  // Va antes de '/:id' — mismo motivo que /search en UserController.
+  // Subscription history of one specific user (Users panel). Declared before
+  // '/:id' — same reason as /search in UserController.
   @Get('by-user/:dni')
   getSubscriptionsByUser(@Param('dni', ParseIntPipe) dni: number) {
     return this.subscriptionService.findByUser(dni);

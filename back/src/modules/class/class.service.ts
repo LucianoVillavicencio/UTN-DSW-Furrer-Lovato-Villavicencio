@@ -8,7 +8,6 @@ import { Repository, UpdateResult } from 'typeorm';
 import { Class } from './entity/class.entity';
 import { ClassDto } from './dto/class-dto';
 
-
 @Injectable()
 export class ClassService {
   constructor(
@@ -70,12 +69,12 @@ export class ClassService {
       { id },
       { deleted: true },
     );
-  
-    if(rows.affected === 0){
-      throw new ConflictException(`No se pudo eliminar la clase`)
+
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo eliminar la clase`);
     }
 
-    return { message : `Eliminada correctamente`}
+    return { message: `Eliminada correctamente` };
   }
 
   async restoreClass(id: number) {
@@ -91,11 +90,10 @@ export class ClassService {
       { deleted: false },
     );
 
-    if(rows.affected === 0){
-      throw new ConflictException(`No se pudo restaurar la clase`)
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo restaurar la clase`);
     }
 
-    return { message : `Restaurada correctamente`}
-  
+    return { message: `Restaurada correctamente` };
   }
 }

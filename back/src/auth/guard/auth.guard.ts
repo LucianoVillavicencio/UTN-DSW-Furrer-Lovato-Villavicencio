@@ -1,23 +1,22 @@
-
-// AuthGuard => Corre en cada request a un endpoint protegido, antes de que se ejecute el controller.
-
-
 import {
   CanActivate,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import type {
+  AuthenticatedRequest,
+  UserActiveInterface,
+} from '../../common/interfaces/user-active.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     const token = this.extractTokenFromHeader(request);
     if (!token) {
@@ -25,14 +24,9 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-
-
-      // VerifyAsync => Valida la firma contra el secret guardado en JwtModule.
-      const payload = await this.jwtService.verifyAsync(token);
-      request['user'] = payload;
-
+      request.user =
+        await this.jwtService.verifyAsync<UserActiveInterface>(token);
     } catch {
-      
       throw new UnauthorizedException();
     }
 

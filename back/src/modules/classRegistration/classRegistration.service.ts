@@ -67,7 +67,9 @@ export class ClassRegistrationService {
         ? new Date(classRegistration.date)
         : exists.date,
     };
-    return await this.classRegistrationRepository.save(updatedClassRegistration);
+    return await this.classRegistrationRepository.save(
+      updatedClassRegistration,
+    );
   }
 
   async deleteClassRegistration(id: number) {
@@ -83,12 +85,11 @@ export class ClassRegistrationService {
       { deleted: true },
     );
 
-    if(rows.affected === 0){
-      throw new ConflictException(`No se pudo eliminar la inscripcion`)
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo eliminar la inscripcion`);
     }
 
-    return { message : `Eliminada correctamente`}
-  
+    return { message: `Eliminada correctamente` };
   }
 
   async restoreClassRegistration(id: number) {
@@ -103,11 +104,11 @@ export class ClassRegistrationService {
       { id },
       { deleted: false },
     );
-    
-    if(rows.affected === 0){
-      throw new ConflictException(`No se pudo restaurar la inscripcion`)
+
+    if (rows.affected === 0) {
+      throw new ConflictException(`No se pudo restaurar la inscripcion`);
     }
 
-    return { message : `Restaurada correctamente`}
+    return { message: `Restaurada correctamente` };
   }
 }

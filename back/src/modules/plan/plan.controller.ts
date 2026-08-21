@@ -13,7 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { PlanService } from './plan.service';
 import { PlanDto } from './dto/plan-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/plan')
 @ApiTags('Planes')
@@ -26,7 +26,7 @@ export class PlanController {
     return this.planService.createPlan(planDto);
   }
 
-  // Lectura pública: la usan /membership y el picker de "Mi plan".
+  // Public read: used by /membership and the "Mi plan" picker.
   @Get()
   getPlans() {
     return this.planService.findAll();

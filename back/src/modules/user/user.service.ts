@@ -1,4 +1,3 @@
-// src/modules/user/user.service.ts
 import {
   ConflictException,
   Injectable,
@@ -11,7 +10,7 @@ import { Repository, UpdateResult } from 'typeorm';
 import { UsersDto } from './dto/users-dto';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -20,7 +19,6 @@ export class UserService {
     @InjectRepository(Users) private usersRepository: Repository<Users>,
   ) {}
 
-  // CreateUsers
   async createUsers(user: UsersDto) {
     const newUser = this.usersRepository.create({
       ...user,
@@ -30,17 +28,14 @@ export class UserService {
     return await this.usersRepository.save(newUser);
   }
 
-  // Find One User by DNI
   async findUser(dni: number) {
     return await this.usersRepository.findOne({ where: { dni } });
   }
 
-  // Find One User by Email (without passoword)
   async findUserByEmail(email: string) {
     return await this.usersRepository.findOne({ where: { email } });
   }
 
-  // Find one User by email (with password)
   async findUserByEmailWithPassword(email: string) {
     return await this.usersRepository.findOne({
       where: { email },
@@ -56,14 +51,13 @@ export class UserService {
     });
   }
 
-  // Find all Users
   async findAll() {
     return await this.usersRepository.find({ where: { deleted: false } });
   }
 
-  // Búsqueda para el admin: dni y email hacen match exacto, name/surname
-  // hacen LIKE parcial. Cada filtro es independiente (se puede buscar por
-  // uno solo); si no viene ninguno, se comporta como findAll().
+  // Admin search: dni and email match exactly, name/surname match with a
+  // partial LIKE. Every filter is independent, so searching by just one is
+  // valid; with none of them this behaves like findAll().
   async searchUsers(query: {
     dni?: number;
     email?: string;
@@ -72,9 +66,9 @@ export class UserService {
   }) {
     const qb = this.usersRepository
       .createQueryBuilder('user')
-      // select:false en la entity no lo respeta QueryBuilder (a diferencia
-      // de Repository.find/findOne) — se listan las columnas a mano para
-      // no arriesgarse a devolver el hash de la contraseña.
+      // QueryBuilder ignores the entity's select:false, unlike
+      // Repository.find/findOne, so the columns are listed by hand rather than
+      // risk returning the password hash.
       .select([
         'user.dni',
         'user.email',
@@ -103,19 +97,18 @@ export class UserService {
       });
     }
 
-    // password tiene select:false en la entity, así que no hace falta
-    // excluirlo a mano acá: TypeORM no lo trae salvo que se pida explícito.
+    // password is select:false on the entity, so there is no need to strip it
+    // here: TypeORM does not load it unless it is asked for explicitly.
     return qb.orderBy('user.name', 'ASC').take(50).getMany();
   }
 
-  // Get Users deleted
   async findAllDeleted() {
     return await this.usersRepository.find({ where: { deleted: true } });
   }
 
-  // Self-service profile update. dni siempre viene del JWT (ver
-  // UserController#updateMyProfile), nunca del body: así un usuario no
-  // puede editar el registro de otro usuario aunque lo intente.
+  // Self-service profile update. dni always comes from the JWT (see
+  // UserController#updateMyProfile), never from the body, so a user cannot edit
+  // another user's record even by trying.
   async updateProfile(dni: number, dto: UpdateProfileDto) {
     const user = await this.usersRepository.findOne({
       where: { dni },
@@ -172,13 +165,12 @@ export class UserService {
     return safeUser;
   }
 
-  // Edición por parte de un admin (panel de Usuarios): a diferencia de
-  // updateUsers (PUT /user, UsersDto) no toca password, así que no hay
-  // riesgo de guardar un valor sin hashear.
+  // Admin-side edit (Users panel). Unlike updateUsers (PUT /user, UsersDto) it
+  // never touches password, so there is no risk of storing an unhashed value.
   async adminUpdateUser(dni: number, dto: AdminUpdateUserDto) {
-    // select explícito con password incluido (igual que updateProfile):
-    // si se omite, save() de una entity a la que le falta esa columna
-    // puede terminar pisándola con null.
+    // Explicit select including password, same as updateProfile: without it,
+    // save() on an entity that is missing the column can overwrite it with
+    // null.
     const user = await this.usersRepository.findOne({
       where: { dni },
       select: {
@@ -218,7 +210,6 @@ export class UserService {
     return safeUser;
   }
 
-  // Update User
   async updateUsers(user: UsersDto) {
     if (!user.dni) {
       throw new ConflictException(
@@ -232,7 +223,6 @@ export class UserService {
     return await this.usersRepository.save(user);
   }
 
-  // Delete User
   async deleteUsers(dni: number) {
     const userExists = await this.findUser(dni);
 
@@ -256,7 +246,6 @@ export class UserService {
     return { message: `Eliminado correctamente` };
   }
 
-  // Restore User
   async restoreUsers(dni: number) {
     const userExists = await this.findUser(dni);
 
@@ -280,17 +269,11 @@ export class UserService {
     return { message: `Restaurado correctamente` };
   }
 
-
-
-
-  // ---- GOOGLE AUTH ----
-  // La verificación del idToken contra Google vive en AuthService
-  // (es responsabilidad de autenticación). Acá solo resolvemos el
-  // registro en la base de datos a partir de un payload ya verificado.
-
-  // Busca un usuario por email; si ya existe, completa googleId/picture
-  // si le faltaban. Si no existe, crea una cuenta nueva con rol por
-  // defecto (Role.USER) y sin password local (login exclusivo por Google).
+  // Verifying the idToken against Google lives in AuthService, since that is an
+  // authentication concern. Here we only resolve the database record from an
+  // already verified payload: look the user up by email and fill in a missing
+  // googleId/picture, or create a new account with the default role
+  // (Role.USER) and no local password, so it can only be used through Google.
   async findOrCreateGoogleUser(googleProfile: {
     email: string;
     googleId: string;
@@ -307,16 +290,14 @@ export class UserService {
         );
       }
 
-  
-
-      // Si ya hay cuenta registrada con ese email. No lo deja logearse con google.
+      // An account already exists for that email, so Google sign-in is refused.
       if (!existing.googleId) {
         throw new ConflictException(
           'Ya existe una cuenta registrada con este email. Iniciá sesión con tu contraseña.',
         );
       }
 
-      // Ya estaba vinculada de antes: solo refrescamos la foto si cambió.
+      // Already linked earlier: only refresh the picture if it changed.
       if (googleProfile.picture && existing.picture !== googleProfile.picture) {
         existing.picture = googleProfile.picture;
         return this.usersRepository.save(existing);

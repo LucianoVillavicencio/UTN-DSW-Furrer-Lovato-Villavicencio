@@ -1,5 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Users } from '../../user/entity/users.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity('contact')
 export class Contact {
@@ -11,7 +15,7 @@ export class Contact {
 
   @Column({ type: 'varchar', length: 100 })
   surname!: string;
-  
+
   @Column({ type: 'varchar', length: 150 })
   email!: string;
 
@@ -20,5 +24,4 @@ export class Contact {
 
   @CreateDateColumn()
   createdAt!: Date;
-
 }

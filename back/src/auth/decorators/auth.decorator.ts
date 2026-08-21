@@ -1,18 +1,13 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
-import { Roles } from './rol.decorator';
+import { Roles } from './role.decorator';
 import { AuthGuard } from '../guard/auth.guard';
 import { RolesGuard } from '../guard/roles.guard';
-import { Role } from '../../common/enum/rol.enum';
+import { Role } from '../../common/enum/role.enum';
 
-
-//@Auth() solo exige estar autenitcado
-//@Auth(Role.ADMIN) => Exige el rol admin
-//@Auth(Role.USER, Role.ADMIN) => Puedo pedir varios roles
-
-
-// ApplyDecorators => Combina varios decoradores en 1. En vez de escribir :  @UseGuard(AuthGuard, RolesGuard) @Roles(Role.ADMIN) escribimos =>  @Auth(Role.ADMIN)
-
-
+/**
+ * Guards a route. With no arguments it only requires a valid JWT; with roles it
+ * also requires one of them (ADMIN always passes — see RolesGuard).
+ */
 export function Auth(...roles: Role[]) {
   return applyDecorators(Roles(...roles), UseGuards(AuthGuard, RolesGuard));
 }

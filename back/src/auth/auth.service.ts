@@ -20,11 +20,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-
-  //           ---- REGISTER ----
   async register(registerDto: RegisterDto) {
-
-    // Validacion por Dni
     const userByDni = await this.userService.findUser(registerDto.dni);
     if (userByDni) {
       throw new ConflictException(
@@ -32,7 +28,6 @@ export class AuthService {
       );
     }
 
-    //Validacion por Email
     const userByEmail = await this.userService.findUserByEmail(
       registerDto.email,
     );
@@ -42,54 +37,44 @@ export class AuthService {
       );
     }
 
-
-    //Creo user y hasheo contraseña
     const createdUser = await this.userService.createUsers({
       ...registerDto,
       password: await bcrypt.hash(registerDto.password, 10),
     });
 
-
-    // Me logea al registrarme.
     return this.buildAuthResponse(createdUser);
   }
 
-
-  //           ---- LOGIN ----
   async login(loginDto: LoginDto) {
+    const user = await this.userService.findUserByEmailWithPassword(
+      loginDto.email,
+    );
 
-    const user = await this.userService.findUserByEmailWithPassword(loginDto.email);
+    // TODO: collapse every failure below into a single 'Credenciales
+    // invalidas' message. Right now the distinct errors let anyone probe which
+    // emails are registered and which of those signed up through Google.
 
-
-    // PENDIENTE :  Dejar validaciones y mensajes de error como esta   o poner "credenciales invalidas" a todas las validaciones (mas seguro para ataques).
-
-
-    //Validacion email
     if (!user) {
       throw new UnauthorizedException(
         `El usuario con email ${loginDto.email} no existe.`,
       );
     }
 
-    //Validacion password
     if (!user.password) {
       throw new UnauthorizedException(
         `Esta cuenta se registro con Google. Inicia sesión con Google.`,
       );
     }
 
-    // Validacion estado
     if (user.deleted) {
       throw new UnauthorizedException(`El usuario esta dado de baja`);
     }
 
-    //Compara password ingresado con la password hasheada
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
 
-    //Valido password
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales invalidas');
     }
@@ -97,14 +82,7 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-
-
-
-  //           ---- GOOGLE LOGIN / REGISTER ----
-
   async googleLogin(googleLoginDto: GoogleLoginDto) {
-
-    // Verifico si el token realmente lo emitio google.
     const payload = await this.verifyGoogleToken(googleLoginDto.idToken);
 
     if (!payload.email || !payload.email_verified) {
@@ -113,8 +91,6 @@ export class AuthService {
       );
     }
 
-
-    //Busco usuario.
     const user = await this.userService.findOrCreateGoogleUser({
       email: payload.email,
       googleId: payload.sub,
@@ -123,20 +99,11 @@ export class AuthService {
       picture: payload.picture || null,
     });
 
-    // Mismo { token, user } que login/register: para el frontend, un login
-    // con Google termina siendo indistinguible de uno tradicional.
+    // Same { token, user } shape as login/register, so a Google sign-in is
+    // indistinguishable from a regular one on the frontend.
     return this.buildAuthResponse(user);
   }
 
-
-
-
-  //Funcion oficial de google.
-
-  // 1. Valida que el token este firmado con la clave primaria de Google.
-  // 2. Que no este vencido
-  // 3. Que audience(aud) del token coincida con mi clienteId (google Cloud)
-  // 4.
   private async verifyGoogleToken(idToken: string): Promise<TokenPayload> {
     const clientId = process.env.GOOGLE_CLIENT_ID?.replace(/['"]/g, '').trim();
 
@@ -144,11 +111,11 @@ export class AuthService {
       !clientId ||
       clientId === 'your-google-client-id.apps.googleusercontent.com'
     ) {
-      // Importante: NO relajamos la verificación (ej. pasando audience:
-      // undefined) como fallback de "no configurado". Sin un client ID real,
-      // el audience no se valida y CUALQUIER ID token válido de Google —
-      // aunque haya sido emitido para una app totalmente distinta — sería
-      // aceptado acá. Mejor fallar explícito que abrir ese hueco.
+      // Do NOT relax the check (for example by passing audience: undefined)
+      // as a "not configured" fallback. Without a real client ID the audience
+      // goes unverified and ANY valid Google ID token — even one issued for a
+      // completely different app — would be accepted here. Failing loudly is
+      // the safer default.
       throw new InternalServerErrorException(
         'GOOGLE_CLIENT_ID no está configurado en el servidor.',
       );
@@ -177,11 +144,9 @@ export class AuthService {
     return await this.userService.findUserByEmail(email);
   }
 
+  // Signs the JWT and builds the { token, user } shape shared by login(),
+  // register() and googleLogin().
 
-
-  // Metodo privado donde se firma el JWT y arma la forma { token, user} que comparten
-  // login(), register() y googleLogin(), a partir de una entidad Users completa.
-  
   private async buildAuthResponse(user: {
     dni: number;
     email: string;

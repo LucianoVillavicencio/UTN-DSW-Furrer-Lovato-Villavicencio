@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import { Role } from '../../../common/enum/rol.enum';
+import { Role } from '../../../common/enum/role.enum';
 
 @Entity('users')
 export class Users {
@@ -33,4 +33,3 @@ export class Users {
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }
-  

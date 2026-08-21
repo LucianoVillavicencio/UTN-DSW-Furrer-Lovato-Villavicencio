@@ -8,8 +8,6 @@ export class MailService {
   private transporter: Transporter;
 
   constructor() {
-
-    //Create conexion with SMTP
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {

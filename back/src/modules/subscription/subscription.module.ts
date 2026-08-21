@@ -5,7 +5,6 @@ import { subscriptionController } from './subscription.controller';
 import { subscriptionService } from './subscription.service';
 import { PlanModule } from '../plan/plan.module';
 
-
 @Module({
   imports: [TypeOrmModule.forFeature([Subscription]), PlanModule],
   controllers: [subscriptionController],

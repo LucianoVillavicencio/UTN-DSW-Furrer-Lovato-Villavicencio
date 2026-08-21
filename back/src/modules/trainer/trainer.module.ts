@@ -4,7 +4,6 @@ import { Trainer } from './entity/trainer.entity';
 import { TrainerService } from './trainer.service';
 import { TrainerController } from './trainer.controller';
 
-
 @Module({
   imports: [TypeOrmModule.forFeature([Trainer])],
   controllers: [TrainerController],
