@@ -37,7 +37,7 @@ export class TrainerController {
   // Public read: used by the /trainers page.
   @Get()
   getTrainers() {
-    return this.trainerService.findAll();
+    return this.trainerService.findAllWithClasses();
   }
 
   @Get('filter/deleted')
@@ -48,7 +48,7 @@ export class TrainerController {
 
   @Get('/:dni')
   getTrainerByDni(@Param('dni', ParseIntPipe) dni: number) {
-    return this.trainerService.findTrainer(dni);
+    return this.trainerService.findTrainerWithClasses(dni);
   }
 
   @Put()

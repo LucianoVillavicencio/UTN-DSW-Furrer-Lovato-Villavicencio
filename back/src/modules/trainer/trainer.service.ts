@@ -10,12 +10,19 @@ import { Repository, UpdateResult } from 'typeorm';
 import { unlink } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { Trainer } from './entity/trainer.entity';
+import type {
+  Trainer as TrainerEntity,
+  TrainerClass,
+} from './entity/trainer.entity';
 import { TrainerDto } from './dto/trainer-dto';
-import { findWorkScheduleError } from './trainer.rules';
+import { findWorkScheduleError, toTrainerClasses } from './trainer.rules';
 import {
   TRAINER_PHOTO_DIRECTORY,
   trainerPhotoPublicPath,
 } from './trainer-photo.config';
+import { ClassService } from '../class/class.service';
+
+type TrainerWithClasses = TrainerEntity & { classes: TrainerClass[] };
 
 @Injectable()
 export class TrainerService {
@@ -24,6 +31,7 @@ export class TrainerService {
   constructor(
     @InjectRepository(Trainer)
     private trainerRepository: Repository<Trainer>,
+    private readonly classService: ClassService,
   ) {}
 
   private assertValidWorkSchedule(trainerDto: TrainerDto): void {
@@ -58,6 +66,34 @@ export class TrainerService {
 
   async findAllDeleted() {
     return await this.trainerRepository.find({ where: { deleted: true } });
+  }
+
+  async findAllWithClasses(): Promise<TrainerWithClasses[]> {
+    const trainers = await this.findAll();
+    return await this.attachClasses(trainers);
+  }
+
+  async findTrainerWithClasses(dni: number): Promise<TrainerWithClasses> {
+    const trainer = await this.findTrainer(dni);
+    if (!trainer) {
+      throw new NotFoundException(`El profesor con DNI: ${dni} no existe.`);
+    }
+    const [withClasses] = await this.attachClasses([trainer]);
+    return withClasses;
+  }
+
+  // One query for the whole listing, never one per trainer.
+  private async attachClasses(
+    trainers: Trainer[],
+  ): Promise<TrainerWithClasses[]> {
+    if (trainers.length === 0) {
+      return [];
+    }
+    const classes = await this.classService.findAll();
+    return trainers.map((trainer) => ({
+      ...trainer,
+      classes: toTrainerClasses(classes, trainer.dni),
+    }));
   }
 
   async updateTrainer(trainerDto: TrainerDto) {

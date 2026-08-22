@@ -1,4 +1,4 @@
-import type { TrainerWorkShift } from './entity/trainer.entity';
+import type { TrainerClass, TrainerWorkShift } from './entity/trainer.entity';
 
 // Admins paste whatever they copied: a handle, an @handle, or the full profile
 // URL with Instagram's tracking query. Only the handle is stored, so the card
@@ -57,3 +57,13 @@ export const findWorkScheduleError = (
 
   return null;
 };
+
+// Narrowed to what the card needs, so a change to the Class entity does not
+// silently widen the public trainer payload.
+export const toTrainerClasses = (
+  classes: { id: number; name: string; trainerDni: number }[],
+  dni: number,
+): TrainerClass[] =>
+  classes
+    .filter((item) => item.trainerDni === dni)
+    .map(({ id, name }) => ({ id, name }));

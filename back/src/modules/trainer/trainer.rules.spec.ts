@@ -2,6 +2,7 @@ import {
   findWorkScheduleError,
   normalizeCertifications,
   normalizeInstagramHandle,
+  toTrainerClasses,
 } from './trainer.rules';
 
 describe('normalizeInstagramHandle', () => {
@@ -92,5 +93,31 @@ describe('findWorkScheduleError', () => {
         { weekday: 5, startTime: '14:00', endTime: '18:00' },
       ]),
     ).toBe('El horario tiene dos franjas para el viernes.');
+  });
+});
+
+describe('toTrainerClasses', () => {
+  const classes = [
+    { id: 1, name: 'Funcional', trainerDni: 111 },
+    { id: 2, name: 'Spinning', trainerDni: 222 },
+    { id: 3, name: 'CrossFit', trainerDni: 111 },
+  ];
+
+  it('keeps only the classes of the given trainer', () => {
+    expect(toTrainerClasses(classes, 111)).toEqual([
+      { id: 1, name: 'Funcional' },
+      { id: 3, name: 'CrossFit' },
+    ]);
+  });
+
+  it('returns an empty list for a trainer with no classes', () => {
+    expect(toTrainerClasses(classes, 999)).toEqual([]);
+  });
+
+  it('drops every field the card does not need', () => {
+    expect(Object.keys(toTrainerClasses(classes, 222)[0])).toEqual([
+      'id',
+      'name',
+    ]);
   });
 });
