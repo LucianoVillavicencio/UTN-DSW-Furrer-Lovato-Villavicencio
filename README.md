@@ -185,6 +185,7 @@ versionan los `.env.example`.
 | `npm test` *(back)* | Tests unitarios (Jest) |
 | `npm run test:e2e` *(back)* | Tests end-to-end |
 | `npm run dev` *(front)* | Servidor de desarrollo Vite |
+| `npm test` *(front)* | Tests unitarios (Vitest) |
 | `npm run preview` *(front)* | Sirve el build de producción del frontend |
 
 ## Roadmap y estado
