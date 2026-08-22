@@ -32,7 +32,7 @@ const TrainerPhoto = ({ photoUrl, name, surname }: TrainerPhotoProps) => {
       alt={`Foto de ${name} ${surname}`}
       loading="lazy"
       onError={() => setHasFailed(true)}
-      className="h-56 w-full object-cover"
+      className="h-56 w-full object-cover object-top"
     />
   );
 };

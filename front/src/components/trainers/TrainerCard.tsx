@@ -1,4 +1,4 @@
-import { AtSign, Dumbbell, Phone } from 'lucide-react';
+import { AtSign, Dumbbell } from 'lucide-react';
 import Card from '../common/Card';
 import Badge from '../common/badge/Badge';
 import Button from '../common/Button';
@@ -90,13 +90,6 @@ const TrainerCard = ({ trainer }: TrainerCardProps) => {
               >
                 @{trainer.instagram}
               </a>
-            </span>
-          )}
-
-          {trainer.phone && (
-            <span className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-primary" />
-              {trainer.phone}
             </span>
           )}
         </div>
