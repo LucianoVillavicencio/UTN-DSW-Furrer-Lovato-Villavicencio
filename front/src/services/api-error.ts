@@ -41,6 +41,10 @@ export const getApiErrorMessage = (
     return (
       backendMessage || 'El recurso ya existe o está en un estado inválido.'
     );
+  // Multer answers 413 when the upload is over the limit, and its own message
+  // is in English.
+  if (status === 413)
+    return 'El archivo es demasiado grande. El máximo es 2 MB.';
 
   return (
     backendMessage || `Error del servidor (${status}). Inténtalo más tarde.`
