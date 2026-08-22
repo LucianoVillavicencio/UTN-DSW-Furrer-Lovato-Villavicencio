@@ -15,6 +15,7 @@ import { UserService } from './user.service';
 import { UsersDto } from './dto/users-dto';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
+import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
@@ -28,9 +29,11 @@ import { Role } from '../../common/enum/role.enum';
 export class UserController {
   constructor(private userService: UserService) {}
 
+  // Front-desk creation of a member who may have neither email nor password.
+  // The older UsersDto is still used by PUT /user and by auth.service.register.
   @Post()
-  createUsers(@Body() user: UsersDto) {
-    return this.userService.createUsers(user);
+  createUser(@Body() dto: AdminCreateUserDto) {
+    return this.userService.adminCreateUser(dto);
   }
 
   // Self-service: any authenticated user edits their own profile. A

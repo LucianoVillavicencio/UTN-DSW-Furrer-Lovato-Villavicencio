@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -10,6 +11,8 @@ import { Repository, UpdateResult } from 'typeorm';
 import { UsersDto } from './dto/users-dto';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
+import { AdminCreateUserDto } from './dto/admin-create-user-dto';
+import { findAdminCreateUserError, placeholderEmailFor } from './user.rules';
 import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 
@@ -26,6 +29,48 @@ export class UserService {
     });
 
     return await this.usersRepository.save(newUser);
+  }
+
+  // Front-desk creation: no self-registration, so the duplicate checks and the
+  // password hashing that auth.service.register does have to happen here too.
+  // It returns through findUser() so the password column, which is select:false
+  // on the entity but present on the object just saved, never leaves the API.
+  async adminCreateUser(dto: AdminCreateUserDto) {
+    const ruleError = findAdminCreateUserError(dto);
+    if (ruleError) {
+      throw new BadRequestException(ruleError);
+    }
+
+    const existingByDni = await this.findUser(dto.dni);
+    if (existingByDni) {
+      throw new ConflictException(
+        `El usuario con el DNI: ${dto.dni} ya existe.`,
+      );
+    }
+
+    const typedEmail = dto.email?.trim();
+    if (typedEmail) {
+      const existingByEmail = await this.findUserByEmail(typedEmail);
+      if (existingByEmail) {
+        throw new ConflictException(
+          `El usuario con el email: ${typedEmail} ya tiene una cuenta registrada.`,
+        );
+      }
+    }
+
+    const newUser = this.usersRepository.create({
+      dni: dto.dni,
+      name: dto.name,
+      surname: dto.surname,
+      phone: dto.phone?.trim() || null,
+      email: typedEmail || placeholderEmailFor(dto.dni),
+      password: dto.password ? await bcrypt.hash(dto.password, 10) : null,
+      role: Role.USER,
+      deleted: false,
+    });
+    await this.usersRepository.save(newUser);
+
+    return this.findUser(dto.dni);
   }
 
   async findUser(dni: number) {
