@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { diskStorage } from 'multer';
 import { mkdirSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { join } from 'node:path';
 
 export const TRAINER_PHOTO_DIRECTORY = join(
   process.cwd(),
@@ -14,12 +14,19 @@ export const TRAINER_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+const MIME_TO_EXTENSION: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+};
+
 // The uploaded name is never reused: it would let a crafted filename decide
-// where the file lands, and two trainers could collide on it.
-export const trainerPhotoFilename = (
-  dni: number,
-  originalName: string,
-): string => `${dni}-${Date.now()}${extname(originalName).toLowerCase()}`;
+// where the file lands, and two trainers could collide on it. The extension
+// is derived from the already-validated mimetype (not the client-declared
+// original name), so a mismatched filename/content-type pair can't smuggle
+// a dangerous extension (e.g. .svg) past the MIME allowlist.
+export const trainerPhotoFilename = (dni: number, mimeType: string): string =>
+  `${dni}-${Date.now()}${MIME_TO_EXTENSION[mimeType] ?? ''}`;
 
 export const trainerPhotoPublicPath = (filename: string): string =>
   `/uploads/trainers/${filename}`;
@@ -33,7 +40,7 @@ export const trainerPhotoMulterOptions: MulterOptions = {
     },
     filename: (request, file, callback) => {
       const dni = Number((request.params as { dni?: string }).dni);
-      callback(null, trainerPhotoFilename(dni, file.originalname));
+      callback(null, trainerPhotoFilename(dni, file.mimetype));
     },
   }),
   limits: { fileSize: TRAINER_PHOTO_MAX_BYTES },
