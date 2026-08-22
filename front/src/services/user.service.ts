@@ -152,3 +152,28 @@ export const restoreUser = async (dni: number): Promise<boolean> => {
     );
   }
 };
+
+// Front-desk creation. Every optional field is omitted rather than sent empty:
+// the backend DTO validates `email` with @IsEmail, so an empty string is a 400,
+// and forbidNonWhitelisted rejects anything the DTO does not declare.
+export interface AdminCreateUserPayload {
+  dni: number;
+  name: string;
+  surname: string;
+  phone?: string;
+  email?: string;
+  password?: string;
+}
+
+export const adminCreateUser = async (
+  payload: AdminCreateUserPayload,
+): Promise<Omit<User, 'password'>> => {
+  try {
+    const { data } = await api.post<Omit<User, 'password'>>('/user', payload);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'No se pudo crear el socio.'), {
+      cause: error,
+    });
+  }
+};
