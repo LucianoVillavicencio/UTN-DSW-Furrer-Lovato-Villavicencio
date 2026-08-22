@@ -1,7 +1,7 @@
 import { Check, X, Loader2 } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
-import type { MembershipPlan } from './plans.data';
+import { classAllowanceLabel, type MembershipPlan } from './plans.data';
 
 interface PlanCardProps {
   plan: MembershipPlan;
@@ -42,6 +42,10 @@ const PlanCard = ({
           <span className="text-5xl font-bold text-text">{plan.price}</span>
           <span className="pb-1 text-base text-text-muted">{plan.period}</span>
         </div>
+
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+          {classAllowanceLabel(plan.maxClasses)}
+        </p>
 
         <ul className="space-y-3">
           {plan.features.map((feature) => (

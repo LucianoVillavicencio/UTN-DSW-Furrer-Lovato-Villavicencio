@@ -25,6 +25,12 @@ export class Plan {
   @Column({ type: 'json', nullable: true })
   features?: PlanFeature[] | null;
 
+  // How many classes the plan includes: 0 = none, N = up to N different
+  // classes at the same time, null = unlimited. Nullable rather than a
+  // sentinel number so "unlimited" cannot be confused with a real allowance.
+  @Column({ type: Number, nullable: true, default: 0 })
+  maxClasses?: number | null;
+
   // Shows the "Más popular" badge on the public plans page. It is a plain
   // flag per plan: the admin decides which ones carry it, and more than one
   // plan may be marked.

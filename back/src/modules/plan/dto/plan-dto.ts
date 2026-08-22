@@ -2,11 +2,13 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -52,6 +54,13 @@ export class PlanDto {
   @Type(() => PlanFeatureDto)
   @IsOptional()
   features?: PlanFeatureDto[];
+
+  // null means unlimited, so @IsOptional is what lets it through: it skips
+  // validation for both undefined and null.
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxClasses?: number | null;
 
   @IsBoolean()
   @IsOptional()

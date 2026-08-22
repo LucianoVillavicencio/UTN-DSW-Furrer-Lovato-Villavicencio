@@ -76,6 +76,7 @@ export class PlanService implements OnModuleInit {
             price: 29,
             numDays: 30,
             features: BASIC_FEATURES,
+            maxClasses: 0,
             highlighted: false,
             deleted: false,
           },
@@ -86,6 +87,7 @@ export class PlanService implements OnModuleInit {
             price: 59,
             numDays: 30,
             features: PREMIUM_FEATURES,
+            maxClasses: 1,
             highlighted: true,
             deleted: false,
           },
@@ -96,6 +98,8 @@ export class PlanService implements OnModuleInit {
             price: 99,
             numDays: 30,
             features: ELITE_FEATURES,
+            // Unlimited classes.
+            maxClasses: null,
             highlighted: false,
             deleted: false,
           },
@@ -135,6 +139,9 @@ export class PlanService implements OnModuleInit {
       // Exactly what the admin sent: a plan created with no features shows no
       // features, instead of borrowing a set guessed from its name.
       features: planDto.features ?? [],
+      // `??` is wrong for this one: null is a real value here (unlimited), so
+      // only an absent field falls back.
+      maxClasses: planDto.maxClasses === undefined ? 0 : planDto.maxClasses,
       highlighted: planDto.highlighted ?? false,
       deleted: planDto.deleted ?? false,
     });
@@ -167,6 +174,10 @@ export class PlanService implements OnModuleInit {
       ...planDto,
       // If this particular update carries no features, keep the stored ones.
       features: planDto.features ?? exists.features,
+      maxClasses:
+        planDto.maxClasses === undefined
+          ? exists.maxClasses
+          : planDto.maxClasses,
       highlighted: planDto.highlighted ?? exists.highlighted,
     });
   }

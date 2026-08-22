@@ -15,6 +15,7 @@ import {
   restorePlan,
 } from '../../services/plan.service';
 import type { Plan, PlanFeature } from '../../types/plan';
+import { classAllowanceLabel } from '../plans/plans.data';
 import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
 
 const emptyForm: Plan = {
@@ -22,7 +23,24 @@ const emptyForm: Plan = {
   description: '',
   price: 0,
   numDays: 30,
+  maxClasses: 0,
   highlighted: false,
+};
+
+// The allowance is three states, not a number: "unlimited" travels as null and
+// cannot be typed into a number input.
+type ClassesMode = 'none' | 'limited' | 'unlimited';
+
+const CLASSES_MODES: { value: ClassesMode; label: string }[] = [
+  { value: 'none', label: 'Sin clases' },
+  { value: 'limited', label: 'Cantidad fija' },
+  { value: 'unlimited', label: 'Ilimitadas' },
+];
+
+const classesModeOf = (maxClasses?: number | null): ClassesMode => {
+  if (maxClasses === null) return 'unlimited';
+  if (maxClasses && maxClasses > 0) return 'limited';
+  return 'none';
 };
 
 const PlansSection = () => {
@@ -45,6 +63,8 @@ const PlansSection = () => {
   const [priceText, setPriceText] = useState('');
   const [numDaysText, setNumDaysText] = useState('');
   const [featuresForm, setFeaturesForm] = useState<PlanFeature[]>([]);
+  const [classesMode, setClassesMode] = useState<ClassesMode>('none');
+  const [maxClassesText, setMaxClassesText] = useState('1');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -81,6 +101,8 @@ const PlansSection = () => {
     setPriceText('');
     setNumDaysText(String(emptyForm.numDays));
     setFeaturesForm([]);
+    setClassesMode('none');
+    setMaxClassesText('1');
     setFormError(null);
     setIsCreating(true);
   };
@@ -90,6 +112,8 @@ const PlansSection = () => {
     setPriceText(formatPriceDisplay(plan.price));
     setNumDaysText(String(plan.numDays));
     setFeaturesForm(plan.features ?? []);
+    setClassesMode(classesModeOf(plan.maxClasses));
+    setMaxClassesText(String(plan.maxClasses || 1));
     setFormError(null);
     setEditing(plan);
   };
@@ -133,6 +157,23 @@ const PlansSection = () => {
       return;
     }
 
+    const maxClasses =
+      classesMode === 'unlimited'
+        ? null
+        : classesMode === 'none'
+          ? 0
+          : Number(maxClassesText);
+
+    if (
+      classesMode === 'limited' &&
+      (!Number.isInteger(maxClasses) || Number(maxClasses) < 1)
+    ) {
+      setFormError(
+        'La cantidad de clases incluidas tiene que ser un número entero mayor a cero.',
+      );
+      return;
+    }
+
     const features = featuresForm
       .map((f) => ({ ...f, label: f.label.trim() }))
       .filter((f) => f.label.length > 0);
@@ -142,6 +183,7 @@ const PlansSection = () => {
       price,
       numDays,
       features,
+      maxClasses,
     };
 
     setIsSaving(true);
@@ -197,6 +239,10 @@ const PlansSection = () => {
     },
     { header: 'Precio', cell: (p) => `$${formatPriceDisplay(p.price)}` },
     { header: 'Días', cell: (p) => p.numDays },
+    {
+      header: 'Clases',
+      cell: (p) => classAllowanceLabel(p.maxClasses, 'short'),
+    },
     {
       header: 'Acciones',
       cell: (p) => (
@@ -318,6 +364,44 @@ const PlansSection = () => {
                 value={numDaysText}
                 onChange={(e) => setNumDaysText(e.target.value)}
               />
+            </div>
+
+            <div>
+              <span className="font-body text-xs sm:text-sm font-medium text-text">
+                Clases grupales incluidas
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CLASSES_MODES.map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setClassesMode(mode.value)}
+                    aria-pressed={classesMode === mode.value}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      classesMode === mode.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-text-muted hover:text-text'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+              {classesMode === 'limited' && (
+                <div className="mt-3 max-w-40">
+                  <InputField
+                    label="Cantidad"
+                    type="number"
+                    min={1}
+                    value={maxClassesText}
+                    onChange={(e) => setMaxClassesText(e.target.value)}
+                  />
+                </div>
+              )}
+              <p className="mt-2 text-xs text-text-muted">
+                Cuántas clases distintas puede tener a la vez un socio con este
+                plan. Con "Sin clases" el plan solo da acceso al gimnasio.
+              </p>
             </div>
 
             <label className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5">
