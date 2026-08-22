@@ -61,8 +61,13 @@ export class AuthService {
     }
 
     if (!user.password) {
+      // A passwordless account is either a Google sign-up or a member the gym
+      // created at the front desk. Telling the second group to use Google
+      // sends them somewhere that will never work.
       throw new UnauthorizedException(
-        `Esta cuenta se registro con Google. Inicia sesión con Google.`,
+        user.googleId
+          ? `Esta cuenta se registro con Google. Inicia sesión con Google.`
+          : `Esta cuenta fue creada en el gimnasio y todavía no tiene contraseña. Acercate al mostrador para activarla.`,
       );
     }
 

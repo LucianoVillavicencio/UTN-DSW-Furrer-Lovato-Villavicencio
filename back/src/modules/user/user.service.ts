@@ -91,6 +91,7 @@ export class UserService {
         surname: true,
         phone: true,
         password: true,
+        googleId: true,
         role: true,
       },
     });
