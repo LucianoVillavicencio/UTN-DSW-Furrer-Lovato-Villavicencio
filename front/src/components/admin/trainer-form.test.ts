@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_TRAINER_FORM, findTrainerFormError } from './trainer-form';
+import {
+  EMPTY_TRAINER_FORM,
+  EMPTY_TRAINER_PHOTO_STATE,
+  findTrainerFormError,
+  pickTrainerPhoto,
+  removeTrainerPhoto,
+} from './trainer-form';
 
 import type { Trainer } from '../../types/trainer';
 
@@ -47,5 +53,40 @@ describe('findTrainerFormError', () => {
         ],
       }),
     ).toBe('El horario tiene dos franjas para el martes.');
+  });
+});
+
+describe('trainer photo state', () => {
+  const file = new File(['x'], 'photo.png', { type: 'image/png' });
+
+  it('starts with no pending file and no removal queued', () => {
+    expect(EMPTY_TRAINER_PHOTO_STATE).toEqual({
+      pendingFile: null,
+      shouldRemovePhoto: false,
+    });
+  });
+
+  it('queues a removal and clears any pending file', () => {
+    const afterPick = pickTrainerPhoto(EMPTY_TRAINER_PHOTO_STATE, file);
+    expect(removeTrainerPhoto()).toEqual({
+      pendingFile: null,
+      shouldRemovePhoto: true,
+    });
+    // Regardless of what was picked before, "Quitar" always wins.
+    expect(pickTrainerPhoto(afterPick, null).pendingFile).toBe(null);
+  });
+
+  it('picking a new file after "Quitar" cancels the queued removal', () => {
+    // Reproduces the Task 8 fix-round bug: Quitar -> pick a replacement
+    // must not leave shouldRemovePhoto true, or the submit handler would
+    // upload the new photo and then immediately delete it.
+    const afterRemove = removeTrainerPhoto();
+    const afterPick = pickTrainerPhoto(afterRemove, file);
+    expect(afterPick).toEqual({ pendingFile: file, shouldRemovePhoto: false });
+  });
+
+  it('clearing the file picker (no Quitar involved) leaves removal untouched', () => {
+    const afterPick = pickTrainerPhoto(EMPTY_TRAINER_PHOTO_STATE, null);
+    expect(afterPick).toEqual({ pendingFile: null, shouldRemovePhoto: false });
   });
 });

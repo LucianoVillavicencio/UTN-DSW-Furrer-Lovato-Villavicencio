@@ -6,7 +6,13 @@ import Button from '../common/Button';
 import TrainerPhotoField from './TrainerPhotoField';
 import TrainerCertificationsField from './TrainerCertificationsField';
 import TrainerScheduleField from './TrainerScheduleField';
-import { EMPTY_TRAINER_FORM, findTrainerFormError } from './trainer-form';
+import {
+  EMPTY_TRAINER_FORM,
+  EMPTY_TRAINER_PHOTO_STATE,
+  findTrainerFormError,
+  pickTrainerPhoto,
+  removeTrainerPhoto,
+} from './trainer-form';
 import {
   deleteTrainerPhoto,
   uploadTrainerPhoto,
@@ -24,8 +30,8 @@ interface TrainerFormProps {
 const TrainerForm = ({ trainer, save, reload, onClose }: TrainerFormProps) => {
   const isCreating = trainer === null;
   const [form, setForm] = useState<Trainer>(trainer ?? EMPTY_TRAINER_FORM);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [shouldRemovePhoto, setShouldRemovePhoto] = useState(false);
+  const [photoState, setPhotoState] = useState(EMPTY_TRAINER_PHOTO_STATE);
+  const { pendingFile, shouldRemovePhoto } = photoState;
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -121,9 +127,11 @@ const TrainerForm = ({ trainer, save, reload, onClose }: TrainerFormProps) => {
         <TrainerPhotoField
           photoUrl={shouldRemovePhoto ? null : form.photoUrl}
           pendingFile={pendingFile}
-          onPick={setPendingFile}
+          onPick={(file) =>
+            setPhotoState((prev) => pickTrainerPhoto(prev, file))
+          }
           onRemove={() => {
-            setShouldRemovePhoto(true);
+            setPhotoState(removeTrainerPhoto());
             setForm({ ...form, photoUrl: null });
           }}
           onError={setFormError}
