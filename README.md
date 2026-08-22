@@ -63,13 +63,14 @@ Funcionalidades principales:
   un socio, con historial visible tanto para el admin como para el propio socio.
 
 ## Capturas
+Landing Page de FLG: [`assets/Landingpage.png`](assets/Landingpage.png).
+
 <img src="assets/Landingpage.png" alt="Landing de FLG Gym" width="720" />
 
-Landing Page de FLG: [`assets/Landingpage.png`](assets/Landingpage.png).
+Diagrama del modelo de dominio: [`assets/MD.drawio.png`](assets/MD.drawio.png).
 
 <img src="assets/MD.drawio.png" alt="MD de FLG Gym" width="720" />
 
-Diagrama del modelo de dominio: [`assets/MD.drawio.png`](assets/MD.drawio.png).
 
 ## Stack
 
