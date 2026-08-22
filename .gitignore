@@ -23,3 +23,7 @@ logs/
 
 # Config muerta de TypeORM CLI (la app usa src/config/typerom.config.ts + .env)
 back/ormconfig.json
+
+# Uploaded trainer photos: the directory is tracked, its contents are not.
+back/uploads/*
+!back/uploads/.gitkeep

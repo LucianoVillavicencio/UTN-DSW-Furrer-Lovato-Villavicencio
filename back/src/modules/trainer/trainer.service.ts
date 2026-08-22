@@ -7,9 +7,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
+import { unlink } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import { Trainer } from './entity/trainer.entity';
 import { TrainerDto } from './dto/trainer-dto';
 import { findWorkScheduleError } from './trainer.rules';
+import {
+  TRAINER_PHOTO_DIRECTORY,
+  trainerPhotoPublicPath,
+} from './trainer-photo.config';
 
 @Injectable()
 export class TrainerService {
@@ -103,5 +109,57 @@ export class TrainerService {
     }
 
     return { message: `Restaurado correctamente` };
+  }
+
+  async setTrainerPhoto(dni: number, filename: string) {
+    const exists = await this.findTrainer(dni);
+    if (!exists) {
+      // Multer already wrote the file, so it has to go before we bail out.
+      await this.removePhotoFile(trainerPhotoPublicPath(filename));
+      throw new NotFoundException(`El profesor con DNI: ${dni} no existe.`);
+    }
+
+    const previous = exists.photoUrl;
+    await this.trainerRepository.update(
+      { dni },
+      { photoUrl: trainerPhotoPublicPath(filename) },
+    );
+    await this.removePhotoFile(previous);
+
+    return await this.findTrainer(dni);
+  }
+
+  async removeTrainerPhoto(dni: number) {
+    const exists = await this.findTrainer(dni);
+    if (!exists) {
+      throw new NotFoundException(`El profesor con DNI: ${dni} no existe.`);
+    }
+    if (!exists.photoUrl) {
+      throw new ConflictException(`El profesor no tiene una foto cargada.`);
+    }
+
+    await this.trainerRepository.update({ dni }, { photoUrl: null });
+    await this.removePhotoFile(exists.photoUrl);
+
+    return { message: `Foto eliminada correctamente` };
+  }
+
+  private async removePhotoFile(photoUrl?: string | null): Promise<void> {
+    if (!photoUrl) {
+      return;
+    }
+    // basename() only: the column is ours, but reading a path from the database
+    // and joining it raw is how a traversal gets in later.
+    const filename = basename(photoUrl);
+    try {
+      await unlink(join(TRAINER_PHOTO_DIRECTORY, filename));
+    } catch (error) {
+      // Tolerated: the row already points at the new photo, so a leftover file
+      // only wastes disk and must not fail the request.
+      this.logger.warn(
+        `Stale trainer photo not removed: ${filename}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
   }
 }
