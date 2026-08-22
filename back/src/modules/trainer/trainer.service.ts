@@ -1,19 +1,31 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { Trainer } from './entity/trainer.entity';
 import { TrainerDto } from './dto/trainer-dto';
+import { findWorkScheduleError } from './trainer.rules';
 
 @Injectable()
 export class TrainerService {
+  private readonly logger = new Logger(TrainerService.name);
+
   constructor(
     @InjectRepository(Trainer)
     private trainerRepository: Repository<Trainer>,
   ) {}
+
+  private assertValidWorkSchedule(trainerDto: TrainerDto): void {
+    const error = findWorkScheduleError(trainerDto.workSchedule ?? []);
+    if (error) {
+      throw new BadRequestException(error);
+    }
+  }
 
   async createTrainer(trainerDto: TrainerDto) {
     const exists = await this.findTrainer(trainerDto.dni);
@@ -22,6 +34,7 @@ export class TrainerService {
         `El profesor con DNI: ${trainerDto.dni} ya existe.`,
       );
     }
+    this.assertValidWorkSchedule(trainerDto);
     const newTrainer = this.trainerRepository.create({
       ...trainerDto,
       deleted: trainerDto.deleted ?? false,
@@ -41,14 +54,17 @@ export class TrainerService {
     return await this.trainerRepository.find({ where: { deleted: true } });
   }
 
-  async updateTrainer(TrainerDto: TrainerDto) {
-    const exists = await this.findTrainer(TrainerDto.dni);
+  async updateTrainer(trainerDto: TrainerDto) {
+    const exists = await this.findTrainer(trainerDto.dni);
     if (!exists) {
       throw new NotFoundException(
-        `El profesor con DNI: ${TrainerDto.dni} no existe.`,
+        `El profesor con DNI: ${trainerDto.dni} no existe.`,
       );
     }
-    return await this.trainerRepository.save(TrainerDto);
+    this.assertValidWorkSchedule(trainerDto);
+    // Merged onto the stored row rather than saved on its own: photoUrl is not
+    // part of the DTO, so saving the DTO alone would drop the photo.
+    return await this.trainerRepository.save({ ...exists, ...trainerDto });
   }
 
   async deleteTrainer(dni: number) {
