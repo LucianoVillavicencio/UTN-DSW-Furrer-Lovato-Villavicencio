@@ -73,7 +73,11 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
       // would issue anyway.
       console.warn('Could not read the assigned plan allowance', err);
     }
-    setStep('clase');
+    // A stale AssignPlanForm call can resolve after the admin has already
+    // advanced past 'plan' (e.g. via "Omitir plan" then "Omitir clase"). Only
+    // advance from 'plan' — read through the functional updater so the check
+    // sees the current step, not whatever this closure captured at call time.
+    setStep((current) => (current === 'plan' ? 'clase' : current));
   };
 
   return (
