@@ -3,13 +3,13 @@
 Plataforma de gestión integral para un gimnasio: administradores gestionan clases, profesores,
 planes y pagos; socios reservan turnos, gestionan su suscripción y siguen su historial de pagos.
 
-![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
-![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5%2F6-3178C6?logo=typescript&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
-![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)
-![License](https://img.shields.io/badge/license-académico%20%2F%20sin%20licencia%20pública-lightgrey)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5%2F6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)](#roadmap-y-estado)
+[![License](https://img.shields.io/badge/license-académico%20%2F%20sin%20licencia%20pública-lightgrey)](#licencia)
 
 Trabajo Práctico de la materia **Desarrollo de Software (UTN)**. No es un paquete publicado ni
 tiene pipeline de CI — las badges de stack son informativas.
