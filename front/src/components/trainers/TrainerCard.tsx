@@ -49,7 +49,7 @@ const TrainerCard = ({ trainer }: TrainerCardProps) => {
                 <Badge
                   key={certification}
                   variant="accent"
-                  className="px-3 py-1 normal-case"
+                  className="!px-3 !py-1 !normal-case"
                 >
                   {certification}
                 </Badge>
@@ -67,7 +67,7 @@ const TrainerCard = ({ trainer }: TrainerCardProps) => {
                   key={trainerClass.id}
                   variant="neutral"
                   icon={Dumbbell}
-                  className="px-3 py-1"
+                  className="!px-3 !py-1"
                 >
                   {trainerClass.name}
                 </Badge>
