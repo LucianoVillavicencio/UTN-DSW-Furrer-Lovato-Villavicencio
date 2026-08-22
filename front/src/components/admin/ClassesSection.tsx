@@ -150,13 +150,31 @@ const ClassesSection = () => {
 
   const handleAddType = async () => {
     setTypeError(null);
-    if (!newTypeName.trim()) {
+    const name = newTypeName.trim();
+    if (!name) {
       setTypeError('El nombre es obligatorio.');
       return;
     }
+
+    // Reuse the existing type instead of asking the backend to reject a
+    // duplicate: an admin typing "Funcional" a second time almost certainly
+    // means the same discipline, not a second one.
+    const existing = types.find(
+      (t) => t.name?.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (existing) {
+      setForm((prev) => ({
+        ...prev,
+        typeClassId: existing.id ?? prev.typeClassId,
+      }));
+      setNewTypeName('');
+      setIsAddingType(false);
+      return;
+    }
+
     setIsSavingType(true);
     try {
-      const created = await createTypeClass({ name: newTypeName.trim() });
+      const created = await createTypeClass({ name });
       setTypes((prev) => [...prev, created]);
       setForm((prev) => ({
         ...prev,
