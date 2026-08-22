@@ -6,9 +6,11 @@ import FormAlert from '../common/FormAlert';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import RegisterPaymentForm from './RegisterPaymentForm';
+import AssignPlanForm from './AssignPlanForm';
 import UserClassSection from './UserClassSection';
 import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
+import { isPlaceholderEmail } from '../../lib/placeholderEmail';
 import {
   adminUpdateUser,
   deleteUser,
@@ -43,10 +45,11 @@ const UserDetailPanel = ({
   onClose,
   onChanged,
 }: UserDetailPanelProps) => {
+  const hasPlaceholderEmail = isPlaceholderEmail(user.email);
   const [form, setForm] = useState<AdminUpdateUserPayload>({
     name: user.name,
     surname: user.surname,
-    email: user.email,
+    email: hasPlaceholderEmail ? '' : user.email,
     phone: user.phone,
     role: user.role,
   });
@@ -95,7 +98,7 @@ const UserDetailPanel = ({
   const isDirty =
     form.name !== user.name ||
     form.surname !== user.surname ||
-    form.email !== user.email ||
+    form.email !== (hasPlaceholderEmail ? '' : user.email) ||
     form.phone !== user.phone ||
     form.role !== user.role;
 
@@ -104,7 +107,9 @@ const UserDetailPanel = ({
     setSaveSuccess(null);
     setIsSaving(true);
     try {
-      await adminUpdateUser(user.dni, form);
+      const payload: AdminUpdateUserPayload = { ...form };
+      if (!payload.email?.trim()) delete payload.email;
+      await adminUpdateUser(user.dni, payload);
       setSaveSuccess('Cambios guardados.');
       onChanged();
     } catch (err) {
@@ -171,6 +176,9 @@ const UserDetailPanel = ({
             <InputField
               label="Email"
               type="email"
+              placeholder={
+                hasPlaceholderEmail ? 'Sin email — creado en el gimnasio' : ''
+              }
               value={form.email ?? ''}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
@@ -250,6 +258,13 @@ const UserDetailPanel = ({
               ))}
             </ul>
           )}
+
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-text-muted">
+              Asignar plan
+            </p>
+            <AssignPlanForm userDni={user.dni} onAssigned={reloadHistory} />
+          </div>
         </section>
 
         <UserClassSection userDni={user.dni} />
