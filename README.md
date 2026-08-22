@@ -63,8 +63,11 @@ Funcionalidades principales:
   un socio, con historial visible tanto para el admin como para el propio socio.
 
 ## Capturas
+<img src="assets/Landingpage.png" alt="Landing de FLG Gym" width="720" />
 
-<img src="assets/MD.drawio.png" alt="Landing de FLG Gym" width="720" />
+Landing Page de FLG: [`assets/Landingpage.png`](assets/Landingpage.png).
+
+<img src="assets/MD.drawio.png" alt="MD de FLG Gym" width="720" />
 
 Diagrama del modelo de dominio: [`assets/MD.drawio.png`](assets/MD.drawio.png).
 
@@ -165,12 +168,6 @@ versionan los `.env.example`.
 | `npm run dev` *(front)* | Servidor de desarrollo Vite |
 | `npm run preview` *(front)* | Sirve el build de producción del frontend |
 
-## Roadmap y estado
-
-Proyecto en desarrollo activo. Fases 0–4 (auth/RBAC, dashboard de socio, dashboard de admin,
-gestión de usuarios y pagos presenciales) están terminadas y verificadas end-to-end. Pendiente:
-integración de pagos online (Mercado Pago) y hardening de seguridad (rate limiting, audit log,
-migraciones). Detalle completo en [`roadmap.md`](roadmap.md).
 
 ## Flujo de trabajo / Contribuciones
 
@@ -199,8 +196,7 @@ git push origin feature/nombre-de-la-feature
 ## Documentación adicional
 
 - [`proposal.md`](proposal.md) — propuesta original del TP: alcance funcional y modelo de dominio.
-- [`specs.md`](specs.md) — especificación de los dashboards de usuario y administrador.
-- [`roadmap.md`](roadmap.md) — plan de implementación por fases y su estado actual.
+
 
 ## Licencia
 
@@ -209,6 +205,6 @@ para la cátedra de Desarrollo de Software, UTN. Todos los derechos reservados a
 
 ## Agradecimientos
 
-- Cátedra de Desarrollo de Software, UTN — consigna y seguimiento del TP.
+- Cátedra de Desarrollo de Software, UTN FRRo (Mgter. Esp. Prof. Ing. Mario O. Bressano e Ing. Gabriel Golzman) — consigna y seguimiento del TP.
 - [NestJS](https://nestjs.com/) y [Vite](https://vite.dev/) por la documentación de referencia
   usada durante el desarrollo.
