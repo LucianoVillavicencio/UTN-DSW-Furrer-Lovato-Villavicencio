@@ -1,29 +1,26 @@
-import { User as UserIcon, X, Info } from 'lucide-react';
+import { User as UserIcon, X, Info, CalendarDays } from 'lucide-react';
 import FormAlert from '../common/FormAlert';
 import {
   renderCategoryIcon,
   type MasterClassData,
 } from './master-classes.data';
-import ClassDaySelector from './ClassDaySelector';
 import ClassHourGrid from './ClassHourGrid';
 import SelectedHourSummary from './SelectedHourSummary';
 
-import type { ClassSession } from '../../types/classSession';
+import type { ClassHour } from './class-hours';
+import { formatWeekdayList } from '../../lib/weekday';
 import type { AuthUser } from '../../types/user';
 
 interface ClassExpandedModalProps {
   activeExpandedClass: MasterClassData | null;
   onClose: () => void;
-  selectedDayOffset: number;
-  setSelectedDayOffset: (offset: number) => void;
-  sessionsForActiveExpandedDay: ClassSession[];
-  activeClassHasSessions: boolean;
-  selectedSession: ClassSession | null;
-  setSelectedSession: (session: ClassSession | null) => void;
-  isEnrolledInSession: (sessionId?: number) => boolean;
+  hoursForActiveClass: ClassHour[];
+  selectedHour: ClassHour | null;
+  setSelectedHour: (hour: ClassHour | null) => void;
+  isEnrolledInHour: (hour: ClassHour | null) => boolean;
   hasActivePlan: boolean;
-  handleEnrollSession: (session: ClassSession) => void;
-  handleCancelSession: (session: ClassSession) => void;
+  handleEnrollHour: (hour: ClassHour) => void;
+  handleCancelHour: (hour: ClassHour) => void;
   currentUser: AuthUser | null;
   actionLoading: boolean;
   actionFeedback: { type: 'success' | 'error'; message: string } | null;
@@ -32,21 +29,22 @@ interface ClassExpandedModalProps {
 const ClassExpandedModal = ({
   activeExpandedClass,
   onClose,
-  selectedDayOffset,
-  setSelectedDayOffset,
-  sessionsForActiveExpandedDay,
-  activeClassHasSessions,
-  selectedSession,
-  setSelectedSession,
-  isEnrolledInSession,
+  hoursForActiveClass,
+  selectedHour,
+  setSelectedHour,
+  isEnrolledInHour,
   hasActivePlan,
-  handleEnrollSession,
-  handleCancelSession,
+  handleEnrollHour,
+  handleCancelHour,
   currentUser,
   actionLoading,
   actionFeedback,
 }: ClassExpandedModalProps) => {
   if (!activeExpandedClass) return null;
+
+  // The days this class runs, taken from its published turnos rather than from
+  // presentation text.
+  const weekdays = [...new Set(hoursForActiveClass.flatMap((h) => h.weekdays))];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-in fade-in duration-200">
@@ -81,16 +79,26 @@ const ClassExpandedModal = ({
           {activeExpandedClass.trainer?.surname}
         </p>
 
-        {/* EXPANDED EXPLANATION OF DAYS & SCHEDULES */}
+        {/* WEEKLY SCHEDULE OF THIS CLASS */}
         <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-primary">
-                Detalle y Días de Dictado
+                Cómo funciona la inscripción
               </h4>
               <p className="mt-1 text-xs text-text leading-relaxed">
-                {activeExpandedClass.scheduleExplanation}
+                {activeExpandedClass.description}
+              </p>
+              {weekdays.length > 0 && (
+                <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-text">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  Se dicta los {formatWeekdayList(weekdays)}, todas las semanas.
+                </p>
+              )}
+              <p className="mt-2 text-xs text-text-muted leading-relaxed">
+                Elegís un horario una sola vez y ese lugar queda reservado
+                semana a semana, en todos los días en que se dicta la clase.
               </p>
             </div>
           </div>
@@ -106,34 +114,24 @@ const ClassExpandedModal = ({
           </div>
         )}
 
-        {/* DAY SELECTION TABS */}
-        <ClassDaySelector
-          selectedDayOffset={selectedDayOffset}
-          onSelectDay={(offset) => {
-            setSelectedDayOffset(offset);
-            setSelectedSession(null);
-          }}
-        />
-
-        {/* ALL HOURS SELECTION GRID FOR SELECTED DAY */}
+        {/* WEEKLY HOURS */}
         <ClassHourGrid
-          sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
-          activeClassHasSessions={activeClassHasSessions}
-          selectedSession={selectedSession}
-          onSelectHour={(t) => setSelectedSession(t)}
-          isEnrolledInSession={isEnrolledInSession}
+          hours={hoursForActiveClass}
+          selectedHour={selectedHour}
+          onSelectHour={setSelectedHour}
+          isEnrolledInHour={isEnrolledInHour}
         />
 
         {/* SELECTED HOUR SUMMARY & ENROLL ACTION */}
-        {selectedSession && (
+        {selectedHour && (
           <SelectedHourSummary
-            selectedSession={selectedSession}
-            isEnrolled={isEnrolledInSession(selectedSession.id)}
+            selectedHour={selectedHour}
+            isEnrolled={isEnrolledInHour(selectedHour)}
             hasActivePlan={hasActivePlan}
             currentUser={currentUser}
             actionLoading={actionLoading}
-            onEnroll={handleEnrollSession}
-            onCancel={handleCancelSession}
+            onEnroll={handleEnrollHour}
+            onCancel={handleCancelHour}
           />
         )}
       </div>

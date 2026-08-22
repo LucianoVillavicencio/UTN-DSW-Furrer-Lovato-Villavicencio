@@ -12,20 +12,17 @@ import {
 } from './class-session-form';
 import { useClassSessions } from './useClassSessions';
 import type { ClassSession } from '../../types/classSession';
+import { formatTimeOfDay, weekdayLabel } from '../../lib/weekday';
 
-// The date/time inputs speak local time, and so does the display, so the
-// conversion never goes through UTC — the same reason lib/date.ts exists.
-const toFormState = (session: ClassSession): ClassSessionFormState => {
-  const d = new Date(session.dateTime);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return {
-    id: session.id,
-    classId: session.classId,
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-    maxCapacity: String(session.maxCapacity),
-  };
-};
+// Editing moves one slot, so the lists the create grid fills hold exactly one
+// value each.
+const toFormState = (session: ClassSession): ClassSessionFormState => ({
+  id: session.id,
+  classId: session.classId,
+  weekdays: [session.weekday],
+  times: [formatTimeOfDay(session.startTime)],
+  maxCapacity: String(session.maxCapacity),
+});
 
 const ClassSessionsSection = () => {
   const [showDeleted, setShowDeleted] = useState(false);
@@ -74,18 +71,8 @@ const ClassSessionsSection = () => {
 
   const columns: DataTableColumn<ClassSession>[] = [
     { header: 'Clase', cell: className },
-    {
-      header: 'Fecha',
-      cell: (s) => new Date(s.dateTime).toLocaleDateString('es-AR'),
-    },
-    {
-      header: 'Hora',
-      cell: (s) =>
-        new Date(s.dateTime).toLocaleTimeString('es-AR', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-    },
+    { header: 'Día', cell: (s) => weekdayLabel(s.weekday) },
+    { header: 'Hora', cell: (s) => `${formatTimeOfDay(s.startTime)} hs` },
     {
       header: 'Cupo',
       cell: (s) => `${s.availableSpots ?? s.maxCapacity} / ${s.maxCapacity}`,
@@ -169,7 +156,7 @@ const ClassSessionsSection = () => {
       <DataTable
         columns={columns}
         rows={sessions}
-        rowKey={(s) => s.id ?? `${s.classId}-${s.dateTime}`}
+        rowKey={(s) => s.id ?? `${s.classId}-${s.weekday}-${s.startTime}`}
         isLoading={isLoading}
         emptyMessage={
           showDeleted
@@ -180,7 +167,7 @@ const ClassSessionsSection = () => {
 
       {(isCreating || editing) && (
         <Modal
-          title={isCreating ? 'Agregar turno' : 'Editar turno'}
+          title={isCreating ? 'Agregar turnos semanales' : 'Editar turno'}
           onClose={closeModal}
         >
           <ClassSessionForm
@@ -188,6 +175,7 @@ const ClassSessionsSection = () => {
             classes={classes}
             error={formError}
             isSaving={isSaving}
+            isEditing={!!editing}
             onChange={setForm}
             onSubmit={handleSubmit}
             onCancel={closeModal}
@@ -201,7 +189,7 @@ const ClassSessionsSection = () => {
           description={
             showDeleted
               ? `¿Restaurar el turno de ${className(pendingDelete)}?`
-              : `¿Eliminar el turno de ${className(pendingDelete)}? Las inscripciones existentes dejan de tener sentido.`
+              : `¿Eliminar el turno de ${className(pendingDelete)}? Los socios inscriptos en ese horario pierden ese día de la semana.`
           }
           confirmLabel={showDeleted ? 'Restaurar' : 'Eliminar'}
           danger={!showDeleted}

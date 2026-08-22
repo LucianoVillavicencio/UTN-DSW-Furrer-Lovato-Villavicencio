@@ -1,18 +1,21 @@
-// A session is a class on a specific day and hour, so the form edits the date
-// and the time separately and the section joins them back into a dateTime.
+// A turno is a weekly slot, so the form edits weekdays and hours, never a date.
+// Creating takes several of each at once — "Funcional on Mon/Wed/Fri at 8, 14
+// and 19" is one save — while editing moves a single existing slot, so both
+// lists hold exactly one value then.
 // Kept out of the .tsx so that file exports nothing but its component, which is
 // what Fast Refresh needs.
 export interface ClassSessionFormState {
   id?: number;
   classId: number;
-  date: string;
-  time: string;
+  weekdays: number[];
+  // 'HH:MM', as <input type="time"> speaks it.
+  times: string[];
   maxCapacity: string;
 }
 
 export const emptyClassSessionForm: ClassSessionFormState = {
   classId: 0,
-  date: '',
-  time: '',
+  weekdays: [],
+  times: [''],
   maxCapacity: '20',
 };

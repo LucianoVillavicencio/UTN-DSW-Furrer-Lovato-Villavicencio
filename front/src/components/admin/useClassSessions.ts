@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   getClassSession,
   getDeletedClassSessions,
-  createClassSession,
+  createWeeklyClassSessions,
   updateClassSession,
   deleteClassSession,
   restoreClassSession,
@@ -36,8 +36,9 @@ export const useClassSessions = (showDeleted: boolean) => {
     ])
       .then(([sessionsData, classesData]) => {
         setSessions(
-          [...sessionsData].sort((a, b) =>
-            a.dateTime < b.dateTime ? -1 : a.dateTime > b.dateTime ? 1 : 0,
+          [...sessionsData].sort(
+            (a, b) =>
+              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
           ),
         );
         setClasses(classesData);
@@ -59,21 +60,22 @@ export const useClassSessions = (showDeleted: boolean) => {
     return fetchSessions(showDeleted);
   };
 
-  // Returns null on success, or the message to show in the form.
+  // Returns null on success, or the message to show in the form. Creating goes
+  // through the weekly endpoint so every day × hour combination is one request;
+  // editing moves a single existing slot.
   const save = async (
     form: ClassSessionFormState,
     editing: ClassSession | null,
   ): Promise<string | null> => {
     const maxCapacity = Number(form.maxCapacity);
-    if (!form.classId || !form.date || !form.time) {
-      return 'Clase, fecha y hora son obligatorias.';
+    const times = form.times.map((t) => t.trim()).filter((t) => t.length > 0);
+
+    if (!form.classId || form.weekdays.length === 0 || times.length === 0) {
+      return 'Clase, día y horario son obligatorios.';
     }
     if (!Number.isFinite(maxCapacity) || maxCapacity < 1) {
       return 'El cupo máximo tiene que ser mayor a cero.';
     }
-
-    // No trailing Z, so the browser reads it as the local time the admin typed.
-    const dateTime = new Date(`${form.date}T${form.time}:00`).toISOString();
 
     setIsSaving(true);
     try {
@@ -81,16 +83,21 @@ export const useClassSessions = (showDeleted: boolean) => {
         await updateClassSession({
           id: editing.id,
           classId: form.classId,
-          dateTime,
+          weekday: form.weekdays[0],
+          startTime: times[0],
           maxCapacity,
           availableSpots: editing.availableSpots,
         });
       } else {
-        await createClassSession({
+        const result = await createWeeklyClassSessions({
           classId: form.classId,
-          dateTime,
+          weekdays: form.weekdays,
+          times,
           maxCapacity,
         });
+        if (result.created === 0) {
+          return 'Esos turnos ya existían — no se creó ninguno nuevo.';
+        }
       }
       await reload();
       return null;

@@ -1,4 +1,8 @@
-import type { ClassSession } from '../types/classSession';
+import type {
+  ClassSession,
+  WeeklyClassSessions,
+  WeeklyClassSessionsResult,
+} from '../types/classSession';
 import api from './api';
 import { getApiErrorMessage } from './api-error';
 
@@ -54,6 +58,24 @@ export const createClassSession = async (
     return data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Error al crear el turno'), {
+      cause: error,
+    });
+  }
+};
+
+// Admin weekly grid: one request creates every weekday × hour combination and
+// reports how many already existed.
+export const createWeeklyClassSessions = async (
+  weekly: WeeklyClassSessions,
+): Promise<WeeklyClassSessionsResult> => {
+  try {
+    const { data } = await api.post<WeeklyClassSessionsResult>(
+      '/classSession/weekly',
+      weekly,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Error al crear los turnos'), {
       cause: error,
     });
   }
