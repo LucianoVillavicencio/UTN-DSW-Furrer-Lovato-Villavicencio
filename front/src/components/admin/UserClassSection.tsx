@@ -1,51 +1,32 @@
 import { useEffect, useState } from 'react';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
-import { getClass } from '../../services/class.service';
-import { getClassSession } from '../../services/classSession.service';
 import {
   cancelMemberEnrollment,
   changeMemberClass,
   getMemberEnrollments,
 } from '../../services/classRegistration.service';
-import { groupSessionsByHour, type ClassHour } from '../classes/class-hours';
 import { formatTimeOfDay, formatWeekdayList } from '../../lib/weekday';
 import type { MyEnrollments } from '../../types/classRegistration';
-import type { Class } from '../../types/class';
+import ClassHourSelect from './ClassHourSelect';
+import { classOptionKey, useClassOptions } from './useClassOptions';
 
 interface UserClassSectionProps {
   userDni: number;
 }
 
-interface ClassOption extends ClassHour {
-  className: string;
-}
-
-const optionKey = (o: Pick<ClassOption, 'classId' | 'startTime'>) =>
-  `${o.classId}-${o.startTime}`;
-
-const buildOptions = (
-  classes: Class[],
-  sessions: Parameters<typeof groupSessionsByHour>[0],
-): ClassOption[] =>
-  classes.flatMap((c) =>
-    groupSessionsByHour(sessions, c.id ?? 0).map((hour) => ({
-      ...hour,
-      className: c.name,
-    })),
-  );
-
 // Lets an admin change a member's class in person, bypassing the monthly
 // change cap the self-service classes page enforces — the plan's class-count
 // allowance still applies, only the change limit is skipped.
 const UserClassSection = ({ userDni }: UserClassSectionProps) => {
+  const {
+    options,
+    isLoading: isLoadingOptions,
+    error: optionsError,
+  } = useClassOptions();
   const [enrollments, setEnrollments] = useState<MyEnrollments | null>(null);
-  const [options, setOptions] = useState<ClassOption[]>([]);
-  // "Loading" is derived from which member the data in state belongs to, so
-  // switching members shows the spinner without this component writing state
-  // from inside an effect.
   const [loadedForDni, setLoadedForDni] = useState<number | null>(null);
-  const isLoading = loadedForDni !== userDni;
+  const isLoading = loadedForDni !== userDni || isLoadingOptions;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState('');
   const [replacingGroup, setReplacingGroup] = useState('');
@@ -53,10 +34,9 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const load = () =>
-    Promise.all([getMemberEnrollments(userDni), getClass(), getClassSession()])
-      .then(([myEnrollments, classes, sessions]) => {
+    getMemberEnrollments(userDni)
+      .then((myEnrollments) => {
         setEnrollments(myEnrollments);
-        setOptions(buildOptions(classes, sessions));
         setLoadError(null);
       })
       .catch((err: unknown) => {
@@ -78,7 +58,7 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
 
   const handleChange = async () => {
     setActionError(null);
-    const option = options.find((o) => optionKey(o) === selectedOption);
+    const option = options.find((o) => classOptionKey(o) === selectedOption);
     if (!option) {
       setActionError('Elegí una clase y un horario.');
       return;
@@ -126,8 +106,8 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
 
       {isLoading ? (
         <p className="mt-3 text-sm text-text-muted">Cargando...</p>
-      ) : loadError ? (
-        <FormAlert type="error" message={loadError} />
+      ) : loadError || optionsError ? (
+        <FormAlert type="error" message={loadError ?? optionsError} />
       ) : (
         <>
           {activeEnrollments.length === 0 ? (
@@ -167,19 +147,11 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
 
           <div className="mt-4 space-y-2">
             <div className="grid gap-2 sm:grid-cols-2">
-              <select
+              <ClassHourSelect
+                options={options}
                 value={selectedOption}
-                onChange={(e) => setSelectedOption(e.target.value)}
-                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text"
-              >
-                <option value="">Elegir clase y horario...</option>
-                {options.map((o) => (
-                  <option key={optionKey(o)} value={optionKey(o)}>
-                    {o.className} — {formatWeekdayList(o.weekdays)}{' '}
-                    {formatTimeOfDay(o.startTime)} hs
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedOption}
+              />
 
               {activeEnrollments.length > 0 && (
                 <select
