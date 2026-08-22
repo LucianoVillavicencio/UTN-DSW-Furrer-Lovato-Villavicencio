@@ -9,6 +9,7 @@ import { SubscriptionDto } from './dto/subscription-dto';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
+import { UserService } from '../user/user.service';
 
 // Formats using the LOCAL date parts, not UTC, so that "today" in the server's
 // timezone does not shift to the previous or next day on its way into a MySQL
@@ -26,13 +27,14 @@ export class subscriptionService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private readonly planService: PlanService,
+    private readonly userService: UserService,
   ) {}
 
   // Moves the authenticated user to another plan: closes the active
   // subscription, if there is one, and opens a new one on the chosen plan. This
   // is not a payment — the charge is settled separately (in person for now,
   // through Mercado Pago later); see specs.md §2.3.
-  async changePlan(userDni: number, planId: number) {
+  async changePlan(userDni: number, planId: number, byAdmin = false) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
       throw new NotFoundException(`El plan con ID: ${planId} no existe.`);
@@ -48,7 +50,11 @@ export class subscriptionService {
 
     if (currentActive) {
       if (currentActive.planId === planId) {
-        throw new ConflictException('Ya estás suscripto a este plan.');
+        throw new ConflictException(
+          byAdmin
+            ? 'El socio ya está suscripto a este plan.'
+            : 'Ya estás suscripto a este plan.',
+        );
       }
       currentActive.state = SubscriptionState.CANCELLED;
       await this.subscriptionRepository.save(currentActive);
@@ -76,6 +82,17 @@ export class subscriptionService {
     return this.findSubscription(
       (await this.subscriptionRepository.save(newSubscription)).id,
     );
+  }
+
+  // Same move as changePlan, made by an admin on behalf of a member who is
+  // standing at the counter. The DNI comes from the route instead of the JWT,
+  // so unlike the self-service path it has to be checked.
+  async assignPlanToMember(userDni: number, planId: number) {
+    const member = await this.userService.findUser(userDni);
+    if (!member || member.deleted) {
+      throw new NotFoundException(`El socio con DNI: ${userDni} no existe.`);
+    }
+    return this.changePlan(userDni, planId, true);
   }
 
   // Full subscription history of one specific user (admin Users panel), most
