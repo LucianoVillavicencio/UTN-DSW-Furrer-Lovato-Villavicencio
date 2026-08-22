@@ -74,7 +74,7 @@ const ClassHourGrid = ({
                 key={t.id}
                 type="button"
                 onClick={() => onSelectHour(t)}
-                className={`group relative flex flex-col justify-between min-h-[96px] rounded-2xl p-3.5 text-left transition-all duration-200 active:scale-95 cursor-pointer ${
+                className={`group relative flex flex-col justify-between min-h-24 rounded-2xl p-3.5 text-left transition-all duration-200 active:scale-95 cursor-pointer ${
                   isSelected
                     ? 'border-2 border-primary bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/10'
                     : 'border border-border bg-background hover:border-primary/50 hover:bg-surface/60'

@@ -4,11 +4,7 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import PlanCard from '../plans/PlanCard';
-import {
-  MEMBERSHIP_PLANS,
-  enrichBackendPlan,
-  type MembershipPlan,
-} from '../plans/plans.data';
+import { enrichBackendPlan, type MembershipPlan } from '../plans/plans.data';
 import { getPlans } from '../../services/plan.service';
 import {
   getMySubscription,
@@ -34,36 +30,44 @@ const PlanSection = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [plansRes, subRes] = await Promise.allSettled([
-        getPlans(),
-        getMySubscription(),
-      ]);
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchPlans = () =>
+    Promise.allSettled([getPlans(), getMySubscription()])
+      .then(([plansRes, subRes]) => {
+        // No hardcoded fallback: showing invented plans hid the failure and let
+        // people pick a plan that does not exist in the backend.
+        if (plansRes.status === 'fulfilled') {
+          setPlans(plansRes.value.map(enrichBackendPlan));
+        } else {
+          setPlans([]);
+          setLoadError(
+            plansRes.reason instanceof Error
+              ? plansRes.reason.message
+              : 'No se pudieron cargar los planes.',
+          );
+        }
 
-      if (plansRes.status === 'fulfilled' && plansRes.value.length > 0) {
-        setPlans(plansRes.value.map(enrichBackendPlan));
-      } else {
-        setPlans(MEMBERSHIP_PLANS);
-      }
-
-      setSubscription(subRes.status === 'fulfilled' ? subRes.value : null);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudieron cargar los planes.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setSubscription(subRes.status === 'fulfilled' ? subRes.value : null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error
+            ? err.message
+            : 'No se pudieron cargar los planes.',
+        );
+      })
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
-    load();
+    void fetchPlans();
   }, []);
+
+  const reload = () => {
+    setIsLoading(true);
+    setLoadError(null);
+    void fetchPlans();
+  };
 
   const handleSelect = (plan: MembershipPlan) => {
     setActionError(null);
@@ -102,10 +106,10 @@ const PlanSection = () => {
 
   if (loadError) {
     return (
-      <Card className="text-center hover:-translate-y-0 hover:shadow-lg">
+      <Card className="text-center hover:translate-y-0 hover:shadow-lg">
         <AlertCircle className="mx-auto h-10 w-10 text-red-400" />
         <p className="mt-3 text-sm text-text-muted">{loadError}</p>
-        <Button onClick={load} variant="secondary" size="sm" className="mt-4">
+        <Button onClick={reload} variant="secondary" size="sm" className="mt-4">
           Reintentar
         </Button>
       </Card>
@@ -120,7 +124,7 @@ const PlanSection = () => {
       <FormAlert type="success" message={actionSuccess} />
       <FormAlert type="error" message={actionError} />
 
-      <Card className="hover:-translate-y-0 hover:shadow-lg">
+      <Card className="hover:translate-y-0 hover:shadow-lg">
         <h3 className="font-display text-lg font-semibold text-text">
           Plan actual
         </h3>
@@ -153,20 +157,29 @@ const PlanSection = () => {
         <h3 className="font-display text-lg font-semibold text-text">
           Cambiar de plan
         </h3>
-        <div className="mt-4 grid gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.id ?? plan.name}
-              plan={plan}
-              onSelect={handleSelect}
-              isCurrentSubscription={
-                !!plan.id &&
-                plan.id === currentPlanId &&
-                currentState === 'activa'
-              }
-            />
-          ))}
-        </div>
+        {plans.length === 0 ? (
+          <Card className="mt-4 text-center hover:translate-y-0 hover:shadow-lg">
+            <p className="text-sm text-text-muted">
+              No hay planes disponibles en este momento. Consultá en el gimnasio
+              por las opciones vigentes.
+            </p>
+          </Card>
+        ) : (
+          <div className="mt-4 grid gap-6 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id ?? plan.name}
+                plan={plan}
+                onSelect={handleSelect}
+                isCurrentSubscription={
+                  !!plan.id &&
+                  plan.id === currentPlanId &&
+                  currentState === 'activa'
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {pendingPlan && (
@@ -175,7 +188,7 @@ const PlanSection = () => {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
         >
-          <Card className="w-full max-w-sm hover:-translate-y-0 hover:shadow-lg">
+          <Card className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg">
             <h4 className="font-display text-lg font-semibold text-text">
               Confirmar cambio de plan
             </h4>

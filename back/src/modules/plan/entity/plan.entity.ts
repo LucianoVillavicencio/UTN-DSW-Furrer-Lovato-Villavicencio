@@ -25,6 +25,12 @@ export class Plan {
   @Column({ type: 'json', nullable: true })
   features?: PlanFeature[] | null;
 
+  // Shows the "Más popular" badge on the public plans page. It is a plain
+  // flag per plan: the admin decides which ones carry it, and more than one
+  // plan may be marked.
+  @Column({ type: Boolean, nullable: false, default: false })
+  highlighted!: boolean;
+
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
 }

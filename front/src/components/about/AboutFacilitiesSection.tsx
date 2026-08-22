@@ -166,7 +166,7 @@ const AboutFacilitiesSection = () => {
               >
                 <div>
                   {/* Facility Card Thumbnail Header */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-background">
+                  <div className="relative aspect-16/10 w-full overflow-hidden bg-background">
                     <img
                       src={imageSrc}
                       onError={() => handleImageError(facility.id)}
@@ -176,7 +176,7 @@ const AboutFacilitiesSection = () => {
                       height={400}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/20 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-linear-to-t from-surface via-surface/20 to-transparent pointer-events-none" />
 
                     {/* Floating Badge */}
                     <div className="absolute top-4 right-4 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-md shadow-md">

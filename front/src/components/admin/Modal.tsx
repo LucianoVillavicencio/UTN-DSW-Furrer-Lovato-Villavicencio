@@ -26,7 +26,7 @@ const Modal = ({ title, onClose, children }: ModalProps) => {
       onClick={onClose}
     >
       <Card
-        className="w-full max-w-lg hover:-translate-y-0 hover:shadow-lg"
+        className="w-full max-w-lg hover:translate-y-0 hover:shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border pb-4">

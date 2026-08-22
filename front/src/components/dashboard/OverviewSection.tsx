@@ -40,7 +40,7 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
       </p>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <Card className="hover:-translate-y-0 hover:shadow-lg">
+        <Card className="hover:translate-y-0 hover:shadow-lg">
           <div className="flex items-center gap-2 text-primary">
             <CreditCard className="h-5 w-5" />
             <h3 className="font-display text-sm font-semibold uppercase tracking-wide">
@@ -73,7 +73,7 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
           </Button>
         </Card>
 
-        <Card className="hover:-translate-y-0 hover:shadow-lg">
+        <Card className="hover:translate-y-0 hover:shadow-lg">
           <div className="flex items-center gap-2 text-primary">
             <Receipt className="h-5 w-5" />
             <h3 className="font-display text-sm font-semibold uppercase tracking-wide">

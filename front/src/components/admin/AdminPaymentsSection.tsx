@@ -12,24 +12,30 @@ const AdminPaymentsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = await getPayments();
-      setPayments(data.sort((a, b) => (a.date < b.date ? 1 : -1)));
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar el historial.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the request instead of updating state while React renders.
+  const fetchPayments = () =>
+    getPayments()
+      .then((data) => {
+        setPayments(data.sort((a, b) => (a.date < b.date ? 1 : -1)));
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar el historial.',
+        );
+      })
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
-    load();
+    void fetchPayments();
   }, []);
+
+  const reload = () => {
+    setIsLoading(true);
+    setLoadError(null);
+    void fetchPayments();
+  };
 
   const columns: DataTableColumn<Payment>[] = [
     { header: 'Fecha', cell: (p) => formatDateOnly(p.date.slice(0, 10)) },
@@ -54,8 +60,8 @@ const AdminPaymentsSection = () => {
         <h3 className="font-display text-lg font-semibold text-text">
           Registrar pago presencial
         </h3>
-        <Card className="mt-4 hover:-translate-y-0 hover:shadow-lg">
-          <RegisterPaymentForm onRegistered={load} />
+        <Card className="mt-4 hover:translate-y-0 hover:shadow-lg">
+          <RegisterPaymentForm onRegistered={reload} />
         </Card>
       </div>
 

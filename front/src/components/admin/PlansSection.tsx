@@ -17,12 +17,22 @@ import {
 import type { Plan, PlanFeature } from '../../types/plan';
 import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
 
-const emptyForm: Plan = { name: '', description: '', price: 0, numDays: 30 };
+const emptyForm: Plan = {
+  name: '',
+  description: '',
+  price: 0,
+  numDays: 30,
+  highlighted: false,
+};
 
 const PlansSection = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Plan | null>(null);
@@ -42,25 +52,29 @@ const PlansSection = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = showDeleted ? await getDeletedPlans() : await getPlans();
-      setPlans(data);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the request instead of updating state while React renders.
+  const fetchPlans = (deleted: boolean) =>
+    (deleted ? getDeletedPlans() : getPlans())
+      .then((data) => {
+        setPlans(data);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchPlans(showDeleted);
   }, [showDeleted]);
+
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchPlans(showDeleted);
+  };
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -122,7 +136,13 @@ const PlansSection = () => {
     const features = featuresForm
       .map((f) => ({ ...f, label: f.label.trim() }))
       .filter((f) => f.label.length > 0);
-    const payload: Plan = { ...form, price, numDays, features };
+    const payload: Plan = {
+      ...form,
+      name: form.name.trim(),
+      price,
+      numDays,
+      features,
+    };
 
     setIsSaving(true);
     try {
@@ -132,7 +152,7 @@ const PlansSection = () => {
         await updatePlan(payload);
       }
       closeModal();
-      await load();
+      await reload();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
@@ -151,7 +171,7 @@ const PlansSection = () => {
         await deletePlan(pendingDelete.id);
       }
       setPendingDelete(null);
-      await load();
+      await reload();
     } catch (err) {
       setListError(
         err instanceof Error ? err.message : 'No se pudo completar la acción.',
@@ -162,7 +182,19 @@ const PlansSection = () => {
   };
 
   const columns: DataTableColumn<Plan>[] = [
-    { header: 'Nombre', cell: (p) => p.name },
+    {
+      header: 'Nombre',
+      cell: (p) => (
+        <span className="flex items-center gap-2">
+          {p.name}
+          {p.highlighted && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              Más popular
+            </span>
+          )}
+        </span>
+      ),
+    },
     { header: 'Precio', cell: (p) => `$${formatPriceDisplay(p.price)}` },
     { header: 'Días', cell: (p) => p.numDays },
     {
@@ -287,6 +319,24 @@ const PlansSection = () => {
                 onChange={(e) => setNumDaysText(e.target.value)}
               />
             </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={form.highlighted ?? false}
+                onChange={(e) =>
+                  setForm({ ...form, highlighted: e.target.checked })
+                }
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span className="text-sm text-text">
+                Destacar como "Más popular"
+                <span className="mt-0.5 block text-xs text-text-muted">
+                  Muestra la etiqueta en la página de planes. Se puede destacar
+                  más de un plan.
+                </span>
+              </span>
+            </label>
 
             <div className="border-t border-border pt-4">
               <div className="mb-2 flex items-center justify-between">

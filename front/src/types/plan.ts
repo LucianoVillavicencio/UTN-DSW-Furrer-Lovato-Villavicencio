@@ -10,5 +10,6 @@ export interface Plan {
   price: number;
   numDays: number;
   features?: PlanFeature[] | null;
+  highlighted?: boolean;
   deleted?: boolean;
 }

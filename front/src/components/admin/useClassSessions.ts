@@ -18,38 +18,46 @@ import type { ClassSessionFormState } from './class-session-form';
 export const useClassSessions = (showDeleted: boolean) => {
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [sessionsData, classesData] = await Promise.all([
-        showDeleted ? getDeletedClassSessions() : getClassSession(),
-        getClass().catch(() => []),
-      ]);
-      setSessions(
-        [...sessionsData].sort((a, b) =>
-          a.dateTime < b.dateTime ? -1 : a.dateTime > b.dateTime ? 1 : 0,
-        ),
-      );
-      setClasses(classesData);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchSessions = (deleted: boolean) =>
+    Promise.all([
+      deleted ? getDeletedClassSessions() : getClassSession(),
+      getClass().catch(() => []),
+    ])
+      .then(([sessionsData, classesData]) => {
+        setSessions(
+          [...sessionsData].sort((a, b) =>
+            a.dateTime < b.dateTime ? -1 : a.dateTime > b.dateTime ? 1 : 0,
+          ),
+        );
+        setClasses(classesData);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchSessions(showDeleted);
   }, [showDeleted]);
+
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchSessions(showDeleted);
+  };
 
   // Returns null on success, or the message to show in the form.
   const save = async (
@@ -84,7 +92,7 @@ export const useClassSessions = (showDeleted: boolean) => {
           maxCapacity,
         });
       }
-      await load();
+      await reload();
       return null;
     } catch (err) {
       return err instanceof Error ? err.message : 'No se pudo guardar.';
@@ -104,7 +112,7 @@ export const useClassSessions = (showDeleted: boolean) => {
       } else {
         await deleteClassSession(session.id);
       }
-      await load();
+      await reload();
       return null;
     } catch (err) {
       return err instanceof Error

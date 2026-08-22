@@ -85,7 +85,7 @@ const HeroSection = () => {
             >
               Tu navegador no soporta el elemento de video.
             </video>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
             {/* Floating badge */}
             <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-surface/80 p-4 backdrop-blur-md shadow-xl">

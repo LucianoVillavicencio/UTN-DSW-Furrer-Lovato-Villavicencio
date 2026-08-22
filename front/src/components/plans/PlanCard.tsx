@@ -33,7 +33,9 @@ const PlanCard = ({
       <div className="space-y-5">
         <div>
           <h3 className="text-3xl font-bold text-text">{plan.name}</h3>
-          <p className="mt-2 text-sm text-text-muted">{plan.description}</p>
+          {plan.description && (
+            <p className="mt-2 text-sm text-text-muted">{plan.description}</p>
+          )}
         </div>
 
         <div className="flex items-end gap-3">

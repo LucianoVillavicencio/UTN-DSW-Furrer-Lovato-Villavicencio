@@ -35,7 +35,7 @@ const ClassDaySelector = ({
               key={offset}
               type="button"
               onClick={() => onSelectDay(offset)}
-              className={`snap-start flex flex-col items-center justify-center min-w-[76px] rounded-xl px-4 py-2.5 text-xs transition-all duration-200 active:scale-95 cursor-pointer ${
+              className={`snap-start flex flex-col items-center justify-center min-w-19 rounded-xl px-4 py-2.5 text-xs transition-all duration-200 active:scale-95 cursor-pointer ${
                 isSelectedDay
                   ? 'bg-primary text-background font-bold shadow-md shadow-primary/20 ring-2 ring-primary'
                   : 'bg-background border border-border text-text-muted hover:text-text hover:border-primary/50'

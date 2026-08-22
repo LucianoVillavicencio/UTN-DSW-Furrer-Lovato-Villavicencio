@@ -35,7 +35,11 @@ const ClassesSection = () => {
   const [types, setTypes] = useState<TypeClass[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Class | null>(null);
@@ -53,31 +57,35 @@ const ClassesSection = () => {
   const [typeError, setTypeError] = useState<string | null>(null);
   const [isSavingType, setIsSavingType] = useState(false);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [classesData, typesRes, trainersRes] = await Promise.all([
-        showDeleted ? getDeletedClasses() : getClass(),
-        getTypeClass().catch(() => []),
-        getTrainers().catch(() => []),
-      ]);
-      setClasses(classesData);
-      setTypes(typesRes);
-      setTrainers(trainersRes);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchClasses = (deleted: boolean) =>
+    Promise.all([
+      deleted ? getDeletedClasses() : getClass(),
+      getTypeClass().catch(() => []),
+      getTrainers().catch(() => []),
+    ])
+      .then(([classesData, typesRes, trainersRes]) => {
+        setClasses(classesData);
+        setTypes(typesRes);
+        setTrainers(trainersRes);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchClasses(showDeleted);
   }, [showDeleted]);
+
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchClasses(showDeleted);
+  };
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -111,7 +119,7 @@ const ClassesSection = () => {
         await updateClass(form);
       }
       closeModal();
-      await load();
+      await reload();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
@@ -130,7 +138,7 @@ const ClassesSection = () => {
         await deleteClass(pendingDelete.id);
       }
       setPendingDelete(null);
-      await load();
+      await reload();
     } catch (err) {
       setListError(
         err instanceof Error ? err.message : 'No se pudo completar la acción.',

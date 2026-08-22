@@ -28,7 +28,11 @@ const emptyForm: Trainer = {
 const TrainersSection = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Trainer | null>(null);
@@ -41,27 +45,29 @@ const TrainersSection = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = showDeleted
-        ? await getDeletedTrainers()
-        : await getTrainers();
-      setTrainers(data);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the request instead of updating state while React renders.
+  const fetchTrainers = (deleted: boolean) =>
+    (deleted ? getDeletedTrainers() : getTrainers())
+      .then((data) => {
+        setTrainers(data);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchTrainers(showDeleted);
   }, [showDeleted]);
+
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchTrainers(showDeleted);
+  };
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -99,7 +105,7 @@ const TrainersSection = () => {
         await updateTrainer(form);
       }
       closeModal();
-      await load();
+      await reload();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
@@ -118,7 +124,7 @@ const TrainersSection = () => {
         await deleteTrainer(pendingDelete.dni);
       }
       setPendingDelete(null);
-      await load();
+      await reload();
     } catch (err) {
       setListError(
         err instanceof Error ? err.message : 'No se pudo completar la acción.',

@@ -29,7 +29,7 @@ const ConfirmDialog = ({
       onClick={onCancel}
     >
       <Card
-        className="w-full max-w-sm hover:-translate-y-0 hover:shadow-lg"
+        className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h4 className="font-display text-lg font-semibold text-text">
@@ -40,7 +40,7 @@ const ConfirmDialog = ({
           <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 ${danger ? '!bg-red-500 hover:!bg-red-600 !text-white' : ''}`}
+            className={`flex-1 ${danger ? 'bg-red-500! hover:bg-red-600! text-white!' : ''}`}
           >
             {isLoading ? 'Procesando...' : confirmLabel}
           </Button>

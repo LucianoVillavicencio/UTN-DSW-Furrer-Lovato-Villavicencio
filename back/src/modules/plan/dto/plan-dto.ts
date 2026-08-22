@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -24,6 +24,11 @@ export class PlanDto {
   @IsOptional()
   id?: number;
 
+  // Trimmed before validating: @IsNotEmpty only rejects an empty string, so a
+  // name of spaces would otherwise be stored and render as a nameless card.
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -47,6 +52,10 @@ export class PlanDto {
   @Type(() => PlanFeatureDto)
   @IsOptional()
   features?: PlanFeatureDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  highlighted?: boolean;
 
   @IsBoolean()
   @IsOptional()

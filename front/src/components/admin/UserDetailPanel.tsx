@@ -23,6 +23,12 @@ import type { User } from '../../types/user';
 import type { Subscription } from '../../types/subscription';
 import type { Payment } from '../../types/payment';
 
+interface UserHistory {
+  dni: number;
+  subscriptions: Subscription[];
+  payments: Payment[];
+}
+
 interface UserDetailPanelProps {
   user: User;
   currentAdminDni: number;
@@ -47,9 +53,13 @@ const UserDetailPanel = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  // The history is tagged with the member it belongs to, so the spinner is
+  // derived from the props instead of an effect resetting a flag on every
+  // change of user.
+  const [history, setHistory] = useState<UserHistory | null>(null);
+  const isLoadingHistory = history?.dni !== user.dni;
+  const subscriptions = history?.subscriptions ?? [];
+  const payments = history?.payments ?? [];
 
   const [confirmDangerAction, setConfirmDangerAction] = useState<
     'delete' | 'restore' | 'cancelSub' | null
@@ -58,28 +68,28 @@ const UserDetailPanel = ({
   const [isActing, setIsActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const [subs, pays] = await Promise.all([
-        getSubscriptionsByUser(user.dni),
-        getPaymentsByUser(user.dni),
-      ]);
-      setSubscriptions(subs);
-      setPayments(pays);
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : 'No se pudo cargar el historial.',
-      );
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchHistory = (dni: number) =>
+    Promise.all([getSubscriptionsByUser(dni), getPaymentsByUser(dni)])
+      .then(([subs, pays]) => {
+        setHistory({ dni, subscriptions: subs, payments: pays });
+      })
+      .catch((err: unknown) => {
+        setHistory({ dni, subscriptions: [], payments: [] });
+        setActionError(
+          err instanceof Error ? err.message : 'No se pudo cargar el historial.',
+        );
+      });
 
   useEffect(() => {
-    loadHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchHistory(user.dni);
   }, [user.dni]);
+
+  const reloadHistory = () => {
+    setHistory(null);
+    return fetchHistory(user.dni);
+  };
 
   const isDirty =
     form.name !== user.name ||
@@ -119,7 +129,7 @@ const UserDetailPanel = ({
         const sub = subscriptions.find((s) => s.id === pendingSubId);
         if (sub) {
           await cancelSubscription(sub);
-          await loadHistory();
+          await reloadHistory();
         }
       }
       setConfirmDangerAction(null);
@@ -268,7 +278,10 @@ const UserDetailPanel = ({
             <p className="mb-2 text-xs font-semibold text-text-muted">
               Registrar pago presencial
             </p>
-            <RegisterPaymentForm presetUser={user} onRegistered={loadHistory} />
+            <RegisterPaymentForm
+              presetUser={user}
+              onRegistered={reloadHistory}
+            />
           </div>
         </section>
 
@@ -294,7 +307,7 @@ const UserDetailPanel = ({
               <Button
                 size="sm"
                 onClick={() => setConfirmDangerAction('delete')}
-                className="!bg-red-500 hover:!bg-red-600 !text-white"
+                className="bg-red-500! hover:bg-red-600! text-white!"
               >
                 Dar de baja cuenta
               </Button>
