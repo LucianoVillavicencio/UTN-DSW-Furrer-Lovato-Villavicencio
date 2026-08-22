@@ -7,12 +7,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { Class } from './entity/class.entity';
 import { ClassDto } from './dto/class-dto';
+import { ClassSessionService } from '../classSession/classSession.service';
 
 @Injectable()
 export class ClassService {
   constructor(
     @InjectRepository(Class)
     private classRepository: Repository<Class>,
+    private readonly classSessionService: ClassSessionService,
   ) {}
 
   async createClass(classDto: ClassDto) {
@@ -74,6 +76,10 @@ export class ClassService {
       throw new ConflictException(`No se pudo eliminar la clase`);
     }
 
+    // A deleted class cannot keep offering turnos — leaving them behind is
+    // what let a deleted class's schedule keep showing up as if it were live.
+    await this.classSessionService.deleteAllOfClass(id);
+
     return { message: `Eliminada correctamente` };
   }
 
@@ -93,6 +99,9 @@ export class ClassService {
     if (rows.affected === 0) {
       throw new ConflictException(`No se pudo restaurar la clase`);
     }
+
+    // Undoes the cascade from deleteClass: the turnos come back with the class.
+    await this.classSessionService.restoreAllOfClass(id);
 
     return { message: `Restaurada correctamente` };
   }

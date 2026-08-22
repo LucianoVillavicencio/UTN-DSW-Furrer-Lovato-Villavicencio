@@ -331,4 +331,22 @@ export class ClassSessionService implements OnModuleInit {
 
     return { message: `Restaurado correctamente` };
   }
+
+  // Cascade for ClassService.deleteClass: a deleted class cannot keep offering
+  // turnos, so every non-deleted session of it is deleted along with it.
+  async deleteAllOfClass(classId: number): Promise<void> {
+    await this.classSessionRepository.update(
+      { classId, deleted: false },
+      { deleted: true },
+    );
+  }
+
+  // Cascade for ClassService.restoreClass: brings back the turnos that were
+  // deleted alongside the class, so a restore is a full undo of the delete.
+  async restoreAllOfClass(classId: number): Promise<void> {
+    await this.classSessionRepository.update(
+      { classId, deleted: true },
+      { deleted: false },
+    );
+  }
 }

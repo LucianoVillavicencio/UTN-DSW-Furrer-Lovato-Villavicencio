@@ -412,8 +412,8 @@ const ClassesSection = () => {
           title={showDeleted ? 'Restaurar clase' : 'Eliminar clase'}
           description={
             showDeleted
-              ? `"${pendingDelete.name}" volverá a estar disponible.`
-              : `"${pendingDelete.name}" se va a dar de baja (baja lógica) — se puede restaurar después.`
+              ? `"${pendingDelete.name}" volverá a estar disponible, junto con todos sus turnos.`
+              : `"${pendingDelete.name}" se va a dar de baja (baja lógica), y todos sus turnos también se van a eliminar. Se puede restaurar después.`
           }
           confirmLabel={showDeleted ? 'Restaurar' : 'Eliminar'}
           danger={!showDeleted}
