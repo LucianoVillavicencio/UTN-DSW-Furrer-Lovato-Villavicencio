@@ -6,6 +6,7 @@ import FormAlert from '../common/FormAlert';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import RegisterPaymentForm from './RegisterPaymentForm';
+import UserClassSection from './UserClassSection';
 import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
 import {
@@ -250,6 +251,8 @@ const UserDetailPanel = ({
             </ul>
           )}
         </section>
+
+        <UserClassSection userDni={user.dni} />
 
         {/* Payments */}
         <section className="border-t border-border pt-4">

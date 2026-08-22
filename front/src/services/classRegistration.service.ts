@@ -83,6 +83,64 @@ export const cancelEnrollment = async (
 
 // ------------------------------------------------------------------ admin
 
+// What a member holds, viewed from the admin panel — same shape as
+// getMyEnrollments, but for a member picked by an admin, not the caller.
+export const getMemberEnrollments = async (
+  dni: number,
+): Promise<MyEnrollments> => {
+  try {
+    const { data } = await api.get<MyEnrollments>(
+      `/classRegistration/admin/${dni}`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al obtener las clases de ${dni}`),
+      { cause: error },
+    );
+  }
+};
+
+// Changes (or creates, for a member with no class yet) a member's enrollment
+// from the admin panel. Ignores the monthly change cap: a member who used
+// both changes still has to be movable in person at the front desk.
+export const changeMemberClass = async (
+  dni: number,
+  classId: number,
+  startTime: string,
+  group?: string,
+): Promise<MyEnrollments> => {
+  try {
+    const { data } = await api.put<MyEnrollments>(
+      `/classRegistration/admin/${dni}`,
+      { classId, startTime, ...(group ? { group } : {}) },
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al cambiar la clase de ${dni}`),
+      { cause: error },
+    );
+  }
+};
+
+export const cancelMemberEnrollment = async (
+  dni: number,
+  group: string,
+): Promise<MyEnrollments> => {
+  try {
+    const { data } = await api.delete<MyEnrollments>(
+      `/classRegistration/admin/${dni}/${group}`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al cancelar la clase de ${dni}`),
+      { cause: error },
+    );
+  }
+};
+
 export const getClassRegistration = async (): Promise<ClassRegistration[]> => {
   try {
     const { data } = await api.get<ClassRegistration[]>('/classRegistration');

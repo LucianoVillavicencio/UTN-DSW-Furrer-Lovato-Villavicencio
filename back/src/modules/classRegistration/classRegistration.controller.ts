@@ -66,6 +66,31 @@ export class ClassRegistrationController {
     return this.classRegistrationService.cancelEnrollment(user.sub, group);
   }
 
+  // What a member holds, viewed by an admin for the change-in-person flow.
+  // No extra @Auth: the controller-level guard already restricts this to ADMIN.
+  @Get('admin/:dni')
+  getMemberEnrollments(@Param('dni', ParseIntPipe) dni: number) {
+    return this.classRegistrationService.findMyEnrollments(dni);
+  }
+
+  // Changes (or, for a member with none yet, creates) a member's class from
+  // the admin panel, ignoring the monthly change cap.
+  @Put('admin/:dni')
+  changeMemberEnrollment(
+    @Param('dni', ParseIntPipe) dni: number,
+    @Body() dto: ChangeEnrollmentDto,
+  ) {
+    return this.classRegistrationService.adminSetEnrollment(dni, dto);
+  }
+
+  @Delete('admin/:dni/:group')
+  cancelMemberEnrollment(
+    @Param('dni', ParseIntPipe) dni: number,
+    @Param('group') group: string,
+  ) {
+    return this.classRegistrationService.cancelEnrollment(dni, group);
+  }
+
   @Post()
   createClassRegistration(@Body() registrationClassDto: ClassRegistrationDto) {
     return this.classRegistrationService.createClassRegistration(

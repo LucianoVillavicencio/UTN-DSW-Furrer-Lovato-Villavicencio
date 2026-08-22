@@ -216,7 +216,12 @@ export class ClassRegistrationService implements OnModuleInit {
    * Books a class at an hour: every weekly turno of that class at that hour, so
    * the member keeps the same spot week after week.
    */
-  async enroll(userDni: number, dto: EnrollClassDto, replacing?: string) {
+  async enroll(
+    userDni: number,
+    dto: EnrollClassDto,
+    replacing?: string,
+    bypassChangeLimit = false,
+  ) {
     const startTime = toTimeOfDay(dto.startTime);
 
     const subscription = await this.subscriptions.findActiveForUser(userDni);
@@ -276,7 +281,7 @@ export class ClassRegistrationService implements OnModuleInit {
       !!replacing ||
       (await this.hasCancelledThisMonth(userDni));
 
-    if (isChange && maxClasses !== null) {
+    if (isChange && maxClasses !== null && !bypassChangeLimit) {
       const used = await this.changesUsedThisMonth(userDni);
       if (used >= MONTHLY_CLASS_CHANGES) {
         const resets = startOfNextMonth(new Date());
@@ -320,7 +325,11 @@ export class ClassRegistrationService implements OnModuleInit {
    * first and the old one released afterwards, so a failure leaves the member
    * with the class they already had instead of with none.
    */
-  async changeEnrollment(userDni: number, dto: ChangeEnrollmentDto) {
+  async changeEnrollment(
+    userDni: number,
+    dto: ChangeEnrollmentDto,
+    bypassChangeLimit = false,
+  ) {
     const active = this.groupRegistrations(
       await this.activeRegistrationsOf(userDni),
     );
@@ -344,8 +353,24 @@ export class ClassRegistrationService implements OnModuleInit {
       );
     }
 
-    await this.enroll(userDni, dto, target.group);
+    await this.enroll(userDni, dto, target.group, bypassChangeLimit);
     return await this.cancelEnrollment(userDni, target.group);
+  }
+
+  /**
+   * What an admin uses to change a member's class in person, ignoring the
+   * monthly change cap: a member who used both changes this month still has
+   * to be movable at the front desk. The plan's class-count allowance still
+   * applies — this bypasses the change limit, not the plan itself.
+   */
+  async adminSetEnrollment(userDni: number, dto: ChangeEnrollmentDto) {
+    const active = this.groupRegistrations(
+      await this.activeRegistrationsOf(userDni),
+    );
+    if (active.length === 0) {
+      return await this.enroll(userDni, dto, undefined, true);
+    }
+    return await this.changeEnrollment(userDni, dto, true);
   }
 
   /**
