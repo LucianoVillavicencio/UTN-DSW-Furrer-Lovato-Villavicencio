@@ -1,19 +1,80 @@
+import { randomUUID } from 'crypto';
 import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { ClassRegistration } from './entity/classRegistration.entity';
 import { ClassRegistrationDto } from './dto/classRegistration-dto';
+import { ChangeEnrollmentDto, EnrollClassDto } from './dto/enrollment-dto';
 import { ClassRegistrationState } from './enum/classRegistration-state.enum';
-import { ClassSessionService } from '../classSession/classSession.service';
+import {
+  ClassSessionService,
+  toTimeOfDay,
+} from '../classSession/classSession.service';
 import { subscriptionService } from '../subscription/subscription.service';
 
+// Business rule: a member whose plan includes a limited number of classes may
+// move between classes twice per calendar month. The first enrollment of a
+// member who has none is free; switching, or cancelling and coming back, is
+// what costs a change.
+export const MONTHLY_CLASS_CHANGES = 2;
+
+const MONTHS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+// Indexed by ClassSession.weekday (1 = Monday … 6 = Saturday).
+const WEEKDAYS = [
+  '',
+  'lunes',
+  'martes',
+  'miércoles',
+  'jueves',
+  'viernes',
+  'sábado',
+];
+
+// One enrollment as the member sees it: a class at an hour, booked on every
+// weekday that class runs at that hour.
+export interface Enrollment {
+  group: string;
+  classId: number;
+  className: string;
+  startTime: string;
+  weekdays: number[];
+  sessionIds: number[];
+  since: Date;
+}
+
+function startOfMonth(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function startOfNextMonth(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+}
+
 @Injectable()
-export class ClassRegistrationService {
+export class ClassRegistrationService implements OnModuleInit {
+  private readonly logger = new Logger(ClassRegistrationService.name);
+
   constructor(
     @InjectRepository(ClassRegistration)
     private classRegistrationRepository: Repository<ClassRegistration>,
@@ -21,10 +82,309 @@ export class ClassRegistrationService {
     private readonly subscriptions: subscriptionService,
   ) {}
 
-  // Everything below used to be unchecked: the row went straight to save(), so
-  // a session id that does not exist came back as a foreign-key error and Nest
-  // turned it into a bare 500. Each rule now answers with its own status and a
-  // message the frontend can show.
+  async onModuleInit() {
+    try {
+      await this.backfillEnrollmentGroups();
+    } catch (error) {
+      this.logger.warn(
+        'Class registration backfill skipped',
+        error instanceof Error ? error.stack : error,
+      );
+    }
+  }
+
+  // Registrations created before enrollments were grouped booked a single
+  // turno each, so each one becomes its own group and keeps working.
+  private async backfillEnrollmentGroups() {
+    const ungrouped = await this.classRegistrationRepository.find({
+      where: { enrollmentGroup: '' },
+    });
+    for (const registration of ungrouped) {
+      registration.enrollmentGroup = randomUUID();
+      await this.classRegistrationRepository.save(registration);
+    }
+    if (ungrouped.length > 0) {
+      this.logger.log(`${ungrouped.length} inscripción(es) agrupadas`);
+    }
+  }
+
+  // ---------------------------------------------------------------- members
+
+  private async activeRegistrationsOf(userDni: number) {
+    return this.classRegistrationRepository.find({
+      where: {
+        userDni,
+        state: ClassRegistrationState.CONFIRMED,
+        deleted: false,
+      },
+      relations: { classSession: true },
+    });
+  }
+
+  // The active registrations folded back into the class+hour groups they were
+  // created as.
+  private groupRegistrations(registrations: ClassRegistration[]): Enrollment[] {
+    const byGroup = new Map<string, ClassRegistration[]>();
+    for (const registration of registrations) {
+      const key = registration.enrollmentGroup;
+      byGroup.set(key, [...(byGroup.get(key) ?? []), registration]);
+    }
+
+    return [...byGroup.entries()]
+      .map(([group, rows]) => {
+        const ordered = [...rows].sort(
+          (a, b) =>
+            (a.classSession?.weekday ?? 0) - (b.classSession?.weekday ?? 0),
+        );
+        const first = ordered[0];
+        return {
+          group,
+          classId: first.classSession?.classId ?? 0,
+          className: first.classSession?.class?.name ?? '',
+          startTime: first.classSession?.startTime ?? '',
+          weekdays: ordered.map((r) => r.classSession?.weekday ?? 0),
+          sessionIds: ordered.map((r) => r.classSessionId),
+          since: first.date,
+        };
+      })
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }
+
+  // Changes already spent this calendar month, counted in groups: one switch
+  // books several turnos but costs one change.
+  private async changesUsedThisMonth(userDni: number) {
+    const now = new Date();
+    const rows = await this.classRegistrationRepository
+      .createQueryBuilder('registration')
+      .select('DISTINCT registration.enrollmentGroup', 'enrollmentGroup')
+      .where('registration.userDni = :userDni', { userDni })
+      .andWhere('registration.isChange = true')
+      .andWhere('registration.date >= :from', { from: startOfMonth(now) })
+      .andWhere('registration.date < :to', { to: startOfNextMonth(now) })
+      .getRawMany();
+    return rows.length;
+  }
+
+  private async hasCancelledThisMonth(userDni: number) {
+    const now = new Date();
+    const cancelled = await this.classRegistrationRepository
+      .createQueryBuilder('registration')
+      .where('registration.userDni = :userDni', { userDni })
+      .andWhere('registration.cancelledAt IS NOT NULL')
+      .andWhere('registration.cancelledAt >= :from', {
+        from: startOfMonth(now),
+      })
+      .andWhere('registration.cancelledAt < :to', { to: startOfNextMonth(now) })
+      .getCount();
+    return cancelled > 0;
+  }
+
+  /**
+   * Everything the classes page and the dashboard need about one member: the
+   * classes they hold, what their plan allows, and how many changes are left.
+   */
+  async findMyEnrollments(userDni: number) {
+    const subscription = await this.subscriptions.findActiveForUser(userDni);
+    // `??` is wrong for the allowance: null is a real value there (unlimited),
+    // so only a missing plan or subscription falls back to "no classes".
+    const maxClasses =
+      subscription?.plan?.maxClasses === undefined
+        ? 0
+        : subscription.plan.maxClasses;
+    const isLimited = maxClasses !== null;
+
+    const enrollments = this.groupRegistrations(
+      await this.activeRegistrationsOf(userDni),
+    );
+    const changesUsed = await this.changesUsedThisMonth(userDni);
+    const resets = startOfNextMonth(new Date());
+
+    return {
+      enrollments,
+      hasActivePlan: !!subscription,
+      planName: subscription?.plan?.name ?? null,
+      maxClasses,
+      changesUsed,
+      changesLeft: isLimited
+        ? Math.max(0, MONTHLY_CLASS_CHANGES - changesUsed)
+        : null,
+      resetsOn: `1 de ${MONTHS[resets.getMonth()]}`,
+    };
+  }
+
+  /**
+   * Books a class at an hour: every weekly turno of that class at that hour, so
+   * the member keeps the same spot week after week.
+   */
+  async enroll(userDni: number, dto: EnrollClassDto, replacing?: string) {
+    const startTime = toTimeOfDay(dto.startTime);
+
+    const subscription = await this.subscriptions.findActiveForUser(userDni);
+    if (!subscription) {
+      throw new ForbiddenException(
+        'Necesitás un plan activo para inscribirte a una clase.',
+      );
+    }
+
+    // null means unlimited, so `??` would turn the best plan into the worst.
+    const maxClasses =
+      subscription.plan?.maxClasses === undefined
+        ? 0
+        : subscription.plan.maxClasses;
+    if (maxClasses === 0) {
+      throw new ForbiddenException(
+        'Tu plan no incluye clases grupales. Cambiá de plan para sumarte a una.',
+      );
+    }
+
+    const slots = await this.classSessionService.findSlotsOfClassAtTime(
+      dto.classId,
+      startTime,
+    );
+    if (slots.length === 0) {
+      throw new NotFoundException(
+        'Ese horario no está disponible para esta clase.',
+      );
+    }
+
+    const active = this.groupRegistrations(
+      await this.activeRegistrationsOf(userDni),
+    );
+
+    if (
+      active.some((e) => e.classId === dto.classId && e.startTime === startTime)
+    ) {
+      throw new ConflictException('Ya estás inscripto en ese horario.');
+    }
+
+    // Enrollments that survive this one: on a switch the replaced group is on
+    // its way out, so it does not count against the allowance.
+    const remaining = active.filter((e) => e.group !== replacing);
+
+    if (maxClasses !== null && remaining.length >= maxClasses) {
+      throw new ConflictException(
+        maxClasses === 1
+          ? 'Tu plan incluye una sola clase. Cambiá la que tenés si querés otra.'
+          : `Tu plan incluye ${maxClasses} clases a la vez. Cambiá alguna de las que tenés si querés otra.`,
+      );
+    }
+
+    // The first enrollment of a member who holds none is free; anything after
+    // that — a switch, or coming back after cancelling this month — is a change.
+    const isChange =
+      remaining.length > 0 ||
+      !!replacing ||
+      (await this.hasCancelledThisMonth(userDni));
+
+    if (isChange && maxClasses !== null) {
+      const used = await this.changesUsedThisMonth(userDni);
+      if (used >= MONTHLY_CLASS_CHANGES) {
+        const resets = startOfNextMonth(new Date());
+        throw new ForbiddenException(
+          `Ya usaste tus ${MONTHLY_CLASS_CHANGES} cambios de clase de este mes. Vas a poder cambiar de nuevo el 1 de ${MONTHS[resets.getMonth()]}.`,
+        );
+      }
+    }
+
+    // One enrollment books every weekday of that hour, so a single full day
+    // blocks it: the member cannot hold half a schedule.
+    const full = slots.find((slot) => slot.availableSpots <= 0);
+    if (full) {
+      throw new ConflictException(
+        `No hay cupos el ${WEEKDAYS[full.weekday] ?? 'ese día'} a las ${startTime.slice(0, 5)} hs.`,
+      );
+    }
+
+    const group = randomUUID();
+    const now = new Date();
+    for (const slot of slots) {
+      await this.classRegistrationRepository.save(
+        this.classRegistrationRepository.create({
+          userDni,
+          classSessionId: slot.id,
+          enrollmentGroup: group,
+          isChange,
+          date: now,
+          state: ClassRegistrationState.CONFIRMED,
+          deleted: false,
+        }),
+      );
+      await this.classSessionService.adjustAvailableSpots(slot.id, -1);
+    }
+
+    return this.findMyEnrollments(userDni);
+  }
+
+  /**
+   * Moves a member to another class or hour. The new enrollment is created
+   * first and the old one released afterwards, so a failure leaves the member
+   * with the class they already had instead of with none.
+   */
+  async changeEnrollment(userDni: number, dto: ChangeEnrollmentDto) {
+    const active = this.groupRegistrations(
+      await this.activeRegistrationsOf(userDni),
+    );
+    if (active.length === 0) {
+      throw new ConflictException(
+        'Todavía no tenés una clase para cambiar. Inscribite primero.',
+      );
+    }
+
+    const target = dto.group
+      ? active.find((e) => e.group === dto.group)
+      : active.length === 1
+        ? active[0]
+        : undefined;
+
+    if (!target) {
+      throw new NotFoundException(
+        dto.group
+          ? 'Esa inscripción no existe o ya fue cancelada.'
+          : 'Indicá cuál de tus clases querés cambiar.',
+      );
+    }
+
+    await this.enroll(userDni, dto, target.group);
+    return await this.cancelEnrollment(userDni, target.group);
+  }
+
+  /**
+   * Releases a whole enrollment: every weekly turno it booked frees a spot.
+   */
+  async cancelEnrollment(userDni: number, group: string) {
+    const rows = await this.classRegistrationRepository.find({
+      where: {
+        userDni,
+        enrollmentGroup: group,
+        state: ClassRegistrationState.CONFIRMED,
+        deleted: false,
+      },
+    });
+    if (rows.length === 0) {
+      throw new NotFoundException(
+        'Esa inscripción no existe o ya fue cancelada.',
+      );
+    }
+
+    const now = new Date();
+    for (const registration of rows) {
+      registration.state = ClassRegistrationState.CANCELLED;
+      registration.deleted = true;
+      registration.cancelledAt = now;
+      await this.classRegistrationRepository.save(registration);
+      await this.classSessionService.adjustAvailableSpots(
+        registration.classSessionId,
+        1,
+      );
+    }
+
+    return this.findMyEnrollments(userDni);
+  }
+
+  // ------------------------------------------------------------------ admin
+
+  // Admin-only from here down: the member-facing flow above is what the
+  // classes page uses.
   async createClassRegistration(classRegistration: ClassRegistrationDto) {
     const session = await this.classSessionService.findClassSession(
       classRegistration.classSessionId,
@@ -69,6 +429,8 @@ export class ClassRegistrationService {
 
     const newRegistration = this.classRegistrationRepository.create({
       ...classRegistration,
+      // A row created one turno at a time is an enrollment of its own.
+      enrollmentGroup: randomUUID(),
       date: classRegistration.date
         ? new Date(classRegistration.date)
         : new Date(),
@@ -113,6 +475,7 @@ export class ClassRegistrationService {
     }
     const updatedClassRegistration = {
       ...classRegistration,
+      enrollmentGroup: exists.enrollmentGroup,
       date: classRegistration.date
         ? new Date(classRegistration.date)
         : exists.date,
@@ -132,7 +495,11 @@ export class ClassRegistrationService {
     }
     const rows: UpdateResult = await this.classRegistrationRepository.update(
       { id },
-      { deleted: true },
+      {
+        deleted: true,
+        state: ClassRegistrationState.CANCELLED,
+        cancelledAt: new Date(),
+      },
     );
 
     if (rows.affected === 0) {
@@ -158,7 +525,11 @@ export class ClassRegistrationService {
     }
     const rows: UpdateResult = await this.classRegistrationRepository.update(
       { id },
-      { deleted: false },
+      {
+        deleted: false,
+        state: ClassRegistrationState.CONFIRMED,
+        cancelledAt: null,
+      },
     );
 
     if (rows.affected === 0) {

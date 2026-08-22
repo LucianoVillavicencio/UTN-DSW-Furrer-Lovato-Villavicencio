@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Button from '../common/Button';
 import type { AuthUser } from '../../types/user';
+import type { MyEnrollments } from '../../types/classRegistration';
 import type { ClassHour } from './class-hours';
 import { formatTimeOfDay, formatWeekdayList } from '../../lib/weekday';
 
@@ -16,8 +17,13 @@ interface SelectedHourSummaryProps {
   isEnrolled: boolean;
   currentUser: AuthUser | null;
   hasActivePlan: boolean;
+  // What the plan allows, as the backend reports it: the same rules that will
+  // accept or refuse the request decide which button is shown here.
+  myEnrollments: MyEnrollments | null;
+  isAtAllowance: boolean;
   actionLoading: boolean;
   onEnroll: (hour: ClassHour) => void;
+  onChange: (hour: ClassHour) => void;
   onCancel: (hour: ClassHour) => void;
 }
 
@@ -26,12 +32,29 @@ const SelectedHourSummary = ({
   isEnrolled,
   currentUser,
   hasActivePlan,
+  myEnrollments,
+  isAtAllowance,
   actionLoading,
   onEnroll,
+  onChange,
   onCancel,
 }: SelectedHourSummaryProps) => {
   const startStr = formatTimeOfDay(selectedHour.startTime);
   const daysStr = formatWeekdayList(selectedHour.weekdays);
+  const planName = myEnrollments?.planName;
+  const includesNoClasses = myEnrollments?.maxClasses === 0;
+  const changesLeft = myEnrollments?.changesLeft ?? null;
+  // Only a plan with a limited allowance has a monthly cap, and only a change
+  // spends it — a first enrollment does not.
+  const noChangesLeft = isAtAllowance && changesLeft === 0;
+  const changesLeftLabel =
+    changesLeft === null
+      ? ''
+      : `, y te ${changesLeft === 1 ? 'queda 1 cambio' : `quedan ${changesLeft} cambios`} este mes`;
+  const allowanceLabel =
+    myEnrollments?.maxClasses === 1
+      ? 'una sola clase'
+      : `${myEnrollments?.maxClasses} clases`;
   const maxSpots = selectedHour.maxCapacity || 20;
   // The fullest day of the week decides: the enrollment covers all of them.
   const freeSpots = selectedHour.freeSpots;
@@ -121,7 +144,7 @@ const SelectedHourSummary = ({
                 {actionLoading ? 'Cancelando...' : 'Cancelar mi inscripción'}
               </Button>
             </div>
-          ) : !hasActivePlan ? (
+          ) : !hasActivePlan || includesNoClasses ? (
             <div className="space-y-2 text-center">
               <Button
                 variant="primary"
@@ -132,7 +155,9 @@ const SelectedHourSummary = ({
                 Ver Planes
               </Button>
               <p className="text-[11px] text-text-muted">
-                Necesitás un plan activo para inscribirte a una clase.
+                {includesNoClasses
+                  ? `Tu plan${planName ? ` ${planName}` : ''} no incluye clases grupales.`
+                  : 'Necesitás un plan activo para inscribirte a una clase.'}
               </p>
             </div>
           ) : freeSpots > 0 ? (
@@ -140,15 +165,27 @@ const SelectedHourSummary = ({
               <Button
                 variant="primary"
                 className="w-full py-3.5 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30"
-                onClick={() => onEnroll(selectedHour)}
-                disabled={actionLoading}
+                onClick={() =>
+                  isAtAllowance
+                    ? onChange(selectedHour)
+                    : onEnroll(selectedHour)
+                }
+                disabled={actionLoading || noChangesLeft}
               >
                 {actionLoading
-                  ? 'Inscribiendo...'
-                  : `Inscribirme los ${daysStr} a las ${startStr} hs`}
+                  ? isAtAllowance
+                    ? 'Cambiando...'
+                    : 'Inscribiendo...'
+                  : isAtAllowance
+                    ? `Cambiar mi clase a los ${daysStr} ${startStr} hs`
+                    : `Inscribirme los ${daysStr} a las ${startStr} hs`}
               </Button>
               <p className="text-center text-[11px] text-text-muted">
-                Te queda reservado todas las semanas hasta que lo cambies.
+                {noChangesLeft
+                  ? `Ya usaste tus cambios de clase de este mes. Vas a poder cambiar de nuevo el ${myEnrollments?.resetsOn}.`
+                  : isAtAllowance
+                    ? `Tu plan incluye ${allowanceLabel}. Al cambiar dejás el horario que tenías${changesLeftLabel}.`
+                    : 'Te queda reservado todas las semanas hasta que lo cambies.'}
               </p>
             </div>
           ) : (

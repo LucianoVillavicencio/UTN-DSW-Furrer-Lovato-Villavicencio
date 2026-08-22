@@ -10,6 +10,7 @@ import SelectedHourSummary from './SelectedHourSummary';
 import type { ClassHour } from './class-hours';
 import { formatWeekdayList } from '../../lib/weekday';
 import type { AuthUser } from '../../types/user';
+import type { MyEnrollments } from '../../types/classRegistration';
 
 interface ClassExpandedModalProps {
   activeExpandedClass: MasterClassData | null;
@@ -19,7 +20,10 @@ interface ClassExpandedModalProps {
   setSelectedHour: (hour: ClassHour | null) => void;
   isEnrolledInHour: (hour: ClassHour | null) => boolean;
   hasActivePlan: boolean;
+  myEnrollments: MyEnrollments | null;
+  isAtAllowance: boolean;
   handleEnrollHour: (hour: ClassHour) => void;
+  handleChangeToHour: (hour: ClassHour) => void;
   handleCancelHour: (hour: ClassHour) => void;
   currentUser: AuthUser | null;
   actionLoading: boolean;
@@ -34,7 +38,10 @@ const ClassExpandedModal = ({
   setSelectedHour,
   isEnrolledInHour,
   hasActivePlan,
+  myEnrollments,
+  isAtAllowance,
   handleEnrollHour,
+  handleChangeToHour,
   handleCancelHour,
   currentUser,
   actionLoading,
@@ -128,9 +135,12 @@ const ClassExpandedModal = ({
             selectedHour={selectedHour}
             isEnrolled={isEnrolledInHour(selectedHour)}
             hasActivePlan={hasActivePlan}
+            myEnrollments={myEnrollments}
+            isAtAllowance={isAtAllowance}
             currentUser={currentUser}
             actionLoading={actionLoading}
             onEnroll={handleEnrollHour}
+            onChange={handleChangeToHour}
             onCancel={handleCancelHour}
           />
         )}

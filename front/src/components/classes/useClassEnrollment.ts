@@ -1,18 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ClassSession } from '../../types/classSession';
 import type { TypeClass } from '../../types/typeClass';
-import type { ClassRegistration } from '../../types/classRegistration';
+import type { MyEnrollments } from '../../types/classRegistration';
 
 import { useAuth } from '../../context/useAuth';
 import { getClass } from '../../services/class.service';
 import { getClassSession } from '../../services/classSession.service';
 import { getTypeClass } from '../../services/typeClass.service';
 import {
-  createClassRegistration,
-  getClassRegistration,
-  deleteClassRegistration,
+  getMyEnrollments,
+  enrollInClass,
+  changeMyClass,
+  cancelEnrollment,
 } from '../../services/classRegistration.service';
-import { getMySubscription } from '../../services/subscription.service';
 
 import { normalizeText, toMasterClassData } from './master-classes.data';
 import { formatTimeOfDay } from '../../lib/weekday';
@@ -23,12 +23,12 @@ export const useClassEnrollment = () => {
   const [masterClasses, setMasterClasses] = useState<MasterClassData[]>([]);
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [classTypes, setClassTypes] = useState<TypeClass[]>([]);
-  const [userRegistrations, setUserRegistrations] = useState<
-    ClassRegistration[]
-  >([]);
-  // A membership is required to enroll, so the button offers the plans page
-  // instead of a request the backend would reject.
-  const [hasActivePlan, setHasActivePlan] = useState(false);
+  // What this member holds and what their plan allows, straight from the
+  // backend: the same rules that will accept or refuse the request, so the page
+  // never offers an action that is going to bounce.
+  const [myEnrollments, setMyEnrollments] = useState<MyEnrollments | null>(
+    null,
+  );
 
   // The user comes from AuthContext, whose token is already validated, rather
   // than from raw localStorage.
@@ -60,21 +60,14 @@ export const useClassEnrollment = () => {
       setIsLoading(true);
       setLoadError(null);
 
-      const [
-        fetchedClasses,
-        fetchedSessions,
-        fetchedTypes,
-        fetchedRegistrations,
-        fetchedSubscription,
-      ] = await Promise.allSettled([
-        getClass(),
-        getClassSession(),
-        getTypeClass(),
-        // Registrations and the subscription only make sense for a signed-in
-        // user.
-        isAuthenticated ? getClassRegistration() : Promise.resolve([]),
-        isAuthenticated ? getMySubscription() : Promise.resolve(null),
-      ]);
+      const [fetchedClasses, fetchedSessions, fetchedTypes, fetchedMine] =
+        await Promise.allSettled([
+          getClass(),
+          getClassSession(),
+          getTypeClass(),
+          // Enrollments only make sense for a signed-in user.
+          isAuthenticated ? getMyEnrollments() : Promise.resolve(null),
+        ]);
 
       // The class catalogue comes from the backend with no stand-in data: if it
       // fails the error is shown instead of inventing classes that do not exist.
@@ -122,17 +115,9 @@ export const useClassEnrollment = () => {
         setClassTypes([...typesFromClasses.values()]);
       }
 
-      if (
-        fetchedRegistrations.status === 'fulfilled' &&
-        Array.isArray(fetchedRegistrations.value)
-      ) {
-        setUserRegistrations(fetchedRegistrations.value);
+      if (fetchedMine.status === 'fulfilled') {
+        setMyEnrollments(fetchedMine.value);
       }
-
-      setHasActivePlan(
-        fetchedSubscription.status === 'fulfilled' &&
-          !!fetchedSubscription.value,
-      );
 
       setIsLoading(false);
     };
@@ -205,151 +190,104 @@ export const useClassEnrollment = () => {
 
   const activeClassHasSessions = hoursForActiveClass.length > 0;
 
-  // The registrations of the signed-in user that are still active.
-  const myRegistrations = useMemo(() => {
-    if (!currentUser) return [];
-    const dni = Number(currentUser.dni);
-    return userRegistrations.filter(
-      (reg) => Number(reg.userDni) === dni && !reg.deleted,
-    );
-  }, [currentUser, userRegistrations]);
+  // Memoised because the callbacks below depend on it: a fresh [] on every
+  // render would rebuild them each time.
+  const enrollments = useMemo(
+    () => myEnrollments?.enrollments ?? [],
+    [myEnrollments],
+  );
+  const maxClasses = myEnrollments?.maxClasses ?? 0;
+  const hasActivePlan = myEnrollments?.hasActivePlan ?? false;
+  // At the cap the only way into another hour is a change, which is what the
+  // member is offered instead of an enroll button that would be refused.
+  const isAtAllowance =
+    maxClasses !== null && enrollments.length >= maxClasses && maxClasses > 0;
 
-  // Enrolled in an hour means holding the spot for the days it runs, so any
-  // registration in the group answers it.
+  // Enrolled in an hour means holding the spot on every day it runs.
   const isEnrolledInHour = useCallback(
     (hour: ClassHour | null) => {
       if (!hour) return false;
-      const ids = new Set(hour.sessions.map((s) => Number(s.id)));
-      return myRegistrations.some((reg) => ids.has(Number(reg.classSessionId)));
+      return enrollments.some(
+        (e) => e.classId === hour.classId && e.startTime === hour.startTime,
+      );
     },
-    [myRegistrations],
+    [enrollments],
   );
 
-  // Enrolling takes every weekly turno of the chosen class + hour: the member
-  // keeps the same spot each week and only comes back to change class.
-  const handleEnrollHour = useCallback(
-    async (hour: ClassHour) => {
-      if (!currentUser) return;
+  // Applies what the backend answered: it returns the member's whole state, so
+  // the page never has to guess how a rule resolved.
+  const applyResult = useCallback(
+    async (result: MyEnrollments, message: string) => {
+      setMyEnrollments(result);
+      setActionFeedback({ type: 'success', message });
+      // Capacity moved for everyone, not just for this member.
+      const refreshed = await getClassSession().catch(() => null);
+      if (refreshed) setSessions(refreshed);
+    },
+    [],
+  );
 
-      const userDni = Number(currentUser.dni);
-      if (!Number.isFinite(userDni) || userDni <= 0) {
-        setActionFeedback({
-          type: 'error',
-          message:
-            'No se pudo verificar tu DNI. Por favor vuelve a iniciar sesión.',
-        });
-        return;
-      }
-
-      if (hour.freeSpots <= 0) {
-        setActionFeedback({
-          type: 'error',
-          message: 'No hay cupos disponibles para este horario.',
-        });
-        return;
-      }
-
+  const runAction = useCallback(
+    async (action: () => Promise<MyEnrollments>, message: string) => {
       setActionLoading(true);
       setActionFeedback(null);
-
       try {
-        const created: ClassRegistration[] = [];
-        for (const session of hour.sessions) {
-          created.push(
-            await createClassRegistration({
-              userDni,
-              classSessionId: Number(session.id),
-              date: new Date().toISOString(),
-              state: 'confirmada',
-            }),
-          );
-        }
-
-        setUserRegistrations((prev) => [...prev, ...created]);
-        const enrolledIds = new Set(hour.sessions.map((s) => Number(s.id)));
-        setSessions((prev) =>
-          prev.map((s) =>
-            enrolledIds.has(Number(s.id))
-              ? {
-                  ...s,
-                  availableSpots: Math.max(0, (s.availableSpots ?? 1) - 1),
-                }
-              : s,
-          ),
-        );
-
-        setActionFeedback({
-          type: 'success',
-          message: '¡Listo! Tenés tu lugar en ese horario todas las semanas.',
-        });
+        await applyResult(await action(), message);
       } catch (err) {
         setActionFeedback({
           type: 'error',
           message:
             err instanceof Error
               ? err.message
-              : 'Error al procesar la inscripción',
+              : 'No se pudo completar la acción.',
         });
       } finally {
         setActionLoading(false);
       }
     },
-    [currentUser],
+    [applyResult],
+  );
+
+  // Enrolling books every weekly turno of the chosen class + hour: the member
+  // keeps that spot each week and only comes back to change it.
+  const handleEnrollHour = useCallback(
+    (hour: ClassHour) =>
+      runAction(
+        () => enrollInClass(hour.classId, hour.startTime),
+        '¡Listo! Tenés tu lugar en ese horario todas las semanas.',
+      ),
+    [runAction],
+  );
+
+  // Switching spends one of the monthly changes when the plan is limited. The
+  // group being replaced is passed explicitly so a plan with several classes
+  // knows which one to release.
+  const handleChangeToHour = useCallback(
+    (hour: ClassHour, group?: string) =>
+      runAction(
+        () =>
+          changeMyClass(
+            hour.classId,
+            hour.startTime,
+            group ?? enrollments[0]?.group,
+          ),
+        'Cambiamos tu clase. El nuevo horario queda reservado todas las semanas.',
+      ),
+    [runAction, enrollments],
   );
 
   const handleCancelHour = useCallback(
-    async (hour: ClassHour) => {
-      const ids = new Set(hour.sessions.map((s) => Number(s.id)));
-      const mine = myRegistrations.filter((reg) =>
-        ids.has(Number(reg.classSessionId)),
+    (hour: ClassHour) => {
+      const mine = enrollments.find(
+        (e) => e.classId === hour.classId && e.startTime === hour.startTime,
       );
-      if (mine.length === 0) return;
-
-      setActionLoading(true);
-      setActionFeedback(null);
-
-      try {
-        for (const registration of mine) {
-          if (registration.id) {
-            await deleteClassRegistration(registration.id);
-          }
-        }
-
-        const cancelled = new Set(mine.map((reg) => reg.id));
-        setUserRegistrations((prev) =>
-          prev.filter((reg) => !cancelled.has(reg.id)),
-        );
-        setSessions((prev) =>
-          prev.map((s) =>
-            ids.has(Number(s.id))
-              ? {
-                  ...s,
-                  availableSpots: Math.min(
-                    s.maxCapacity,
-                    (s.availableSpots ?? 0) + 1,
-                  ),
-                }
-              : s,
-          ),
-        );
-
-        setActionFeedback({
-          type: 'success',
-          message: 'Cancelamos tu inscripción a ese horario.',
-        });
-      } catch (err) {
-        setActionFeedback({
-          type: 'error',
-          message:
-            err instanceof Error
-              ? err.message
-              : 'Error al cancelar la inscripción',
-        });
-      } finally {
-        setActionLoading(false);
-      }
+      if (!mine) return Promise.resolve();
+      return runAction(
+        () => cancelEnrollment(mine.group),
+        'Cancelamos tu inscripción a ese horario.',
+      );
     },
-    [myRegistrations],
+    [runAction, enrollments],
   );
 
   return {
@@ -370,7 +308,10 @@ export const useClassEnrollment = () => {
     setSelectedHour,
     isEnrolledInHour,
     hasActivePlan,
+    myEnrollments,
+    isAtAllowance,
     handleEnrollHour,
+    handleChangeToHour,
     handleCancelHour,
     currentUser,
     actionLoading,

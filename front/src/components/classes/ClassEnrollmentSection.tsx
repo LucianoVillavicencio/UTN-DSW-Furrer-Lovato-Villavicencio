@@ -26,7 +26,10 @@ const ClassEnrollmentSection = () => {
     setSelectedHour,
     isEnrolledInHour,
     hasActivePlan,
+    myEnrollments,
+    isAtAllowance,
     handleEnrollHour,
+    handleChangeToHour,
     handleCancelHour,
     currentUser,
     actionLoading,
@@ -118,7 +121,10 @@ const ClassEnrollmentSection = () => {
           setSelectedHour={setSelectedHour}
           isEnrolledInHour={isEnrolledInHour}
           hasActivePlan={hasActivePlan}
+          myEnrollments={myEnrollments}
+          isAtAllowance={isAtAllowance}
           handleEnrollHour={handleEnrollHour}
+          handleChangeToHour={handleChangeToHour}
           handleCancelHour={handleCancelHour}
           currentUser={currentUser}
           actionLoading={actionLoading}
