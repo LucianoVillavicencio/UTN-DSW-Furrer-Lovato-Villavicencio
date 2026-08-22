@@ -29,5 +29,8 @@ export interface WeeklyClassSessions {
 export interface WeeklyClassSessionsResult {
   created: number;
   skipped: number;
+  // Members already enrolled in that class+hour who were booked into the new
+  // days, so an enrollment keeps covering every day the class runs.
+  adopted: number;
   sessions: ClassSession[];
 }

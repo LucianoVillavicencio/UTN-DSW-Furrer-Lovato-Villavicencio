@@ -55,8 +55,11 @@ Funcionalidades principales:
   acceso por rol (`USER` / `ADMIN`) en cada endpoint y ruta del frontend.
 - **Panel de socio**: edición de datos personales, cambio de plan de suscripción y consulta del
   historial de pagos propio.
-- **Panel de administración**: ABM de clases, profesores, planes y tipos de clase, con borrado
-  lógico y restauración.
+- **Clases semanales**: el admin carga la grilla de una clase (días × horarios) de una sola vez
+  y el socio se inscribe a un horario, que le queda reservado todas las semanas. El plan define
+  cuántas clases incluye y cuántos cambios de clase permite por mes.
+- **Panel de administración**: ABM de clases, turnos, profesores, planes y tipos de clase, con
+  borrado lógico y restauración.
 - **Gestión de socios**: búsqueda por DNI, email o nombre; edición de perfil, cambio de rol,
   alta/baja y cancelación de suscripción desde el panel de administración.
 - **Pagos presenciales**: registro de pagos en efectivo/tarjeta contra la suscripción activa de
@@ -89,6 +92,25 @@ assets/  Diagramas y recursos del proyecto
 Entidades principales: `Users`, `Plan`, `Trainer`, `TypeClass`, `Class`, `ClassSession`,
 `ClassRegistration`, `Subscription`, `Payment`, `Contact`. Todas soportan borrado lógico
 (`deleted`). Roles: `USER` (socio) y `ADMIN`.
+
+### Clases semanales e inscripciones
+
+- Un **turno** (`ClassSession`) es un horario **semanal**: una clase, un día de la semana
+  (1 = lunes … 6 = sábado, domingo cerrado) y una hora, con su cupo. Se repite todas las
+  semanas hasta que un admin lo cambia; no es una fecha puntual.
+- Una **inscripción** (`ClassRegistration`) es una clase **a una hora**: reserva todos los
+  turnos semanales de esa clase a esa hora (Funcional 08:00 → lunes, miércoles y viernes).
+  Las filas de una misma inscripción comparten `enrollmentGroup`. El socio se inscribe una
+  vez y mantiene el lugar; solo vuelve para cambiarlo.
+- Cada **plan** define cuántas clases incluye en `maxClasses`: `0` ninguna, `N` hasta N clases
+  a la vez, `NULL` ilimitadas.
+- En un plan con cupo limitado, el socio puede **cambiar de clase dos veces por mes
+  calendario**. La primera inscripción no cuenta; cambiar, o cancelar y volver a inscribirse
+  en el mismo mes, sí.
+- `class_session.dateTime` quedó como columna heredada del modelo por fecha: al arrancar, el
+  backend migra las filas que todavía la tengan a `weekday`/`startTime` y la deja en `NULL`.
+  Se puede eliminar la columna cuando todas las bases de datos del equipo hayan arrancado con
+  esta versión al menos una vez.
 
 ## Requisitos
 

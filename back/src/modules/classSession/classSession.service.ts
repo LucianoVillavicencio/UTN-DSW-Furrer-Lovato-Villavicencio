@@ -6,8 +6,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository, UpdateResult } from 'typeorm';
+import { In, Not, Repository, UpdateResult } from 'typeorm';
 import { ClassSession } from './entity/classSession.entity';
+import { ClassRegistration } from '../classRegistration/entity/classRegistration.entity';
+import { ClassRegistrationState } from '../classRegistration/enum/classRegistration-state.enum';
 import {
   ClassSessionDto,
   WeeklyClassSessionsDto,
@@ -26,6 +28,8 @@ export class ClassSessionService implements OnModuleInit {
   constructor(
     @InjectRepository(ClassSession)
     private classSessionRepository: Repository<ClassSession>,
+    @InjectRepository(ClassRegistration)
+    private classRegistrationRepository: Repository<ClassRegistration>,
   ) {}
 
   async onModuleInit() {
@@ -86,6 +90,59 @@ export class ClassSessionService implements OnModuleInit {
     });
   }
 
+  // An enrollment means "this class at this hour, every week", so a slot added
+  // later to that same class+hour has to book the members who already hold it —
+  // otherwise their promise quietly becomes false for the new day. Members who
+  // no longer fit in the slot's capacity are reported instead of being dropped
+  // silently.
+  private async adoptExistingMembers(slot: ClassSession) {
+    const siblings = (
+      await this.findSlotsOfClassAtTime(slot.classId, slot.startTime)
+    ).filter((s) => s.id !== slot.id);
+    if (siblings.length === 0) return { adopted: 0, notFitting: 0 };
+
+    const held = await this.classRegistrationRepository.find({
+      where: {
+        classSessionId: In(siblings.map((s) => s.id)),
+        state: ClassRegistrationState.CONFIRMED,
+        deleted: false,
+      },
+    });
+
+    // One row per member: an enrollment already has a row per weekday.
+    const byMember = new Map<number, ClassRegistration>();
+    for (const registration of held) {
+      if (!byMember.has(registration.userDni)) {
+        byMember.set(registration.userDni, registration);
+      }
+    }
+
+    let adopted = 0;
+    let notFitting = 0;
+    for (const registration of byMember.values()) {
+      if (adopted >= slot.maxCapacity) {
+        notFitting++;
+        continue;
+      }
+      await this.classRegistrationRepository.save(
+        this.classRegistrationRepository.create({
+          userDni: registration.userDni,
+          classSessionId: slot.id,
+          // Same enrollment, one more day: not a new one, and not a change.
+          enrollmentGroup: registration.enrollmentGroup,
+          isChange: false,
+          date: registration.date,
+          state: ClassRegistrationState.CONFIRMED,
+          deleted: false,
+        }),
+      );
+      await this.adjustAvailableSpots(slot.id, -1);
+      adopted++;
+    }
+
+    return { adopted, notFitting };
+  }
+
   async createClassSession(classSessionDto: ClassSessionDto) {
     const startTime = toTimeOfDay(classSessionDto.startTime);
     const duplicate = await this.findSlot(
@@ -107,7 +164,9 @@ export class ClassSessionService implements OnModuleInit {
         classSessionDto.availableSpots ?? classSessionDto.maxCapacity,
       deleted: classSessionDto.deleted ?? false,
     });
-    return await this.classSessionRepository.save(newSession);
+    const saved = await this.classSessionRepository.save(newSession);
+    await this.adoptExistingMembers(saved);
+    return await this.findClassSession(saved.id);
   }
 
   // Every weekday × hour combination of the admin's weekly grid. Combinations
@@ -116,6 +175,7 @@ export class ClassSessionService implements OnModuleInit {
   async createWeeklySlots(dto: WeeklyClassSessionsDto) {
     const created: ClassSession[] = [];
     let skipped = 0;
+    let adopted = 0;
 
     for (const weekday of [...new Set(dto.weekdays)]) {
       for (const time of [...new Set(dto.times)]) {
@@ -124,23 +184,23 @@ export class ClassSessionService implements OnModuleInit {
           skipped++;
           continue;
         }
-        created.push(
-          await this.classSessionRepository.save(
-            this.classSessionRepository.create({
-              classId: dto.classId,
-              weekday,
-              startTime,
-              maxCapacity: dto.maxCapacity,
-              availableSpots: dto.maxCapacity,
-              dateTime: null,
-              deleted: false,
-            }),
-          ),
+        const slot = await this.classSessionRepository.save(
+          this.classSessionRepository.create({
+            classId: dto.classId,
+            weekday,
+            startTime,
+            maxCapacity: dto.maxCapacity,
+            availableSpots: dto.maxCapacity,
+            dateTime: null,
+            deleted: false,
+          }),
         );
+        adopted += (await this.adoptExistingMembers(slot)).adopted;
+        created.push(slot);
       }
     }
 
-    return { created: created.length, skipped, sessions: created };
+    return { created: created.length, skipped, adopted, sessions: created };
   }
 
   async findClassSession(id: number) {

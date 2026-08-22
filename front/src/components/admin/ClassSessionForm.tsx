@@ -159,7 +159,7 @@ const ClassSessionForm = ({
           ? 'El turno se dicta todas las semanas ese día a esa hora. Cambiar el cupo no da de baja a los inscriptos.'
           : `Se crea un turno por cada combinación de día y horario${
               slotCount > 0 ? ` (${slotCount} en total)` : ''
-            }. Cada turno se repite todas las semanas y los inscriptos mantienen su lugar.`}
+            }. Cada turno se repite todas las semanas, y los socios ya inscriptos en esa clase y horario quedan anotados también en los días nuevos.`}
       </p>
 
       <div className="flex gap-3 pt-2">
