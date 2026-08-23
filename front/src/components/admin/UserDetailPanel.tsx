@@ -297,6 +297,19 @@ const UserDetailPanel = ({
               Registrar pago presencial
             </p>
             <RegisterPaymentForm
+              // RegisterPaymentForm only loads its subscriptions once, on
+              // mount, keyed off its own selectedUser state (it also drives a
+              // standalone search flow with no presetUser, so it can't just
+              // depend on this prop). Assigning a plan just above refreshes
+              // this panel's own subscription list via reloadHistory but
+              // never reaches that internal state, so without a key tied to
+              // it, a member who had no subscription when the panel opened
+              // stays stuck on "no tiene suscripciones" after one is
+              // assigned, until the panel is closed and reopened. Remounting
+              // on the actual set of subscription ids fixes that while still
+              // leaving the key stable for unrelated re-renders (e.g. typing
+              // in the Datos form).
+              key={subscriptions.map((s) => s.id).join(',')}
               presetUser={user}
               onRegistered={reloadHistory}
             />
