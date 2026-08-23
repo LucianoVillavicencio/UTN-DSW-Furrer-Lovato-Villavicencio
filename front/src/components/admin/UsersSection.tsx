@@ -23,6 +23,10 @@ const UsersSection = () => {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  // Bumped when the wizard closes to force UserDetailPanel to remount: the
+  // wizard writes the plan, class and payment through their own endpoints,
+  // which the panel's dni-keyed effects have no reason to re-fetch on their own.
+  const [panelNonce, setPanelNonce] = useState(0);
 
   const handleSearch = async () => {
     if (!searchValue.trim()) return;
@@ -145,6 +149,7 @@ const UsersSection = () => {
 
       {selectedUser && currentAdmin && (
         <UserDetailPanel
+          key={`${selectedUser.dni}-${panelNonce}`}
           user={selectedUser}
           currentAdminDni={currentAdmin.dni}
           onClose={() => setSelectedUser(null)}
@@ -156,6 +161,7 @@ const UsersSection = () => {
         <NewMemberWizard
           onClose={() => {
             setIsCreating(false);
+            setPanelNonce((n) => n + 1);
             refreshSearch();
           }}
           onCreated={setSelectedUser}
