@@ -93,6 +93,10 @@ export class UserService {
         password: true,
         googleId: true,
         role: true,
+        // Without this, AuthService's `if (user.deleted)` check never fires:
+        // TypeORM's object-form select only hydrates listed columns, so a
+        // soft-deleted member could still log in.
+        deleted: true,
       },
     });
   }
