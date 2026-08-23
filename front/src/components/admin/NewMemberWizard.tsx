@@ -53,7 +53,9 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
       onCreated(user);
       setStep('plan');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el socio.');
+      setError(
+        err instanceof Error ? err.message : 'No se pudo crear el socio.',
+      );
     } finally {
       setIsSaving(false);
     }
