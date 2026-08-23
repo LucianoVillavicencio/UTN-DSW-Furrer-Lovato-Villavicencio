@@ -29,6 +29,12 @@ export const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
   { id: 'cobro', label: 'Cobro' },
 ];
 
+// Guards against a stale async plan-assignment callback overriding navigation
+// that already happened while the request was in flight (see the Task 10 fix
+// this pins).
+export const nextStepAfterPlanAssigned = (current: WizardStep): WizardStep =>
+  current === 'plan' ? 'clase' : current;
+
 // Same checks the API runs, so the admin sees the problem without a round trip.
 export const findNewMemberFormError = (form: NewMemberForm): string | null => {
   const dni = form.dni.trim();

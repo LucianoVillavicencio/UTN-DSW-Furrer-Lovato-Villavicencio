@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_NEW_MEMBER_FORM,
   findNewMemberFormError,
+  nextStepAfterPlanAssigned,
   toAdminCreateUserPayload,
   type NewMemberForm,
 } from './new-member-wizard';
@@ -90,5 +91,17 @@ describe('toAdminCreateUserPayload', () => {
       email: 'rosa@gmail.com',
       password: 'unaClave1',
     });
+  });
+});
+
+describe('nextStepAfterPlanAssigned', () => {
+  it('advances from plan to clase', () => {
+    expect(nextStepAfterPlanAssigned('plan')).toBe('clase');
+  });
+
+  it('leaves any other step unchanged, so a stale callback cannot regress navigation', () => {
+    expect(nextStepAfterPlanAssigned('cobro')).toBe('cobro');
+    expect(nextStepAfterPlanAssigned('clase')).toBe('clase');
+    expect(nextStepAfterPlanAssigned('datos')).toBe('datos');
   });
 });

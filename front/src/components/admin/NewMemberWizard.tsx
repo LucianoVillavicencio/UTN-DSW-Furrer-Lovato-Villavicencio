@@ -10,6 +10,7 @@ import RegisterPaymentForm from './RegisterPaymentForm';
 import {
   EMPTY_NEW_MEMBER_FORM,
   findNewMemberFormError,
+  nextStepAfterPlanAssigned,
   toAdminCreateUserPayload,
   type NewMemberForm,
   type WizardStep,
@@ -77,7 +78,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
     // advanced past 'plan' (e.g. via "Omitir plan" then "Omitir clase"). Only
     // advance from 'plan' — read through the functional updater so the check
     // sees the current step, not whatever this closure captured at call time.
-    setStep((current) => (current === 'plan' ? 'clase' : current));
+    setStep(nextStepAfterPlanAssigned);
   };
 
   return (
