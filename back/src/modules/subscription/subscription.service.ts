@@ -11,34 +11,11 @@ import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
 
-// Formats using the LOCAL date parts, not UTC, so that "today" in the server's
-// timezone does not shift to the previous or next day on its way into a MySQL
-// 'date' column.
-function toDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// The paid period of a subscription on a plan of `numDays`, counted from
-// `from` (today by default). Shared by changePlan and activate so a
-// subscription that is created and one that is promoted cannot end up with
-// their dates computed differently.
-//
-// Dates are 'YYYY-MM-DD' strings rather than a Date carrying a time, so the
-// MySQL 'date' column cannot shift them by a day through timezone conversion —
-// the same approach the frontend already uses in Plan.tsx with
-// toISOString().split('T')[0]. The cast is what lets a string reach a column
-// TypeORM types as Date.
-function subscriptionPeriod(numDays: number, from: Date = new Date()) {
-  const endJs = new Date(from);
-  endJs.setDate(endJs.getDate() + numDays);
-  return {
-    startDate: toDateOnly(from) as unknown as Date,
-    endDate: toDateOnly(endJs) as unknown as Date,
-  };
-}
+import {
+  isCurrentOn,
+  subscriptionPeriod,
+  toDateOnly,
+} from './subscription.rules';
 
 @Injectable()
 export class subscriptionService {
@@ -195,11 +172,31 @@ export class subscriptionService {
   }
 
   // The authenticated user's active subscription, or null if there is none.
+  //
+  // The endDate check is the security boundary for FLG-SEC-24, and it is
+  // deliberately evaluated here rather than left to the nightly sweep in
+  // expireLapsedSubscriptions: a sweep that fails, crashes or is never
+  // registered would silently restore free access to every lapsed member, and
+  // nothing would surface that it had. This check cannot fail that way — it
+  // runs on the request that depends on it. Do not remove it on the grounds
+  // that the sweep already sets INACTIVE.
+  //
+  // All four callers are covered by putting it here: enroll,
+  // createClassRegistration and findMyEnrollments in classRegistration, plus
+  // the member's own read in subscription.controller.
   async findActiveForUser(userDni: number) {
-    return this.subscriptionRepository.findOne({
+    const subscription = await this.subscriptionRepository.findOne({
       where: { userDni, state: SubscriptionState.ACTIVE, deleted: false },
       relations: { plan: true },
     });
+
+    if (!subscription) {
+      return null;
+    }
+
+    return isCurrentOn(subscription.endDate, toDateOnly(new Date()))
+      ? subscription
+      : null;
   }
 
   async createSubscription(subscriptionDto: SubscriptionDto) {
