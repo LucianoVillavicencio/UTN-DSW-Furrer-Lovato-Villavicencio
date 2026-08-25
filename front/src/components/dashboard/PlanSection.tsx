@@ -84,7 +84,7 @@ const PlanSection = () => {
       const updated = await changePlan(pendingPlan.id);
       setSubscription(updated);
       setActionSuccess(
-        `Tu cambio de plan a "${pendingPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago.`,
+        `Tu cambio de plan a "${pendingPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago, y mientras tanto seguís con tu plan actual.`,
       );
       setPendingPlan(null);
     } catch (err) {
@@ -205,7 +205,7 @@ const PlanSection = () => {
               ({pendingPlan.price}
               {pendingPlan.period}). El cambio queda registrado como pendiente:
               el plan se activa cuando abones en el gimnasio y registremos tu
-              pago.
+              pago, y mientras tanto seguís con tu plan actual.
             </p>
             <div className="mt-6 flex gap-3">
               <Button
