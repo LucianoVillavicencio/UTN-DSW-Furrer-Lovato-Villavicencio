@@ -85,8 +85,9 @@ export class UserController {
     return this.userService.findUser(dni);
   }
 
-  // Admin-side edit — see AdminUpdateUserDto for why this does not reuse the
-  // older PUT /user, whose UsersDto demands a password on every update.
+  // Admin-side edit — see AdminUpdateUserDto for why this did not reuse the
+  // since-deleted PUT /user, whose UsersDto demanded a password on every
+  // update.
   @Patch('/:dni')
   adminUpdateUser(
     @Param('dni', ParseIntPipe) dni: number,

@@ -180,7 +180,8 @@ export class TrainerService {
   async setTrainerPhoto(dni: number, filename: string) {
     const exists = await this.findTrainer(dni);
     if (!exists) {
-      // Multer already wrote the file, so it has to go before we bail out.
+      // The controller has already written the file to disk, so it has to go
+      // before we bail out.
       await this.removePhotoFile(trainerPhotoPublicPath(filename));
       throw new NotFoundException(`El profesor con DNI: ${dni} no existe.`);
     }

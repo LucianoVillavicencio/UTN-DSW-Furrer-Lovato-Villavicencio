@@ -215,8 +215,9 @@ export class UserService {
     return safeUser;
   }
 
-  // Admin-side edit (Users panel). Unlike updateUsers (PUT /user, UsersDto) it
-  // never touches password, so there is no risk of storing an unhashed value.
+  // Admin-side edit (Users panel). Unlike the updateUsers/UsersDto pair that
+  // PUT /user used before that route was deleted, it never touches password,
+  // so there is no risk of storing an unhashed value.
   async adminUpdateUser(dni: number, dto: AdminUpdateUserDto) {
     // Explicit select including password, same as updateProfile: without it,
     // save() on an entity that is missing the column can overwrite it with
