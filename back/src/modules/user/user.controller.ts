@@ -4,7 +4,6 @@ import {
   Post,
   Get,
   Param,
-  Put,
   Delete,
   Patch,
   Query,
@@ -12,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { UsersDto } from './dto/users-dto';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
@@ -30,7 +28,8 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   // Front-desk creation of a member who may have neither email nor password.
-  // The older UsersDto is still used by PUT /user and by auth.service.register.
+  // The older UsersDto is still used by auth.service.register (via
+  // createUsers).
   @Post()
   createUser(@Body() dto: AdminCreateUserDto) {
     return this.userService.adminCreateUser(dto);
@@ -90,11 +89,6 @@ export class UserController {
     @Body() dto: AdminUpdateUserDto,
   ) {
     return this.userService.adminUpdateUser(dni, dto);
-  }
-
-  @Put()
-  updateUsers(@Body() user: UsersDto) {
-    return this.userService.updateUsers(user);
   }
 
   @Delete('/:dni')

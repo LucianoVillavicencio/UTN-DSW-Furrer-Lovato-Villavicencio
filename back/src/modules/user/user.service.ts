@@ -260,19 +260,6 @@ export class UserService {
     return safeUser;
   }
 
-  async updateUsers(user: UsersDto) {
-    if (!user.dni) {
-      throw new ConflictException(
-        'El DNI del usuario es obligatorio para actualizar.',
-      );
-    }
-    const exists = await this.findUser(user.dni);
-    if (!exists) {
-      throw new NotFoundException(`El usuario con DNI: ${user.dni} no existe.`);
-    }
-    return await this.usersRepository.save(user);
-  }
-
   async deleteUsers(dni: number) {
     const userExists = await this.findUser(dni);
 

@@ -764,7 +764,6 @@ describe('UserController authorization', () => {
           findAllDeleted: jest.fn().mockResolvedValue([]),
           findUser: jest.fn().mockResolvedValue({}),
           adminUpdateUser: jest.fn().mockResolvedValue({}),
-          updateUsers: jest.fn().mockResolvedValue({}),
           deleteUsers: jest.fn().mockResolvedValue({}),
           restoreUsers: jest.fn().mockResolvedValue({}),
         },
@@ -823,10 +822,6 @@ describe('UserController authorization', () => {
       `/api/v1/user/${OTHER_DNI}`,
       tokenFor('member', OWN_DNI),
     ).expect(403);
-  });
-
-  it('restricts PUT /user to an admin', async () => {
-    await adminOnly(app, 'put', '/api/v1/user');
   });
 
   it('restricts DELETE /user/:dni to an admin', async () => {

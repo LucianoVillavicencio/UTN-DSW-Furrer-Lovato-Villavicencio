@@ -90,17 +90,6 @@ export const getUserByDni = async (dni: number): Promise<User> => {
   }
 };
 
-export const updateUser = async (user: User): Promise<User> => {
-  try {
-    const { data } = await api.put<User>('/user', user);
-    return data;
-  } catch (error) {
-    throw new Error(getErrorMessage(error, 'Error al actualizar el usuario'), {
-      cause: error,
-    });
-  }
-};
-
 export interface AdminUpdateUserPayload {
   name?: string;
   surname?: string;
