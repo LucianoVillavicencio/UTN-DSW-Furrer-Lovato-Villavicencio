@@ -3,13 +3,13 @@
 Plataforma de gestión integral para un gimnasio: administradores gestionan clases, profesores,
 planes y pagos; socios reservan turnos, gestionan su suscripción y siguen su historial de pagos.
 
-![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
-![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5%2F6-3178C6?logo=typescript&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
-![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)
-![License](https://img.shields.io/badge/license-académico%20%2F%20sin%20licencia%20pública-lightgrey)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5%2F6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)](#roadmap-y-estado)
+[![License](https://img.shields.io/badge/license-académico%20%2F%20sin%20licencia%20pública-lightgrey)](#licencia)
 
 Trabajo Práctico de la materia **Desarrollo de Software (UTN)**. No es un paquete publicado ni
 tiene pipeline de CI — las badges de stack son informativas.
@@ -66,10 +66,14 @@ Funcionalidades principales:
   un socio, con historial visible tanto para el admin como para el propio socio.
 
 ## Capturas
+Landing Page de FLG: [`assets/Landingpage.png`](assets/Landingpage.png).
 
-<img src="assets/MD.drawio.png" alt="Landing de FLG Gym" width="720" />
+<img src="assets/Landingpage.png" alt="Landing de FLG Gym" width="720" />
 
 Diagrama del modelo de dominio: [`assets/MD.drawio.png`](assets/MD.drawio.png).
+
+<img src="assets/MD.drawio.png" alt="MD de FLG Gym" width="720" />
+
 
 ## Stack
 
@@ -207,12 +211,6 @@ versionan los `.env.example`.
 | `npm test` *(front)* | Tests unitarios (Vitest) |
 | `npm run preview` *(front)* | Sirve el build de producción del frontend |
 
-## Roadmap y estado
-
-Proyecto en desarrollo activo. Fases 0–4 (auth/RBAC, dashboard de socio, dashboard de admin,
-gestión de usuarios y pagos presenciales) están terminadas y verificadas end-to-end. Pendiente:
-integración de pagos online (Mercado Pago) y hardening de seguridad (rate limiting, audit log,
-migraciones). Detalle completo en [`roadmap.md`](roadmap.md).
 
 ## Flujo de trabajo / Contribuciones
 
@@ -241,8 +239,7 @@ git push origin feature/nombre-de-la-feature
 ## Documentación adicional
 
 - [`proposal.md`](proposal.md) — propuesta original del TP: alcance funcional y modelo de dominio.
-- [`specs.md`](specs.md) — especificación de los dashboards de usuario y administrador.
-- [`roadmap.md`](roadmap.md) — plan de implementación por fases y su estado actual.
+
 
 ## Licencia
 
@@ -251,6 +248,6 @@ para la cátedra de Desarrollo de Software, UTN. Todos los derechos reservados a
 
 ## Agradecimientos
 
-- Cátedra de Desarrollo de Software, UTN — consigna y seguimiento del TP.
+- Cátedra de Desarrollo de Software, UTN FRRo (Mgter. Esp. Prof. Ing. Mario O. Bressano e Ing. Gabriel Golzman) — consigna y seguimiento del TP.
 - [NestJS](https://nestjs.com/) y [Vite](https://vite.dev/) por la documentación de referencia
   usada durante el desarrollo.
