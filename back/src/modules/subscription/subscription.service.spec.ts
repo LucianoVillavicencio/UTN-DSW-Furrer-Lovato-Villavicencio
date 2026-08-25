@@ -50,6 +50,37 @@ describe('subscriptionService', () => {
         expect.objectContaining({ state: SubscriptionState.ACTIVE }),
       );
     });
+
+    it('does not cancel the current plan when a self-service change is requested', async () => {
+      const currentActive = {
+        id: 1,
+        userDni: 30111222,
+        planId: 5,
+        state: SubscriptionState.ACTIVE,
+      };
+      repository.findOne.mockResolvedValue(currentActive);
+
+      await service.changePlan(30111222, 9, false);
+
+      expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
+      expect(repository.save).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, state: SubscriptionState.CANCELLED }),
+      );
+    });
+
+    it('still cancels the current plan immediately for an admin-assigned change', async () => {
+      const currentActive = {
+        id: 1,
+        userDni: 30111222,
+        planId: 5,
+        state: SubscriptionState.ACTIVE,
+      };
+      repository.findOne.mockResolvedValue(currentActive);
+
+      await service.changePlan(30111222, 9, true);
+
+      expect(currentActive.state).toBe(SubscriptionState.CANCELLED);
+    });
   });
 
   describe('activate', () => {
@@ -72,6 +103,27 @@ describe('subscriptionService', () => {
         'La suscripción con ID: 404 no existe.',
       );
       expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('cancels the previously active subscription when activating a new one', async () => {
+      const target = {
+        id: 2,
+        userDni: 30111222,
+        state: SubscriptionState.PENDING,
+      };
+      const previousActive = {
+        id: 1,
+        userDni: 30111222,
+        state: SubscriptionState.ACTIVE,
+      };
+      repository.findOne
+        .mockResolvedValueOnce(target) // findSubscription(id) inside activate
+        .mockResolvedValueOnce(previousActive); // the lookup for the old ACTIVE row
+
+      await service.activate(2);
+
+      expect(previousActive.state).toBe(SubscriptionState.CANCELLED);
+      expect(target.state).toBe(SubscriptionState.ACTIVE);
     });
   });
 });

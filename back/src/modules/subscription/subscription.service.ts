@@ -59,8 +59,14 @@ export class subscriptionService {
             : 'Ya estás suscripto a este plan.',
         );
       }
-      currentActive.state = SubscriptionState.CANCELLED;
-      await this.subscriptionRepository.save(currentActive);
+      // The front-desk path is supervised and swaps the plan on the spot; the
+      // self-service path keeps the member's current access until the new
+      // plan's payment is recorded — see `activate`, which cancels the old
+      // ACTIVE subscription once the new one is paid, not before.
+      if (byAdmin) {
+        currentActive.state = SubscriptionState.CANCELLED;
+        await this.subscriptionRepository.save(currentActive);
+      }
     }
 
     // Dates as 'YYYY-MM-DD' strings rather than a Date carrying a time, so the
@@ -114,11 +120,27 @@ export class subscriptionService {
 
   // Promotes a PENDING subscription once its payment is recorded. Called by
   // PaymentService so that payment never has to reach into this repository.
+  // This is also where the member's previous plan actually loses access: a
+  // self-service changePlan leaves the old ACTIVE subscription untouched, so
+  // it has to be cancelled here, once the replacement is paid for.
   async activate(id: number) {
     const subscription = await this.findSubscription(id);
     if (!subscription) {
       throw new NotFoundException(`La suscripción con ID: ${id} no existe.`);
     }
+
+    const previousActive = await this.subscriptionRepository.findOne({
+      where: {
+        userDni: subscription.userDni,
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+      },
+    });
+    if (previousActive && previousActive.id !== subscription.id) {
+      previousActive.state = SubscriptionState.CANCELLED;
+      await this.subscriptionRepository.save(previousActive);
+    }
+
     subscription.state = SubscriptionState.ACTIVE;
     return this.subscriptionRepository.save(subscription);
   }
