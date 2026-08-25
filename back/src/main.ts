@@ -4,9 +4,12 @@ import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { applySecurityHeaders } from './main.security';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  applySecurityHeaders(app);
 
   // Uploaded trainer photos live outside the versioned API: the column stores
   // /uploads/trainers/<file> and the browser fetches it straight from the root.
