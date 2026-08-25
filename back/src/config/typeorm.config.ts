@@ -1,14 +1,19 @@
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import type { ConfigService } from '@nestjs/config';
+import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
-export const typeOrmConfig: TypeOrmModuleOptions = {
-  type: 'mysql',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 3306),
-  username: process.env.DB_USER ?? 'root',
-  password: process.env.DB_PASSWORD ?? 'root',
-  database: process.env.DB_NAME ?? 'flg',
-  autoLoadEntities: true,
-  // Never in production: it applies schema changes straight from the entities,
-  // with no migration and no review.
-  synchronize: process.env.NODE_ENV !== 'production',
-};
+export function buildTypeOrmConfig(
+  config: ConfigService,
+): TypeOrmModuleOptions {
+  return {
+    type: 'mysql',
+    host: config.getOrThrow<string>('DB_HOST'),
+    port: Number(config.getOrThrow<string>('DB_PORT')),
+    username: config.getOrThrow<string>('DB_USER'),
+    password: config.getOrThrow<string>('DB_PASSWORD'),
+    database: config.getOrThrow<string>('DB_NAME'),
+    autoLoadEntities: true,
+    // Never in production: it applies schema changes straight from the
+    // entities, with no migration and no review.
+    synchronize: config.get('NODE_ENV') !== 'production',
+  };
+}
