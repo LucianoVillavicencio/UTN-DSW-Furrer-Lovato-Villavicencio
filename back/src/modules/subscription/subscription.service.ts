@@ -3,14 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult } from 'typeorm';
+import { LessThan, Repository, UpdateResult } from 'typeorm';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
-
 import {
   isCurrentOn,
   subscriptionPeriod,
@@ -197,6 +197,30 @@ export class subscriptionService {
     return isCurrentOn(subscription.endDate, toDateOnly(new Date()))
       ? subscription
       : null;
+  }
+
+  // Moves subscriptions that have run out to INACTIVE, nightly.
+  //
+  // This is BOOKKEEPING, not the access boundary — findActiveForUser already
+  // refuses a lapsed subscription on every request regardless of what `state`
+  // says, and it has to, because a sweep that never runs must not reopen
+  // access. What this adds is a `state` column that tells the truth, so admin
+  // screens that list by state instead of re-deriving currency stop showing
+  // lapsed members as active. Before this, nothing in the codebase ever
+  // assigned INACTIVE at all.
+  //
+  // LessThan, not LessThanOrEqual: a subscription ending today is still
+  // current, matching isCurrentOn's inclusive boundary.
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async expireLapsedSubscriptions(): Promise<UpdateResult> {
+    return this.subscriptionRepository.update(
+      {
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+        endDate: LessThan(toDateOnly(new Date()) as unknown as Date),
+      },
+      { state: SubscriptionState.INACTIVE },
+    );
   }
 
   async createSubscription(subscriptionDto: SubscriptionDto) {
