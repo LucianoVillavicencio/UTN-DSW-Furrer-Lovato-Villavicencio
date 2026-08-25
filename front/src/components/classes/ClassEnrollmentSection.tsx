@@ -18,18 +18,19 @@ const ClassEnrollmentSection = () => {
     searchQuery,
     setSearchQuery,
     filteredMasterClasses,
+    scheduleOfClass,
     activeExpandedClass,
     setActiveExpandedClass,
-    selectedDayOffset,
-    setSelectedDayOffset,
-    sessionsForActiveExpandedDay,
-    activeClassHasSessions,
-    selectedSession,
-    setSelectedSession,
-    isEnrolledInSession,
+    hoursForActiveClass,
+    selectedHour,
+    setSelectedHour,
+    isEnrolledInHour,
     hasActivePlan,
-    handleEnrollSession,
-    handleCancelSession,
+    myEnrollments,
+    isAtAllowance,
+    handleEnrollHour,
+    handleChangeToHour,
+    handleCancelHour,
     currentUser,
     actionLoading,
     actionFeedback,
@@ -88,18 +89,22 @@ const ClassEnrollmentSection = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredMasterClasses.map((masterCls) => (
-              <ClassCardItem
-                key={masterCls.id}
-                masterCls={masterCls}
-                onPress={(cls) => {
-                  setActiveExpandedClass(cls);
-                  setSelectedDayOffset(0);
-                  setSelectedSession(null);
-                  setActionFeedback(null);
-                }}
-              />
-            ))}
+            {filteredMasterClasses.map((masterCls) => {
+              const schedule = scheduleOfClass(masterCls.id);
+              return (
+                <ClassCardItem
+                  key={masterCls.id}
+                  masterCls={masterCls}
+                  weekdays={schedule.weekdays}
+                  hours={schedule.hours}
+                  onPress={(cls) => {
+                    setActiveExpandedClass(cls);
+                    setSelectedHour(null);
+                    setActionFeedback(null);
+                  }}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -108,19 +113,19 @@ const ClassEnrollmentSection = () => {
           activeExpandedClass={activeExpandedClass}
           onClose={() => {
             setActiveExpandedClass(null);
-            setSelectedSession(null);
+            setSelectedHour(null);
             setActionFeedback(null);
           }}
-          selectedDayOffset={selectedDayOffset}
-          setSelectedDayOffset={setSelectedDayOffset}
-          sessionsForActiveExpandedDay={sessionsForActiveExpandedDay}
-          activeClassHasSessions={activeClassHasSessions}
-          selectedSession={selectedSession}
-          setSelectedSession={setSelectedSession}
-          isEnrolledInSession={isEnrolledInSession}
+          hoursForActiveClass={hoursForActiveClass}
+          selectedHour={selectedHour}
+          setSelectedHour={setSelectedHour}
+          isEnrolledInHour={isEnrolledInHour}
           hasActivePlan={hasActivePlan}
-          handleEnrollSession={handleEnrollSession}
-          handleCancelSession={handleCancelSession}
+          myEnrollments={myEnrollments}
+          isAtAllowance={isAtAllowance}
+          handleEnrollHour={handleEnrollHour}
+          handleChangeToHour={handleChangeToHour}
+          handleCancelHour={handleCancelHour}
           currentUser={currentUser}
           actionLoading={actionLoading}
           actionFeedback={actionFeedback}

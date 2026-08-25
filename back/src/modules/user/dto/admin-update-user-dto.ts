@@ -8,9 +8,10 @@ import {
 import { Role } from '../../../common/enum/role.enum';
 
 // Admin-side edit of a user (Users panel). It deliberately has no `password`:
-// UsersDto, used by the older PUT /user, requires one on every update, which
-// forces the caller to send something that ends up stored unhashed. This DTO
-// closes that hole and sticks to the fields an admin actually needs.
+// UsersDto, which the now-deleted PUT /user used to take, required one on
+// every update, forcing the caller to send something that ended up stored
+// unhashed. This DTO closed that hole and sticks to the fields an admin
+// actually needs.
 export class AdminUpdateUserDto {
   @IsString()
   @MinLength(1)

@@ -4,39 +4,60 @@ import {
   UserCheck,
   AlertCircle,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react';
 import Button from '../common/Button';
-import type { ClassSession } from '../../types/classSession';
 import type { AuthUser } from '../../types/user';
+import type { MyEnrollments } from '../../types/classRegistration';
+import type { ClassHour } from './class-hours';
+import { formatTimeOfDay, formatWeekdayList } from '../../lib/weekday';
 
 interface SelectedHourSummaryProps {
-  selectedSession: ClassSession;
+  selectedHour: ClassHour;
   isEnrolled: boolean;
   currentUser: AuthUser | null;
   hasActivePlan: boolean;
+  // What the plan allows, as the backend reports it: the same rules that will
+  // accept or refuse the request decide which button is shown here.
+  myEnrollments: MyEnrollments | null;
+  isAtAllowance: boolean;
   actionLoading: boolean;
-  onEnroll: (session: ClassSession) => void;
-  onCancel: (session: ClassSession) => void;
+  onEnroll: (hour: ClassHour) => void;
+  onChange: (hour: ClassHour) => void;
+  onCancel: (hour: ClassHour) => void;
 }
 
 const SelectedHourSummary = ({
-  selectedSession,
+  selectedHour,
   isEnrolled,
   currentUser,
   hasActivePlan,
+  myEnrollments,
+  isAtAllowance,
   actionLoading,
   onEnroll,
+  onChange,
   onCancel,
 }: SelectedHourSummaryProps) => {
-  const startStr = new Date(selectedSession.dateTime).toLocaleTimeString(
-    'es-ES',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-    },
-  );
-  const maxSpots = selectedSession.maxCapacity || 20;
-  const freeSpots = selectedSession.availableSpots ?? maxSpots;
+  const startStr = formatTimeOfDay(selectedHour.startTime);
+  const daysStr = formatWeekdayList(selectedHour.weekdays);
+  const planName = myEnrollments?.planName;
+  const includesNoClasses = myEnrollments?.maxClasses === 0;
+  const changesLeft = myEnrollments?.changesLeft ?? null;
+  // Only a plan with a limited allowance has a monthly cap, and only a change
+  // spends it — a first enrollment does not.
+  const noChangesLeft = isAtAllowance && changesLeft === 0;
+  const changesLeftLabel =
+    changesLeft === null
+      ? ''
+      : `, y te ${changesLeft === 1 ? 'queda 1 cambio' : `quedan ${changesLeft} cambios`} este mes`;
+  const allowanceLabel =
+    myEnrollments?.maxClasses === 1
+      ? 'una sola clase'
+      : `${myEnrollments?.maxClasses} clases`;
+  const maxSpots = selectedHour.maxCapacity || 20;
+  // The fullest day of the week decides: the enrollment covers all of them.
+  const freeSpots = selectedHour.freeSpots;
   const enrolledCount = Math.max(0, maxSpots - freeSpots);
   const occupancyPercent = Math.min(
     100,
@@ -48,12 +69,17 @@ const SelectedHourSummary = ({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
         <span className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
           <Clock className="h-4 w-4 text-primary" />
-          Resumen del Horario Seleccionado
+          Resumen del horario elegido
         </span>
         <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-full">
           {startStr} hs
         </span>
       </div>
+
+      <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-text">
+        <CalendarDays className="h-4 w-4 text-primary" />
+        {daysStr} · todas las semanas
+      </p>
 
       {/* STATS METRICS GRID */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-center">
@@ -107,18 +133,18 @@ const SelectedHourSummary = ({
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="h-4 w-4" />
-                Inscripto en esta clase ({startStr} hs)
+                Inscripto: {daysStr} a las {startStr} hs
               </div>
               <Button
                 variant="secondary"
                 className="w-full text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-300"
-                onClick={() => onCancel(selectedSession)}
+                onClick={() => onCancel(selectedHour)}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Cancelando...' : 'Cancelar mi inscripción'}
               </Button>
             </div>
-          ) : !hasActivePlan ? (
+          ) : !hasActivePlan || includesNoClasses ? (
             <div className="space-y-2 text-center">
               <Button
                 variant="primary"
@@ -129,20 +155,39 @@ const SelectedHourSummary = ({
                 Ver Planes
               </Button>
               <p className="text-[11px] text-text-muted">
-                Necesitás un plan activo para inscribirte a una clase.
+                {includesNoClasses
+                  ? `Tu plan${planName ? ` ${planName}` : ''} no incluye clases grupales.`
+                  : 'Necesitás un plan activo para inscribirte a una clase.'}
               </p>
             </div>
           ) : freeSpots > 0 ? (
-            <Button
-              variant="primary"
-              className="w-full py-3.5 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30"
-              onClick={() => onEnroll(selectedSession)}
-              disabled={actionLoading}
-            >
-              {actionLoading
-                ? 'Inscribiendo...'
-                : `Inscribirme a las ${startStr} hs`}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                variant="primary"
+                className="w-full py-3.5 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30"
+                onClick={() =>
+                  isAtAllowance
+                    ? onChange(selectedHour)
+                    : onEnroll(selectedHour)
+                }
+                disabled={actionLoading || noChangesLeft}
+              >
+                {actionLoading
+                  ? isAtAllowance
+                    ? 'Cambiando...'
+                    : 'Inscribiendo...'
+                  : isAtAllowance
+                    ? `Cambiar mi clase a los ${daysStr} ${startStr} hs`
+                    : `Inscribirme los ${daysStr} a las ${startStr} hs`}
+              </Button>
+              <p className="text-center text-[11px] text-text-muted">
+                {noChangesLeft
+                  ? `Ya usaste tus cambios de clase de este mes. Vas a poder cambiar de nuevo el ${myEnrollments?.resetsOn}.`
+                  : isAtAllowance
+                    ? `Tu plan incluye ${allowanceLabel}. Al cambiar dejás el horario que tenías${changesLeftLabel}.`
+                    : 'Te queda reservado todas las semanas hasta que lo cambies.'}
+              </p>
+            </div>
           ) : (
             <div className="flex items-center justify-center gap-2 rounded-xl bg-red-500/10 p-3 text-xs font-semibold text-red-400 border border-red-500/20">
               <AlertCircle className="h-4 w-4" />

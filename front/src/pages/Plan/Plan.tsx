@@ -9,7 +9,6 @@ import CTASection from '../../components/common/CTASection';
 import Button from '../../components/common/Button';
 import PlanCard from '../../components/plans/PlanCard';
 import {
-  MEMBERSHIP_PLANS,
   enrichBackendPlan,
   type MembershipPlan,
 } from '../../components/plans/plans.data';
@@ -58,24 +57,30 @@ function Plan() {
           currentUser ? getMySubscription() : Promise.resolve(null),
         ]);
 
-        if (
-          plansRes.status === 'fulfilled' &&
-          Array.isArray(plansRes.value) &&
-          plansRes.value.length > 0
-        ) {
-          const mapped = plansRes.value.map(enrichBackendPlan);
-          setPlans(mapped);
+        // There is no hardcoded fallback: inventing plans hid the failure and
+        // let people pick a plan that does not exist in the backend. An empty
+        // list is rendered as an empty state further down.
+        if (plansRes.status === 'fulfilled') {
+          setPlans(plansRes.value.map(enrichBackendPlan));
         } else {
-          // Graceful fallback to rich default plans
-          setPlans(MEMBERSHIP_PLANS);
+          setPlans([]);
+          setError(
+            plansRes.reason instanceof Error
+              ? plansRes.reason.message
+              : 'No se pudieron cargar los planes.',
+          );
         }
 
         if (subRes.status === 'fulfilled') {
           setActiveSubscription(subRes.value);
         }
       } catch (err) {
-        console.warn('Backend error fetching plans, using fallback:', err);
-        setPlans(MEMBERSHIP_PLANS);
+        setPlans([]);
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'No se pudieron cargar los planes.',
+        );
       } finally {
         setIsLoading(false);
       }
@@ -127,7 +132,7 @@ function Plan() {
 
       setActionFeedback({
         type: 'success',
-        message: `Tu cambio de plan a "${selectedPlan.name}" fue registrado. Acercate al gimnasio para abonar.`,
+        message: `Tu cambio de plan a "${selectedPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago, y mientras tanto seguís con tu plan actual.`,
       });
     } catch (err: unknown) {
       setActionFeedback({
@@ -214,6 +219,25 @@ function Plan() {
                   className="mt-6"
                 >
                   Reintentar
+                </Button>
+              </div>
+            ) : plans.length === 0 ? (
+              <div className="mx-auto max-w-md rounded-2xl border border-border bg-surface/50 p-8 text-center">
+                <CreditCard className="mx-auto h-12 w-12 text-text-muted" />
+                <h3 className="mt-4 text-lg font-semibold text-text">
+                  No hay planes disponibles
+                </h3>
+                <p className="mt-2 text-sm text-text-muted">
+                  Todavía no hay planes de membresía publicados. Escribinos y te
+                  contamos las opciones para entrenar con nosotros.
+                </p>
+                <Button
+                  href="/contact"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-6"
+                >
+                  Contactanos
                 </Button>
               </div>
             ) : (

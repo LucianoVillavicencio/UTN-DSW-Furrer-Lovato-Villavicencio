@@ -43,11 +43,11 @@ const PaymentsSection = () => {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <Card className="text-center hover:-translate-y-0 hover:shadow-lg">
+        <Card className="text-center hover:translate-y-0 hover:shadow-lg">
           <p className="text-sm text-red-400">{error}</p>
         </Card>
       ) : payments.length === 0 ? (
-        <Card className="text-center hover:-translate-y-0 hover:shadow-lg">
+        <Card className="text-center hover:translate-y-0 hover:shadow-lg">
           <Receipt className="mx-auto h-10 w-10 text-text-muted" />
           <p className="mt-3 font-body text-sm text-text-muted">
             Todavía no tenés pagos registrados. Los pagos presenciales que
@@ -94,7 +94,7 @@ const PaymentsSection = () => {
         </div>
       )}
 
-      <Card className="relative overflow-hidden opacity-70 hover:-translate-y-0 hover:shadow-lg">
+      <Card className="relative overflow-hidden opacity-70 hover:translate-y-0 hover:shadow-lg">
         <span className="absolute right-4 top-4 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           Próximamente
         </span>

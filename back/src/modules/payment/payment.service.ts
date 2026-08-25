@@ -10,6 +10,7 @@ import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
+import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 
 @Injectable()
 export class PaymentService {
@@ -29,6 +30,17 @@ export class PaymentService {
       throw new NotFoundException(
         `La suscripción con ID: ${dto.subscriptionId} no existe.`,
       );
+    }
+
+    // The other half of the self-service gate: a plan change opens the
+    // subscription PENDING, and recording its payment is what makes it
+    // active. Done before the payment row is written so a failure here
+    // leaves no payment standing against a subscription that stayed pending.
+    // `state` is a plain string column, so the enum member is widened to its
+    // value before comparing.
+    const pendingState: string = SubscriptionState.PENDING;
+    if (subscription.state === pendingState) {
+      await this.subscriptionService.activate(subscription.id);
     }
 
     const newPayment = this.paymentRepository.create({

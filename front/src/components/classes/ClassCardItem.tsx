@@ -5,13 +5,23 @@ import {
   renderCategoryIcon,
   type MasterClassData,
 } from './master-classes.data';
+import { formatWeekdayList } from '../../lib/weekday';
 
 interface ClassCardItemProps {
   masterCls: MasterClassData;
+  // Weekdays taken from the class's published turnos, so the card cannot
+  // advertise days the gym does not actually run.
+  weekdays: number[];
+  hours: string[];
   onPress: (masterCls: MasterClassData) => void;
 }
 
-const ClassCardItem = ({ masterCls, onPress }: ClassCardItemProps) => {
+const ClassCardItem = ({
+  masterCls,
+  weekdays,
+  hours,
+  onPress,
+}: ClassCardItemProps) => {
   return (
     <Card
       onClick={() => onPress(masterCls)}
@@ -56,7 +66,9 @@ const ClassCardItem = ({ masterCls, onPress }: ClassCardItemProps) => {
             <span>
               Días de dictado:{' '}
               <strong className="text-text font-semibold">
-                {masterCls.scheduleDays}
+                {weekdays.length > 0
+                  ? formatWeekdayList(weekdays)
+                  : 'Sin turnos publicados'}
               </strong>
             </span>
           </div>
@@ -66,7 +78,9 @@ const ClassCardItem = ({ masterCls, onPress }: ClassCardItemProps) => {
       {/* Press Card CTA */}
       <div className="mt-8 flex items-center justify-between border-t border-border/40 pt-4">
         <span className="text-xs font-semibold text-text-muted group-hover:text-text transition-colors">
-          Horarios de 07:00 a 22:00 hs
+          {hours.length > 0
+            ? `Horarios: ${hours.join(' · ')} hs`
+            : 'Todavía sin horarios'}
         </span>
         <Button variant="primary" size="sm" className="gap-1.5 text-xs">
           Ver horarios e inscribirme <ChevronRight className="h-4 w-4" />

@@ -93,7 +93,7 @@ const AboutHeroSection = () => {
 
         {/* Right Column: Hero Image with Floating Badge */}
         <div className="relative w-full max-w-lg mx-auto lg:max-w-none">
-          <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-3xl bg-surface border border-border shadow-2xl transition-transform duration-500 hover:scale-[1.01]">
+          <div className="relative aspect-4/3 sm:aspect-square w-full overflow-hidden rounded-3xl bg-surface border border-border shadow-2xl transition-transform duration-500 hover:scale-[1.01]">
             <img
               src={imgSrc}
               onError={handleImageError}
@@ -103,7 +103,7 @@ const AboutHeroSection = () => {
               height={800}
               className="h-full w-full object-cover transition-all duration-700 hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
             {/* Floating Glassmorphism Overlay Card */}
             <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-surface/80 p-4 backdrop-blur-md shadow-xl flex items-center justify-between">

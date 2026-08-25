@@ -45,7 +45,7 @@ const sizeStyles: Record<ButtonSize, string> = {
 };
 
 const baseStyles =
-  'inline-flex items-center justify-center rounded-full font-body font-semibold transition-all duration-300 shadow-md hover_shadow-xl hover:-translate-y-0.5 ease-in-out cursor-pointer';
+  'inline-flex items-center justify-center rounded-full font-body font-semibold transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 ease-in-out cursor-pointer';
 
 // button component .. rounded-full shadow-md hover:shadow-xl hover:-translate-y-1.5 duration-500 ease-in-out
 

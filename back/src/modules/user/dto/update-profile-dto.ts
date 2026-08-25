@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsOptional,
   IsString,
+  Matches,
   MinLength,
   ValidateIf,
 } from 'class-validator';
@@ -39,6 +40,9 @@ export class UpdateProfileDto {
   )
   @IsString()
   @MinLength(8)
+  @Matches(/(?=.*[A-Za-z])(?=.*\d)/, {
+    message: 'La contraseña debe tener al menos una letra y un número.',
+  })
   @IsOptional()
   newPassword?: string;
 }

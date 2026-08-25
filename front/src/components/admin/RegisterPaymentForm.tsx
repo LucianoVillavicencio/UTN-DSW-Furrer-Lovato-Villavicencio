@@ -36,9 +36,17 @@ const RegisterPaymentForm = ({
   const [selectedUser, setSelectedUser] = useState<User | null>(
     presetUser ?? null,
   );
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  // The subscriptions are tagged with the member they belong to, so both the
+  // spinner and the reset on member change are derived from the selection
+  // instead of an effect writing state during render.
+  const [loadedSubs, setLoadedSubs] = useState<{
+    dni: number;
+    items: Subscription[];
+  } | null>(null);
+  const subscriptions =
+    loadedSubs && loadedSubs.dni === selectedUser?.dni ? loadedSubs.items : [];
+  const isLoadingSubs = !!selectedUser && loadedSubs?.dni !== selectedUser.dni;
   const [selectedSubId, setSelectedSubId] = useState<number | ''>('');
-  const [isLoadingSubs, setIsLoadingSubs] = useState(false);
 
   const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0].value);
@@ -47,14 +55,11 @@ const RegisterPaymentForm = ({
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedUser) {
-      setSubscriptions([]);
-      return;
-    }
-    setIsLoadingSubs(true);
-    getSubscriptionsByUser(selectedUser.dni)
+    if (!selectedUser) return;
+    const dni = selectedUser.dni;
+    void getSubscriptionsByUser(dni)
       .then((subs) => {
-        setSubscriptions(subs);
+        setLoadedSubs({ dni, items: subs });
         const active = subs.find(
           (s) => s.state?.toLowerCase() === 'activa' && !s.deleted,
         );
@@ -63,14 +68,14 @@ const RegisterPaymentForm = ({
           setAmount(formatPriceDisplay(active.plan.price));
         }
       })
-      .catch((err) =>
+      .catch((err: unknown) => {
+        setLoadedSubs({ dni, items: [] });
         setSearchError(
           err instanceof Error
             ? err.message
             : 'No se pudieron cargar las suscripciones.',
-        ),
-      )
-      .finally(() => setIsLoadingSubs(false));
+        );
+      });
   }, [selectedUser]);
 
   const handleSearch = async () => {

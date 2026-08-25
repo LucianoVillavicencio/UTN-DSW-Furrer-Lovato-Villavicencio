@@ -46,6 +46,26 @@ export const changePlan = async (planId: number): Promise<Subscription> => {
   }
 };
 
+// Admin-side counterpart of changePlan: closes the member's active
+// subscription, if any, and opens one on the chosen plan. The DNI travels in
+// the path because the JWT here belongs to the admin, not to the member.
+export const assignPlanToMember = async (
+  dni: number,
+  planId: number,
+): Promise<Subscription> => {
+  try {
+    const { data } = await api.post<Subscription>(
+      `/subscription/admin/${dni}`,
+      { planId },
+    );
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'No se pudo asignar el plan.'), {
+      cause: error,
+    });
+  }
+};
+
 // Everything below is admin-only. The controller had no guard at all before —
 // anyone could list every subscription — so it moved to @Auth(Role.ADMIN), and
 // these functions need the JWT that `api` attaches.

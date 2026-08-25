@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { ChangePlanDto } from './dto/change-plan-dto';
 import { subscriptionService } from './subscription.service';
@@ -24,6 +26,8 @@ import { Role } from '../../common/enum/role.enum';
 @Controller('api/v1/subscription')
 @ApiTags('subscriptiones')
 @Auth(Role.ADMIN)
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class subscriptionController {
   constructor(private readonly subscriptionService: subscriptionService) {}
 
@@ -31,7 +35,7 @@ export class subscriptionController {
   // different plan. userDni comes from the JWT, never from the body — see
   // ChangePlanDto.
   @Post('change-plan')
-  @Auth()
+  @Auth(Role.USER)
   changePlan(
     @ActiveUser() user: UserActiveInterface,
     @Body() dto: ChangePlanDto,
@@ -39,11 +43,21 @@ export class subscriptionController {
     return this.subscriptionService.changePlan(user.sub, dto.planId);
   }
 
+  // Assigns a plan to a member from the Users panel or the new-member wizard.
+  // No extra @Auth: the class-level guard already restricts this to ADMIN.
+  @Post('admin/:dni')
+  assignPlanToMember(
+    @Param('dni', ParseIntPipe) dni: number,
+    @Body() dto: ChangePlanDto,
+  ) {
+    return this.subscriptionService.assignPlanToMember(dni, dto.planId);
+  }
+
   // Self-service: the authenticated user's active subscription, for the
   // dashboard's "Mi plan" tab. Before this there was no way to ask for "mine"
   // without pulling the full list of every user.
   @Get('me')
-  @Auth()
+  @Auth(Role.USER)
   getMySubscription(@ActiveUser() user: UserActiveInterface) {
     return this.subscriptionService.findActiveForUser(user.sub);
   }

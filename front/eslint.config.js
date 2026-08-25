@@ -18,13 +18,5 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
-    rules: {
-      // Every section component fetches on mount through a plain useEffect, so
-      // the rule fires on all of them. Satisfying it means not calling a
-      // state-setting function from an effect at all, which needs a data layer
-      // (React Query, SWR or Suspense) rather than a local edit. Kept as a
-      // warning so the debt stays visible instead of being disabled.
-      "react-hooks/set-state-in-effect": "warn",
-    },
   },
 ])

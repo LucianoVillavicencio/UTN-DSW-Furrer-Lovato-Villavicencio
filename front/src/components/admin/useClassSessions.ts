@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   getClassSession,
   getDeletedClassSessions,
-  createClassSession,
+  createWeeklyClassSessions,
   updateClassSession,
   deleteClassSession,
   restoreClassSession,
@@ -18,54 +18,64 @@ import type { ClassSessionFormState } from './class-session-form';
 export const useClassSessions = (showDeleted: boolean) => {
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [sessionsData, classesData] = await Promise.all([
-        showDeleted ? getDeletedClassSessions() : getClassSession(),
-        getClass().catch(() => []),
-      ]);
-      setSessions(
-        [...sessionsData].sort((a, b) =>
-          a.dateTime < b.dateTime ? -1 : a.dateTime > b.dateTime ? 1 : 0,
-        ),
-      );
-      setClasses(classesData);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchSessions = (deleted: boolean) =>
+    Promise.all([
+      deleted ? getDeletedClassSessions() : getClassSession(),
+      getClass().catch(() => []),
+    ])
+      .then(([sessionsData, classesData]) => {
+        setSessions(
+          [...sessionsData].sort(
+            (a, b) =>
+              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
+          ),
+        );
+        setClasses(classesData);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchSessions(showDeleted);
   }, [showDeleted]);
 
-  // Returns null on success, or the message to show in the form.
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchSessions(showDeleted);
+  };
+
+  // Returns null on success, or the message to show in the form. Creating goes
+  // through the weekly endpoint so every day × hour combination is one request;
+  // editing moves a single existing slot.
   const save = async (
     form: ClassSessionFormState,
     editing: ClassSession | null,
   ): Promise<string | null> => {
     const maxCapacity = Number(form.maxCapacity);
-    if (!form.classId || !form.date || !form.time) {
-      return 'Clase, fecha y hora son obligatorias.';
+    const times = form.times.map((t) => t.trim()).filter((t) => t.length > 0);
+
+    if (!form.classId || form.weekdays.length === 0 || times.length === 0) {
+      return 'Clase, día y horario son obligatorios.';
     }
     if (!Number.isFinite(maxCapacity) || maxCapacity < 1) {
       return 'El cupo máximo tiene que ser mayor a cero.';
     }
-
-    // No trailing Z, so the browser reads it as the local time the admin typed.
-    const dateTime = new Date(`${form.date}T${form.time}:00`).toISOString();
 
     setIsSaving(true);
     try {
@@ -73,18 +83,23 @@ export const useClassSessions = (showDeleted: boolean) => {
         await updateClassSession({
           id: editing.id,
           classId: form.classId,
-          dateTime,
+          weekday: form.weekdays[0],
+          startTime: times[0],
           maxCapacity,
           availableSpots: editing.availableSpots,
         });
       } else {
-        await createClassSession({
+        const result = await createWeeklyClassSessions({
           classId: form.classId,
-          dateTime,
+          weekdays: form.weekdays,
+          times,
           maxCapacity,
         });
+        if (result.created === 0) {
+          return 'Esos turnos ya existían — no se creó ninguno nuevo.';
+        }
       }
-      await load();
+      await reload();
       return null;
     } catch (err) {
       return err instanceof Error ? err.message : 'No se pudo guardar.';
@@ -104,7 +119,7 @@ export const useClassSessions = (showDeleted: boolean) => {
       } else {
         await deleteClassSession(session.id);
       }
-      await load();
+      await reload();
       return null;
     } catch (err) {
       return err instanceof Error

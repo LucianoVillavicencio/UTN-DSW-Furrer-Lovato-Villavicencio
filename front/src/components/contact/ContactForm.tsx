@@ -239,7 +239,7 @@ const ContactForm = () => {
               Mensaje <span className="text-primary">*</span>
             </label>
             <span
-              className={`text-xs font-body font-mono ${charsCount >= 950 ? 'text-amber-400 font-bold' : 'text-text-muted'}`}
+              className={`text-xs font-mono ${charsCount >= 950 ? 'text-amber-400 font-bold' : 'text-text-muted'}`}
             >
               {charsCount} / {MAX_MESSAGE_LENGTH}
             </span>

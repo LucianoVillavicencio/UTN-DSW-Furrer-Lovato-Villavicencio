@@ -1,36 +1,34 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ClassSession } from '../../types/classSession';
 import type { TypeClass } from '../../types/typeClass';
-import type { ClassRegistration } from '../../types/classRegistration';
+import type { MyEnrollments } from '../../types/classRegistration';
 
 import { useAuth } from '../../context/useAuth';
 import { getClass } from '../../services/class.service';
 import { getClassSession } from '../../services/classSession.service';
 import { getTypeClass } from '../../services/typeClass.service';
 import {
-  createClassRegistration,
-  getClassRegistration,
-  deleteClassRegistration,
+  getMyEnrollments,
+  enrollInClass,
+  changeMyClass,
+  cancelEnrollment,
 } from '../../services/classRegistration.service';
-import { getMySubscription } from '../../services/subscription.service';
 
-import {
-  getLocalYMD,
-  normalizeText,
-  toMasterClassData,
-  type MasterClassData,
-} from './master-classes.data';
+import { normalizeText, toMasterClassData } from './master-classes.data';
+import { formatTimeOfDay } from '../../lib/weekday';
+import type { MasterClassData } from './master-classes.data';
+import { groupSessionsByHour, type ClassHour } from './class-hours';
 
 export const useClassEnrollment = () => {
   const [masterClasses, setMasterClasses] = useState<MasterClassData[]>([]);
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [classTypes, setClassTypes] = useState<TypeClass[]>([]);
-  const [userRegistrations, setUserRegistrations] = useState<
-    ClassRegistration[]
-  >([]);
-  // A membership is required to enroll, so the button offers the plans page
-  // instead of a request the backend would reject.
-  const [hasActivePlan, setHasActivePlan] = useState(false);
+  // What this member holds and what their plan allows, straight from the
+  // backend: the same rules that will accept or refuse the request, so the page
+  // never offers an action that is going to bounce.
+  const [myEnrollments, setMyEnrollments] = useState<MyEnrollments | null>(
+    null,
+  );
 
   // The user comes from AuthContext, whose token is already validated, rather
   // than from raw localStorage.
@@ -46,10 +44,9 @@ export const useClassEnrollment = () => {
   // EXPANDED VIEW STATE
   const [activeExpandedClass, setActiveExpandedClass] =
     useState<MasterClassData | null>(null);
-  const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);
-  const [selectedSession, setSelectedSession] = useState<ClassSession | null>(
-    null,
-  );
+  // A member picks an hour, not a date: the enrollment covers every weekday
+  // that class runs at that hour, week after week.
+  const [selectedHour, setSelectedHour] = useState<ClassHour | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
@@ -63,21 +60,14 @@ export const useClassEnrollment = () => {
       setIsLoading(true);
       setLoadError(null);
 
-      const [
-        fetchedClasses,
-        fetchedSessions,
-        fetchedTypes,
-        fetchedRegistrations,
-        fetchedSubscription,
-      ] = await Promise.allSettled([
-        getClass(),
-        getClassSession(),
-        getTypeClass(),
-        // Registrations and the subscription only make sense for a signed-in
-        // user.
-        isAuthenticated ? getClassRegistration() : Promise.resolve([]),
-        isAuthenticated ? getMySubscription() : Promise.resolve(null),
-      ]);
+      const [fetchedClasses, fetchedSessions, fetchedTypes, fetchedMine] =
+        await Promise.allSettled([
+          getClass(),
+          getClassSession(),
+          getTypeClass(),
+          // Enrollments only make sense for a signed-in user.
+          isAuthenticated ? getMyEnrollments() : Promise.resolve(null),
+        ]);
 
       // The class catalogue comes from the backend with no stand-in data: if it
       // fails the error is shown instead of inventing classes that do not exist.
@@ -97,7 +87,7 @@ export const useClassEnrollment = () => {
 
       setMasterClasses(classesFromApi);
 
-      // Only the sessions an admin actually published. There used to be a
+      // Only the weekly turnos an admin actually published. There used to be a
       // generated week grid as a stand-in here, but those slots do not exist in
       // the database: enrolling in one fails, so it advertised a schedule that
       // could not be booked. An empty grid is the honest answer.
@@ -125,17 +115,9 @@ export const useClassEnrollment = () => {
         setClassTypes([...typesFromClasses.values()]);
       }
 
-      if (
-        fetchedRegistrations.status === 'fulfilled' &&
-        Array.isArray(fetchedRegistrations.value)
-      ) {
-        setUserRegistrations(fetchedRegistrations.value);
+      if (fetchedMine.status === 'fulfilled') {
+        setMyEnrollments(fetchedMine.value);
       }
-
-      setHasActivePlan(
-        fetchedSubscription.status === 'fulfilled' &&
-          !!fetchedSubscription.value,
-      );
 
       setIsLoading(false);
     };
@@ -169,219 +151,143 @@ export const useClassEnrollment = () => {
     });
   }, [masterClasses, selectedTypeId, searchQuery]);
 
-  // Whether the user is already enrolled in a given session.
-  const isEnrolledInSession = useCallback(
-    (sessionId?: number) => {
-      if (!currentUser || !sessionId) return false;
-      const userDniNum = Number(currentUser.dni);
-      return userRegistrations.some(
-        (ins) =>
-          Number(ins.userDni) === userDniNum &&
-          Number(ins.classSessionId) === Number(sessionId) &&
-          !ins.deleted,
-      );
-    },
-    [currentUser, userRegistrations],
+  // The published schedule of every class, so a card shows the days and hours
+  // that exist instead of a generic "Lunes a Sábado".
+  const scheduleByClass = useMemo(() => {
+    const byClass = new Map<number, { weekdays: number[]; hours: string[] }>();
+    for (const session of sessions) {
+      const classId = session.classId ?? session.class?.id;
+      if (!classId) continue;
+      const entry = byClass.get(classId) ?? { weekdays: [], hours: [] };
+      if (!entry.weekdays.includes(session.weekday)) {
+        entry.weekdays.push(session.weekday);
+      }
+      const hour = formatTimeOfDay(session.startTime);
+      if (!entry.hours.includes(hour)) entry.hours.push(hour);
+      byClass.set(classId, entry);
+    }
+    for (const entry of byClass.values()) {
+      entry.weekdays.sort((a, b) => a - b);
+      entry.hours.sort();
+    }
+    return byClass;
+  }, [sessions]);
+
+  const scheduleOfClass = useCallback(
+    (classId: number) =>
+      scheduleByClass.get(classId) ?? { weekdays: [], hours: [] },
+    [scheduleByClass],
   );
 
-  // The registration matching a session, if there is one.
-  const getRegistrationForSession = useCallback(
-    (sessionId?: number) => {
-      if (!currentUser || !sessionId) return null;
-      const userDniNum = Number(currentUser.dni);
-      return userRegistrations.find(
-        (ins) =>
-          Number(ins.userDni) === userDniNum &&
-          Number(ins.classSessionId) === Number(sessionId) &&
-          !ins.deleted,
-      );
-    },
-    [currentUser, userRegistrations],
-  );
-
-  // Whether the expanded class has any published session at all, which is a
-  // different message from "none on the day you picked".
-  const activeClassHasSessions = useMemo(
+  // The weekly hours of the expanded class, each covering the days it runs.
+  const hoursForActiveClass = useMemo(
     () =>
       activeExpandedClass
-        ? sessions.some(
-            (s) => (s.classId ?? s.class?.id) === activeExpandedClass.id,
-          )
-        : false,
+        ? groupSessionsByHour(sessions, activeExpandedClass.id)
+        : [],
     [sessions, activeExpandedClass],
   );
 
-  // Available sessions for active expanded class on selected day (timezone-safe getLocalYMD)
-  const sessionsForActiveExpandedDay = useMemo(() => {
-    if (!activeExpandedClass) return [];
-    const targetDateObj = new Date();
-    targetDateObj.setDate(targetDateObj.getDate() + selectedDayOffset);
-    const targetDateStr = getLocalYMD(targetDateObj);
+  const activeClassHasSessions = hoursForActiveClass.length > 0;
 
-    return sessions
-      .filter((t) => {
-        const isSameClass =
-          (t.classId ?? t.class?.id) === activeExpandedClass.id;
-        const tDateStr = getLocalYMD(t.dateTime);
-        return isSameClass && tDateStr === targetDateStr;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
+  // Memoised because the callbacks below depend on it: a fresh [] on every
+  // render would rebuild them each time.
+  const enrollments = useMemo(
+    () => myEnrollments?.enrollments ?? [],
+    [myEnrollments],
+  );
+  const maxClasses = myEnrollments?.maxClasses ?? 0;
+  const hasActivePlan = myEnrollments?.hasActivePlan ?? false;
+  // At the cap the only way into another hour is a change, which is what the
+  // member is offered instead of an enroll button that would be refused.
+  const isAtAllowance =
+    maxClasses !== null && enrollments.length >= maxClasses && maxClasses > 0;
+
+  // Enrolled in an hour means holding the spot on every day it runs.
+  const isEnrolledInHour = useCallback(
+    (hour: ClassHour | null) => {
+      if (!hour) return false;
+      return enrollments.some(
+        (e) => e.classId === hour.classId && e.startTime === hour.startTime,
       );
-  }, [activeExpandedClass, selectedDayOffset, sessions]);
+    },
+    [enrollments],
+  );
 
-  // Enrollment handler with front-end capacity & duplicate validation
-  const handleEnrollSession = useCallback(
-    async (targetSession: ClassSession) => {
-      if (!currentUser || !targetSession?.id) return;
+  // Applies what the backend answered: it returns the member's whole state, so
+  // the page never has to guess how a rule resolved.
+  const applyResult = useCallback(
+    async (result: MyEnrollments, message: string) => {
+      setMyEnrollments(result);
+      setActionFeedback({ type: 'success', message });
+      // Capacity moved for everyone, not just for this member.
+      const refreshed = await getClassSession().catch(() => null);
+      if (refreshed) setSessions(refreshed);
+    },
+    [],
+  );
 
-      // Check capacity limit
-      const freeSpots =
-        targetSession.availableSpots ?? targetSession.maxCapacity ?? 20;
-      if (freeSpots <= 0) {
-        setActionFeedback({
-          type: 'error',
-          message: 'No hay cupos disponibles para este horario.',
-        });
-        return;
-      }
-
-      // Check duplicate enrollment
-      if (isEnrolledInSession(targetSession.id)) {
-        setActionFeedback({
-          type: 'error',
-          message: 'Ya estás inscripto en este turno.',
-        });
-        return;
-      }
-
-      const userDniNum = Number(currentUser.dni);
-      const sessionIdNum = Number(targetSession.id);
-
-      if (isNaN(userDniNum) || userDniNum <= 0) {
+  const runAction = useCallback(
+    async (action: () => Promise<MyEnrollments>, message: string) => {
+      setActionLoading(true);
+      setActionFeedback(null);
+      try {
+        await applyResult(await action(), message);
+      } catch (err) {
         setActionFeedback({
           type: 'error',
           message:
-            'No se pudo verificar tu DNI. Por favor vuelve a iniciar sesión.',
+            err instanceof Error
+              ? err.message
+              : 'No se pudo completar la acción.',
         });
-        return;
-      }
-
-      setActionLoading(true);
-      setActionFeedback(null);
-
-      try {
-        const newRegistration: ClassRegistration =
-          await createClassRegistration({
-            userDni: userDniNum,
-            classSessionId: sessionIdNum,
-            date: new Date().toISOString(),
-            state: 'confirmada',
-          });
-
-        setUserRegistrations((prev) => [...prev, newRegistration]);
-        setSessions((prev) =>
-          prev.map((t) =>
-            Number(t.id) === sessionIdNum
-              ? {
-                  ...t,
-                  availableSpots: Math.max(0, (t.availableSpots ?? 1) - 1),
-                }
-              : t,
-          ),
-        );
-
-        if (selectedSession && Number(selectedSession.id) === sessionIdNum) {
-          setSelectedSession((prev: ClassSession | null) =>
-            prev
-              ? {
-                  ...prev,
-                  availableSpots: Math.max(0, (prev.availableSpots ?? 1) - 1),
-                }
-              : null,
-          );
-        }
-
-        setActionFeedback({
-          type: 'success',
-          message: '¡Inscripción realizada con éxito para ese horario!',
-        });
-      } catch (err) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : 'Error al procesar la inscripción';
-        setActionFeedback({ type: 'error', message: msg });
       } finally {
         setActionLoading(false);
       }
     },
-    [currentUser, isEnrolledInSession, selectedSession],
+    [applyResult],
   );
 
-  // Cancel enrollment handler
-  const handleCancelSession = useCallback(
-    async (targetSession: ClassSession) => {
-      const registration = getRegistrationForSession(targetSession.id);
-      if (!registration) return;
+  // Enrolling books every weekly turno of the chosen class + hour: the member
+  // keeps that spot each week and only comes back to change it.
+  const handleEnrollHour = useCallback(
+    (hour: ClassHour) =>
+      runAction(
+        () => enrollInClass(hour.classId, hour.startTime),
+        '¡Listo! Tenés tu lugar en ese horario todas las semanas.',
+      ),
+    [runAction],
+  );
 
-      setActionLoading(true);
-      setActionFeedback(null);
-
-      try {
-        if (registration.id) {
-          await deleteClassRegistration(registration.id);
-        }
-
-        setUserRegistrations((prev) =>
-          prev.filter((i) => i !== registration && i.id !== registration.id),
-        );
-        const sessionIdNum = Number(targetSession.id);
-
-        setSessions((prev) =>
-          prev.map((t) =>
-            Number(t.id) === sessionIdNum
-              ? {
-                  ...t,
-                  availableSpots: Math.min(
-                    t.maxCapacity || 20,
-                    (t.availableSpots ?? 0) + 1,
-                  ),
-                }
-              : t,
+  // Switching spends one of the monthly changes when the plan is limited. The
+  // group being replaced is passed explicitly so a plan with several classes
+  // knows which one to release.
+  const handleChangeToHour = useCallback(
+    (hour: ClassHour, group?: string) =>
+      runAction(
+        () =>
+          changeMyClass(
+            hour.classId,
+            hour.startTime,
+            group ?? enrollments[0]?.group,
           ),
-        );
+        'Cambiamos tu clase. El nuevo horario queda reservado todas las semanas.',
+      ),
+    [runAction, enrollments],
+  );
 
-        if (selectedSession && Number(selectedSession.id) === sessionIdNum) {
-          setSelectedSession((prev: ClassSession | null) =>
-            prev
-              ? {
-                  ...prev,
-                  availableSpots: Math.min(
-                    prev.maxCapacity || 20,
-                    (prev.availableSpots ?? 0) + 1,
-                  ),
-                }
-              : null,
-          );
-        }
-
-        setActionFeedback({
-          type: 'success',
-          message: 'Has cancelado tu inscripción para ese horario.',
-        });
-      } catch (err) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : 'Error al cancelar la inscripción';
-        setActionFeedback({ type: 'error', message: msg });
-      } finally {
-        setActionLoading(false);
-      }
+  const handleCancelHour = useCallback(
+    (hour: ClassHour) => {
+      const mine = enrollments.find(
+        (e) => e.classId === hour.classId && e.startTime === hour.startTime,
+      );
+      if (!mine) return Promise.resolve();
+      return runAction(
+        () => cancelEnrollment(mine.group),
+        'Cancelamos tu inscripción a ese horario.',
+      );
     },
-    [getRegistrationForSession, selectedSession],
+    [runAction, enrollments],
   );
 
   return {
@@ -393,18 +299,20 @@ export const useClassEnrollment = () => {
     searchQuery,
     setSearchQuery,
     filteredMasterClasses,
+    scheduleOfClass,
     activeExpandedClass,
     setActiveExpandedClass,
-    selectedDayOffset,
-    setSelectedDayOffset,
-    sessionsForActiveExpandedDay,
+    hoursForActiveClass,
     activeClassHasSessions,
-    selectedSession,
-    setSelectedSession,
-    isEnrolledInSession,
+    selectedHour,
+    setSelectedHour,
+    isEnrolledInHour,
     hasActivePlan,
-    handleEnrollSession,
-    handleCancelSession,
+    myEnrollments,
+    isAtAllowance,
+    handleEnrollHour,
+    handleChangeToHour,
+    handleCancelHour,
     currentUser,
     actionLoading,
     actionFeedback,

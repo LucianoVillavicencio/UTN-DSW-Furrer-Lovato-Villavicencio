@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { LayoutDashboard, UserCog, CreditCard, Receipt } from 'lucide-react';
+import {
+  LayoutDashboard,
+  UserCog,
+  CreditCard,
+  Receipt,
+  Dumbbell,
+} from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import PageHeader from '../../components/common/PageHeader';
@@ -11,11 +17,13 @@ import OverviewSection from '../../components/dashboard/OverviewSection';
 import ProfileForm from '../../components/dashboard/ProfileForm';
 import PlanSection from '../../components/dashboard/PlanSection';
 import PaymentsSection from '../../components/dashboard/PaymentsSection';
+import MyClassesSection from '../../components/dashboard/MyClassesSection';
 
 const TABS: DashboardTab[] = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
   { id: 'datos', label: 'Datos personales', icon: UserCog },
   { id: 'plan', label: 'Mi plan', icon: CreditCard },
+  { id: 'clases', label: 'Mis clases', icon: Dumbbell },
   { id: 'pagos', label: 'Historial de pagos', icon: Receipt },
 ];
 
@@ -48,6 +56,7 @@ const Dashboard = () => {
               )}
               {activeTab === 'datos' && <ProfileForm />}
               {activeTab === 'plan' && <PlanSection />}
+              {activeTab === 'clases' && <MyClassesSection />}
               {activeTab === 'pagos' && <PaymentsSection />}
             </div>
           </Container>

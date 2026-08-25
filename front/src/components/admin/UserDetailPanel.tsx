@@ -6,8 +6,11 @@ import FormAlert from '../common/FormAlert';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import RegisterPaymentForm from './RegisterPaymentForm';
+import AssignPlanForm from './AssignPlanForm';
+import UserClassSection from './UserClassSection';
 import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
+import { isPlaceholderEmail } from '../../lib/placeholderEmail';
 import {
   adminUpdateUser,
   deleteUser,
@@ -23,6 +26,12 @@ import type { User } from '../../types/user';
 import type { Subscription } from '../../types/subscription';
 import type { Payment } from '../../types/payment';
 
+interface UserHistory {
+  dni: number;
+  subscriptions: Subscription[];
+  payments: Payment[];
+}
+
 interface UserDetailPanelProps {
   user: User;
   currentAdminDni: number;
@@ -36,10 +45,11 @@ const UserDetailPanel = ({
   onClose,
   onChanged,
 }: UserDetailPanelProps) => {
+  const hasPlaceholderEmail = isPlaceholderEmail(user.email);
   const [form, setForm] = useState<AdminUpdateUserPayload>({
     name: user.name,
     surname: user.surname,
-    email: user.email,
+    email: hasPlaceholderEmail ? '' : user.email,
     phone: user.phone,
     role: user.role,
   });
@@ -47,9 +57,13 @@ const UserDetailPanel = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  // The history is tagged with the member it belongs to, so the spinner is
+  // derived from the props instead of an effect resetting a flag on every
+  // change of user.
+  const [history, setHistory] = useState<UserHistory | null>(null);
+  const isLoadingHistory = history?.dni !== user.dni;
+  const subscriptions = history?.subscriptions ?? [];
+  const payments = history?.payments ?? [];
 
   const [confirmDangerAction, setConfirmDangerAction] = useState<
     'delete' | 'restore' | 'cancelSub' | null
@@ -58,33 +72,33 @@ const UserDetailPanel = ({
   const [isActing, setIsActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const [subs, pays] = await Promise.all([
-        getSubscriptionsByUser(user.dni),
-        getPaymentsByUser(user.dni),
-      ]);
-      setSubscriptions(subs);
-      setPayments(pays);
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : 'No se pudo cargar el historial.',
-      );
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the requests instead of updating state while React renders.
+  const fetchHistory = (dni: number) =>
+    Promise.all([getSubscriptionsByUser(dni), getPaymentsByUser(dni)])
+      .then(([subs, pays]) => {
+        setHistory({ dni, subscriptions: subs, payments: pays });
+      })
+      .catch((err: unknown) => {
+        setHistory({ dni, subscriptions: [], payments: [] });
+        setActionError(
+          err instanceof Error ? err.message : 'No se pudo cargar el historial.',
+        );
+      });
 
   useEffect(() => {
-    loadHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchHistory(user.dni);
   }, [user.dni]);
+
+  const reloadHistory = () => {
+    setHistory(null);
+    return fetchHistory(user.dni);
+  };
 
   const isDirty =
     form.name !== user.name ||
     form.surname !== user.surname ||
-    form.email !== user.email ||
+    form.email !== (hasPlaceholderEmail ? '' : user.email) ||
     form.phone !== user.phone ||
     form.role !== user.role;
 
@@ -93,7 +107,9 @@ const UserDetailPanel = ({
     setSaveSuccess(null);
     setIsSaving(true);
     try {
-      await adminUpdateUser(user.dni, form);
+      const payload: AdminUpdateUserPayload = { ...form };
+      if (!payload.email?.trim()) delete payload.email;
+      await adminUpdateUser(user.dni, payload);
       setSaveSuccess('Cambios guardados.');
       onChanged();
     } catch (err) {
@@ -119,7 +135,7 @@ const UserDetailPanel = ({
         const sub = subscriptions.find((s) => s.id === pendingSubId);
         if (sub) {
           await cancelSubscription(sub);
-          await loadHistory();
+          await reloadHistory();
         }
       }
       setConfirmDangerAction(null);
@@ -160,6 +176,9 @@ const UserDetailPanel = ({
             <InputField
               label="Email"
               type="email"
+              placeholder={
+                hasPlaceholderEmail ? 'Sin email — creado en el gimnasio' : ''
+              }
               value={form.email ?? ''}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
@@ -239,7 +258,16 @@ const UserDetailPanel = ({
               ))}
             </ul>
           )}
+
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-text-muted">
+              Asignar plan
+            </p>
+            <AssignPlanForm userDni={user.dni} onAssigned={reloadHistory} />
+          </div>
         </section>
+
+        <UserClassSection userDni={user.dni} />
 
         {/* Payments */}
         <section className="border-t border-border pt-4">
@@ -268,7 +296,23 @@ const UserDetailPanel = ({
             <p className="mb-2 text-xs font-semibold text-text-muted">
               Registrar pago presencial
             </p>
-            <RegisterPaymentForm presetUser={user} onRegistered={loadHistory} />
+            <RegisterPaymentForm
+              // RegisterPaymentForm only loads its subscriptions once, on
+              // mount, keyed off its own selectedUser state (it also drives a
+              // standalone search flow with no presetUser, so it can't just
+              // depend on this prop). Assigning a plan just above refreshes
+              // this panel's own subscription list via reloadHistory but
+              // never reaches that internal state, so without a key tied to
+              // it, a member who had no subscription when the panel opened
+              // stays stuck on "no tiene suscripciones" after one is
+              // assigned, until the panel is closed and reopened. Remounting
+              // on the actual set of subscription ids fixes that while still
+              // leaving the key stable for unrelated re-renders (e.g. typing
+              // in the Datos form).
+              key={subscriptions.map((s) => s.id).join(',')}
+              presetUser={user}
+              onRegistered={reloadHistory}
+            />
           </div>
         </section>
 
@@ -294,7 +338,7 @@ const UserDetailPanel = ({
               <Button
                 size="sm"
                 onClick={() => setConfirmDangerAction('delete')}
-                className="!bg-red-500 hover:!bg-red-600 !text-white"
+                className="bg-red-500! hover:bg-red-600! text-white!"
               >
                 Dar de baja cuenta
               </Button>

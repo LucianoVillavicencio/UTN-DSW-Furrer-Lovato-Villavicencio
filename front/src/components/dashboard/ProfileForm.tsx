@@ -120,7 +120,7 @@ const ProfileForm = () => {
   };
 
   return (
-    <Card className="mx-auto w-full max-w-xl hover:-translate-y-0 hover:shadow-lg">
+    <Card className="mx-auto w-full max-w-xl hover:translate-y-0 hover:shadow-lg">
       <div className="flex items-center gap-4 border-b border-border pb-6">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-lg font-semibold text-primary">
           {(name || 'U').charAt(0).toUpperCase()}

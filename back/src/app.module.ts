@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { typeOrmConfig } from './config/typeorm.config';
-import { ConfigModule } from '@nestjs/config';
+import { buildTypeOrmConfig } from './config/typeorm.config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PlanModule } from './modules/plan/plan.module';
 import { TrainerModule } from './modules/trainer/trainer.module';
@@ -13,11 +15,19 @@ import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
+import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
+import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
+import { SecurityLogFilter } from './common/filters/security-log.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(typeOrmConfig),
+    ThrottlerModule.forRoot([AUTH_THROTTLE, CONTACT_THROTTLE]),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: buildTypeOrmConfig,
+    }),
     UserModule,
     TypeClassModule,
     PlanModule,
@@ -31,6 +41,10 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: SecurityLogInterceptor },
+    { provide: APP_FILTER, useClass: SecurityLogFilter },
+  ],
 })
 export class AppModule {}

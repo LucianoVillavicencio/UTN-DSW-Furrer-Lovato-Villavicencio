@@ -15,11 +15,28 @@ export class TypeClassService {
   ) {}
 
   async createTypeClass(typeClassDto: TypeClassDto) {
+    const existing = await this.findByName(typeClassDto.name);
+    if (existing) {
+      throw new ConflictException(
+        `El tipo de clase "${typeClassDto.name}" ya existe.`,
+      );
+    }
     const newType = this.typeClassRepository.create({
       ...typeClassDto,
       deleted: typeClassDto.deleted ?? false,
     });
     return await this.typeClassRepository.save(newType);
+  }
+
+  // Case-insensitive: "Funcional" and "funcional" are the same discipline to
+  // an admin typing it into the quick-add field, and letting both through
+  // produced two live "Funcional" rows in the type selector.
+  private async findByName(name: string) {
+    return await this.typeClassRepository
+      .createQueryBuilder('typeClass')
+      .where('LOWER(typeClass.name) = LOWER(:name)', { name })
+      .andWhere('typeClass.deleted = false')
+      .getOne();
   }
 
   async findTypeClass(id: number) {

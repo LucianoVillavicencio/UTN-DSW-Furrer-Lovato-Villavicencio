@@ -59,19 +59,19 @@ const ResumenTab = () => {
 
   return (
     <div className="grid gap-6 sm:grid-cols-3">
-      <Card className="hover:-translate-y-0 hover:shadow-lg">
+      <Card className="hover:translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Planes activos</p>
         <p className="mt-2 font-display text-3xl font-bold text-text">
           {isLoading ? '…' : stats.plans}
         </p>
       </Card>
-      <Card className="hover:-translate-y-0 hover:shadow-lg">
+      <Card className="hover:translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Clases</p>
         <p className="mt-2 font-display text-3xl font-bold text-text">
           {isLoading ? '…' : stats.classes}
         </p>
       </Card>
-      <Card className="hover:-translate-y-0 hover:shadow-lg">
+      <Card className="hover:translate-y-0 hover:shadow-lg">
         <p className="font-body text-sm text-text-muted">Entrenadores</p>
         <p className="mt-2 font-display text-3xl font-bold text-text">
           {isLoading ? '…' : stats.trainers}

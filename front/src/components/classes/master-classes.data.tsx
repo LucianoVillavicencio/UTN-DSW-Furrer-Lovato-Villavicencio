@@ -18,8 +18,6 @@ export interface MasterClassData {
   id: number;
   name: string;
   description: string;
-  scheduleDays: string;
-  scheduleExplanation: string;
   typeClassId: number;
   typeClass: TypeClass;
   trainerDni: number;
@@ -31,21 +29,6 @@ export interface MasterClassData {
     phone?: string;
   };
 }
-
-// Opening days and hours of the gym; it is closed on Sundays.
-export const CLASS_DAYS_LABEL = 'Lunes a Sábado';
-const OPENING_HOUR = 7;
-const CLOSING_HOUR = 22;
-
-// Timezone-safe YYYY-MM-DD: the local date parts, never the UTC ones.
-export const getLocalYMD = (d: Date | string): string => {
-  const dateObj = typeof d === 'string' ? new Date(d) : d;
-  if (isNaN(dateObj.getTime())) return '';
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 // Lowercases and strips accents so the search matches "Aerobico" against
 // "Aeróbico".
@@ -74,22 +57,14 @@ export const renderCategoryIcon = (typeName?: string, className?: string) => {
   return <Sparkles className={className} />;
 };
 
-// Schedule blurb built from the real class data.
-const buildScheduleExplanation = (cls: Class): string => {
-  const trainerName = cls.trainer
-    ? `${cls.trainer.name} ${cls.trainer.surname}`
-    : 'nuestro equipo de profesores';
-
-  return `La clase de ${cls.name} se dicta de ${CLASS_DAYS_LABEL} de ${String(OPENING_HOUR).padStart(2, '0')}:00 a ${CLOSING_HOUR}:00 hs a cargo del Prof. ${trainerName}. Cada sesión dura 1 hora exacta (el último turno posible inicia a las ${CLOSING_HOUR - 1}:00 hs ya que el gimnasio cierra a las ${CLOSING_HOUR}:00 hs).`;
-};
-
-// Adapts the backend Class entity to the view model.
+// Adapts the backend Class entity to the view model. The schedule is NOT part
+// of it: the days and hours come from the class's weekly turnos, and the blurb
+// that used to be built here announced "Lunes a Sábado de 07:00 a 22:00" for
+// every class regardless of what was actually published.
 export const toMasterClassData = (cls: Class): MasterClassData => ({
   id: cls.id ?? 0,
   name: cls.name,
   description: cls.description ?? '',
-  scheduleDays: CLASS_DAYS_LABEL,
-  scheduleExplanation: buildScheduleExplanation(cls),
   typeClassId: cls.typeClassId,
   typeClass: {
     id: cls.typeClass?.id ?? cls.typeClassId,

@@ -10,7 +10,12 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { ClassSessionDto } from './dto/classSession-dto';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
+import {
+  ClassSessionDto,
+  WeeklyClassSessionsDto,
+} from './dto/classSession-dto';
 import { ClassSessionService } from './classSession.service';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { Role } from '../../common/enum/role.enum';
@@ -21,6 +26,8 @@ import { Role } from '../../common/enum/role.enum';
 // session.
 @Controller('api/v1/classSession')
 @ApiTags('Class Session')
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class ClassSessionController {
   constructor(private readonly classSessionService: ClassSessionService) {}
 
@@ -28,6 +35,13 @@ export class ClassSessionController {
   @Auth(Role.ADMIN)
   createClassSession(@Body() classSessionDto: ClassSessionDto) {
     return this.classSessionService.createClassSession(classSessionDto);
+  }
+
+  // The whole weekly grid of one class in a single save.
+  @Post('weekly')
+  @Auth(Role.ADMIN)
+  createWeeklySlots(@Body() dto: WeeklyClassSessionsDto) {
+    return this.classSessionService.createWeeklySlots(dto);
   }
 
   @Get()

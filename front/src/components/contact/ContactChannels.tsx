@@ -102,10 +102,10 @@ const ContactChannels = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Ver perfil oficial de Instagram @flg_gym"
-            className="group flex items-center justify-between p-4 rounded-xl border border-pink-500/30 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-rose-500/5 hover:border-pink-500/60 transition-all duration-300 shadow-sm"
+            className="group flex items-center justify-between p-4 rounded-xl border border-pink-500/30 bg-linear-to-r from-purple-500/5 via-pink-500/5 to-rose-500/5 hover:border-pink-500/60 transition-all duration-300 shadow-sm"
           >
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-md">
+              <div className="w-11 h-11 rounded-xl bg-linear-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-md">
                 <InstagramIcon className="w-5 h-5" />
               </div>
               <div>

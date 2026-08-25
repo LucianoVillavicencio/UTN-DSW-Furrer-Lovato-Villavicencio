@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsPositive,
   IsString,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -34,5 +35,8 @@ export class RegisterDto {
   )
   @IsString()
   @MinLength(8)
+  @Matches(/(?=.*[A-Za-z])(?=.*\d)/, {
+    message: 'La contraseña debe tener al menos una letra y un número.',
+  })
   password!: string;
 }

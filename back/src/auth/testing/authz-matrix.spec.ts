@@ -1,0 +1,840 @@
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+
+import { AuthController } from '../auth.controller';
+import { AuthService } from '../auth.service';
+import { ClassController } from '../../modules/class/class.controller';
+import { ClassService } from '../../modules/class/class.service';
+import { ClassRegistrationController } from '../../modules/classRegistration/classRegistration.controller';
+import { ClassRegistrationService } from '../../modules/classRegistration/classRegistration.service';
+import { ClassSessionController } from '../../modules/classSession/classSession.controller';
+import { ClassSessionService } from '../../modules/classSession/classSession.service';
+import { ContactController } from '../../modules/contact/contact.controller';
+import { ContactService } from '../../modules/contact/contact.service';
+import { PaymentController } from '../../modules/payment/payment.controller';
+import { PaymentService } from '../../modules/payment/payment.service';
+import { PlanController } from '../../modules/plan/plan.controller';
+import { PlanService } from '../../modules/plan/plan.service';
+import { subscriptionController } from '../../modules/subscription/subscription.controller';
+import { subscriptionService } from '../../modules/subscription/subscription.service';
+import { TrainerController } from '../../modules/trainer/trainer.controller';
+import { TrainerService } from '../../modules/trainer/trainer.service';
+import { TypeClassController } from '../../modules/typeClass/typeClass.controller';
+import { TypeClassService } from '../../modules/typeClass/typeClass.service';
+import { UserController } from '../../modules/user/user.controller';
+import { UserService } from '../../modules/user/user.service';
+
+import { ANONYMOUS, buildAuthzApp, tokenFor } from './authz-harness';
+
+// The endpoint x role authorization matrix. Every route of every controller is
+// exercised as the three actors of the spec: anonymous, member and admin. The
+// mocks return an empty object or array, because this file asserts
+// reachability, not payloads — what a reachable route gives back belongs to
+// Category 4.
+//
+// Where a route accepts a member identifier, the "member (another member's
+// resource)" case is exercised too: the caller's token carries sub 40000001 and
+// the path names 40000002.
+
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+/** The dni carried by `tokenFor('member')`, i.e. the caller's own. */
+const OWN_DNI = 40000001;
+
+/** A second member, used for the "another member's resource" column. */
+const OTHER_DNI = 40000002;
+
+// A body is only ever needed where the handler dereferences the dto before
+// reaching the mocked service; everywhere else the dto is passed straight
+// through and an empty request is enough.
+type Body = Record<string, unknown>;
+
+const call = (
+  app: INestApplication,
+  method: Method,
+  path: string,
+  token: string | undefined,
+  body?: Body,
+) => {
+  const agent = request(app.getHttpServer() as App);
+  const req =
+    method === 'get'
+      ? agent.get(path)
+      : method === 'post'
+        ? agent.post(path)
+        : method === 'put'
+          ? agent.put(path)
+          : method === 'patch'
+            ? agent.patch(path)
+            : agent.delete(path);
+  const authed = token ? req.set('Authorization', `Bearer ${token}`) : req;
+  return body ? authed.send(body) : authed;
+};
+
+/** Nest answers 201 to a POST and 200 to everything else. */
+const okFor = (method: Method) => (method === 'post' ? 201 : 200);
+
+/** No guard at all: every actor, including an anonymous one, gets through. */
+const unguarded = async (
+  app: INestApplication,
+  method: Method,
+  path: string,
+  body?: Body,
+) => {
+  await call(app, method, path, ANONYMOUS, body).expect(okFor(method));
+  await call(app, method, path, tokenFor('member'), body).expect(okFor(method));
+  await call(app, method, path, tokenFor('admin'), body).expect(okFor(method));
+};
+
+/** `@Auth()`: a login is required, the admin role is not. */
+const anyLoggedIn = async (
+  app: INestApplication,
+  method: Method,
+  path: string,
+  body?: Body,
+) => {
+  await call(app, method, path, ANONYMOUS, body).expect(401);
+  await call(app, method, path, tokenFor('member'), body).expect(okFor(method));
+  await call(app, method, path, tokenFor('admin'), body).expect(okFor(method));
+};
+
+/** `@Auth(Role.ADMIN)`: anonymous 401, member 403, admin through. */
+const adminOnly = async (
+  app: INestApplication,
+  method: Method,
+  path: string,
+  body?: Body,
+) => {
+  await call(app, method, path, ANONYMOUS, body).expect(401);
+  await call(app, method, path, tokenFor('member'), body).expect(403);
+  await call(app, method, path, tokenFor('admin'), body).expect(okFor(method));
+};
+
+describe('AuthController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(AuthController, [
+      {
+        provide: AuthService,
+        useValue: {
+          register: jest.fn().mockResolvedValue({}),
+          login: jest.fn().mockResolvedValue({}),
+          googleLogin: jest.fn().mockResolvedValue({}),
+          profile: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('opens POST /auth/register to everyone', async () => {
+    await unguarded(app, 'post', '/api/v1/auth/register');
+  });
+
+  it('opens POST /auth/login to everyone', async () => {
+    await unguarded(app, 'post', '/api/v1/auth/login');
+  });
+
+  it('opens POST /auth/google-login to everyone', async () => {
+    await unguarded(app, 'post', '/api/v1/auth/google-login');
+  });
+
+  it('requires a login for GET /auth/profile, any role', async () => {
+    await anyLoggedIn(app, 'get', '/api/v1/auth/profile');
+  });
+});
+
+describe('ClassController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(ClassController, [
+      {
+        provide: ClassService,
+        useValue: {
+          createClass: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findClass: jest.fn().mockResolvedValue({}),
+          updateClass: jest.fn().mockResolvedValue({}),
+          deleteClass: jest.fn().mockResolvedValue({}),
+          restoreClass: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /class to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/class');
+  });
+
+  it('opens the catalogue GET /class to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/class');
+  });
+
+  it('restricts GET /class/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/class/filter/deleted');
+  });
+
+  it('opens GET /class/:id to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/class/1');
+  });
+
+  it('restricts PUT /class to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/class');
+  });
+
+  it('restricts DELETE /class/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/class/1');
+  });
+
+  it('restricts PATCH /class/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/class/restore/1');
+  });
+});
+
+describe('ClassRegistrationController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(ClassRegistrationController, [
+      {
+        provide: ClassRegistrationService,
+        useValue: {
+          findMyEnrollments: jest.fn().mockResolvedValue({}),
+          enroll: jest.fn().mockResolvedValue({}),
+          changeEnrollment: jest.fn().mockResolvedValue({}),
+          cancelEnrollment: jest.fn().mockResolvedValue({}),
+          adminSetEnrollment: jest.fn().mockResolvedValue({}),
+          createClassRegistration: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findClassRegistration: jest.fn().mockResolvedValue({}),
+          updateClassRegistration: jest.fn().mockResolvedValue({}),
+          deleteClassRegistration: jest.fn().mockResolvedValue({}),
+          restoreClassRegistration: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // The four self-service routes: the method-level @Auth() replaces the
+  // class-level @Auth(Role.ADMIN), so any authenticated caller reaches them.
+  it('opens GET /classRegistration/me to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'get', '/api/v1/classRegistration/me');
+  });
+
+  it('opens POST /classRegistration/enroll to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'post', '/api/v1/classRegistration/enroll');
+  });
+
+  it('opens PUT /classRegistration/me to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'put', '/api/v1/classRegistration/me');
+  });
+
+  it('opens DELETE /classRegistration/enrollment/:group to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'delete', '/api/v1/classRegistration/enrollment/g1');
+  });
+
+  it('restricts GET /classRegistration/admin/:dni to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/classRegistration/admin/${OWN_DNI}`);
+    // Member reading another member's enrollments.
+    await call(
+      app,
+      'get',
+      `/api/v1/classRegistration/admin/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts PUT /classRegistration/admin/:dni to an admin', async () => {
+    await adminOnly(app, 'put', `/api/v1/classRegistration/admin/${OWN_DNI}`);
+    await call(
+      app,
+      'put',
+      `/api/v1/classRegistration/admin/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts DELETE /classRegistration/admin/:dni/:group to an admin', async () => {
+    await adminOnly(
+      app,
+      'delete',
+      `/api/v1/classRegistration/admin/${OWN_DNI}/g1`,
+    );
+    await call(
+      app,
+      'delete',
+      `/api/v1/classRegistration/admin/${OTHER_DNI}/g1`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts POST /classRegistration to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/classRegistration');
+  });
+
+  it('restricts GET /classRegistration to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/classRegistration');
+  });
+
+  it('restricts GET /classRegistration/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/classRegistration/filter/deleted');
+  });
+
+  it('restricts GET /classRegistration/:id to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/classRegistration/1');
+  });
+
+  it('restricts PUT /classRegistration to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/classRegistration');
+  });
+
+  it('restricts DELETE /classRegistration/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/classRegistration/1');
+  });
+
+  it('restricts PATCH /classRegistration/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/classRegistration/restore/1');
+  });
+});
+
+describe('ClassSessionController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(ClassSessionController, [
+      {
+        provide: ClassSessionService,
+        useValue: {
+          createClassSession: jest.fn().mockResolvedValue({}),
+          createWeeklySlots: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findClassSession: jest.fn().mockResolvedValue({}),
+          updateClassSession: jest.fn().mockResolvedValue({}),
+          deleteClassSession: jest.fn().mockResolvedValue({}),
+          restoreClassSession: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /classSession to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/classSession');
+  });
+
+  it('restricts POST /classSession/weekly to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/classSession/weekly');
+  });
+
+  it('opens GET /classSession to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/classSession');
+  });
+
+  it('restricts GET /classSession/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/classSession/filter/deleted');
+  });
+
+  it('opens GET /classSession/:id to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/classSession/1');
+  });
+
+  it('restricts PUT /classSession to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/classSession');
+  });
+
+  it('restricts DELETE /classSession/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/classSession/1');
+  });
+
+  it('restricts PATCH /classSession/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/classSession/restore/1');
+  });
+});
+
+describe('ContactController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(ContactController, [
+      {
+        provide: ContactService,
+        useValue: {
+          create: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findOne: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('opens POST /contact to everyone, as the public contact form', async () => {
+    await unguarded(app, 'post', '/api/v1/contact');
+  });
+
+  it('restricts GET /contact to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/contact');
+  });
+
+  it('restricts GET /contact/:id to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/contact/1');
+  });
+});
+
+describe('PaymentController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(PaymentController, [
+      {
+        provide: PaymentService,
+        useValue: {
+          findMineForUser: jest.fn().mockResolvedValue([]),
+          createManualPayment: jest.fn().mockResolvedValue({}),
+          createPayment: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findByUser: jest.fn().mockResolvedValue([]),
+          findPayment: jest.fn().mockResolvedValue({}),
+          updatePayment: jest.fn().mockResolvedValue({}),
+          deletePayment: jest.fn().mockResolvedValue({}),
+          restorePayment: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('opens GET /Payment/me to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'get', '/api/v1/Payment/me');
+  });
+
+  it('restricts POST /Payment/manual to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/Payment/manual');
+  });
+
+  it('restricts POST /Payment to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/Payment');
+  });
+
+  it('restricts GET /Payment to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/Payment');
+  });
+
+  it('restricts GET /Payment/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/Payment/filter/deleted');
+  });
+
+  it('restricts GET /Payment/by-user/:dni to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/Payment/by-user/${OWN_DNI}`);
+    // A member asking for somebody else's payment history.
+    await call(
+      app,
+      'get',
+      `/api/v1/Payment/by-user/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts GET /Payment/:id to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/Payment/1');
+  });
+
+  it('restricts PUT /Payment to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/Payment');
+  });
+
+  it('restricts DELETE /Payment/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/Payment/1');
+  });
+
+  it('restricts PATCH /Payment/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/Payment/restore/1');
+  });
+});
+
+describe('PlanController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(PlanController, [
+      {
+        provide: PlanService,
+        useValue: {
+          createPlan: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findPlan: jest.fn().mockResolvedValue({}),
+          updatePlan: jest.fn().mockResolvedValue({}),
+          deletePlan: jest.fn().mockResolvedValue({}),
+          restorePlan: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /plan to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/plan');
+  });
+
+  it('opens GET /plan to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/plan');
+  });
+
+  it('restricts GET /plan/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/plan/filter/deleted');
+  });
+
+  it('opens GET /plan/:id to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/plan/1');
+  });
+
+  it('restricts PUT /plan to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/plan');
+  });
+
+  it('restricts DELETE /plan/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/plan/1');
+  });
+
+  it('restricts PATCH /plan/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/plan/restore/1');
+  });
+});
+
+describe('subscriptionController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(subscriptionController, [
+      {
+        provide: subscriptionService,
+        useValue: {
+          changePlan: jest.fn().mockResolvedValue({}),
+          assignPlanToMember: jest.fn().mockResolvedValue({}),
+          findActiveForUser: jest.fn().mockResolvedValue({}),
+          createSubscription: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findByUser: jest.fn().mockResolvedValue([]),
+          findSubscription: jest.fn().mockResolvedValue({}),
+          updateSubscription: jest.fn().mockResolvedValue({}),
+          deleteSubscription: jest.fn().mockResolvedValue({}),
+          restoreSubscription: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('opens POST /subscription/change-plan to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'post', '/api/v1/subscription/change-plan', {
+      planId: 1,
+    });
+  });
+
+  it('restricts POST /subscription/admin/:dni to an admin', async () => {
+    await adminOnly(app, 'post', `/api/v1/subscription/admin/${OWN_DNI}`, {
+      planId: 1,
+    });
+    // A member assigning a plan to somebody else.
+    await call(
+      app,
+      'post',
+      `/api/v1/subscription/admin/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('opens GET /subscription/me to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'get', '/api/v1/subscription/me');
+  });
+
+  it('restricts POST /subscription to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/subscription');
+  });
+
+  it('restricts GET /subscription to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/subscription');
+  });
+
+  it('restricts GET /subscription/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/subscription/filter/deleted');
+  });
+
+  it('restricts GET /subscription/by-user/:dni to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/subscription/by-user/${OWN_DNI}`);
+    // A member asking for somebody else's subscription history.
+    await call(
+      app,
+      'get',
+      `/api/v1/subscription/by-user/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts GET /subscription/:id to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/subscription/1');
+  });
+
+  it('restricts PUT /subscription to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/subscription');
+  });
+
+  it('restricts DELETE /subscription/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/subscription/1');
+  });
+
+  it('restricts PATCH /subscription/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/subscription/restore/1');
+  });
+});
+
+describe('TrainerController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(TrainerController, [
+      {
+        provide: TrainerService,
+        useValue: {
+          createTrainer: jest.fn().mockResolvedValue({}),
+          findAllWithClasses: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findAllForAdmin: jest.fn().mockResolvedValue([]),
+          findTrainerWithClasses: jest.fn().mockResolvedValue({}),
+          updateTrainer: jest.fn().mockResolvedValue({}),
+          deleteTrainer: jest.fn().mockResolvedValue({}),
+          restoreTrainer: jest.fn().mockResolvedValue({}),
+          setTrainerPhoto: jest.fn().mockResolvedValue({}),
+          removeTrainerPhoto: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /trainer to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/trainer');
+  });
+
+  it('opens GET /trainer to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/trainer');
+  });
+
+  it('restricts GET /trainer/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/trainer/filter/deleted');
+  });
+
+  it('restricts GET /trainer/admin to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/trainer/admin');
+  });
+
+  it('opens GET /trainer/:dni to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/trainer/30111222');
+  });
+
+  it('restricts PUT /trainer to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/trainer');
+  });
+
+  it('restricts DELETE /trainer/:dni to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/trainer/30111222');
+  });
+
+  it('restricts PATCH /trainer/restore/:dni to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/trainer/restore/30111222');
+  });
+
+  it('restricts POST /trainer/:dni/photo to an admin', async () => {
+    const path = '/api/v1/trainer/30111222/photo';
+    await call(app, 'post', path, ANONYMOUS).expect(401);
+    await call(app, 'post', path, tokenFor('member')).expect(403);
+    // The guards let the admin through; the handler then rejects the empty
+    // multipart body with its own 400, which is what proves reachability.
+    await call(app, 'post', path, tokenFor('admin')).expect(400);
+  });
+
+  it('restricts DELETE /trainer/:dni/photo to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/trainer/30111222/photo');
+  });
+});
+
+describe('TypeClassController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(TypeClassController, [
+      {
+        provide: TypeClassService,
+        useValue: {
+          createTypeClass: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findTypeClass: jest.fn().mockResolvedValue({}),
+          updateTypeClass: jest.fn().mockResolvedValue({}),
+          deleteTypeClass: jest.fn().mockResolvedValue({}),
+          restoreTypeClass: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /typeClass to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/typeClass');
+  });
+
+  it('opens GET /typeClass to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/typeClass');
+  });
+
+  it('restricts GET /typeClass/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/typeClass/filter/deleted');
+  });
+
+  it('opens GET /typeClass/:id to everyone', async () => {
+    await unguarded(app, 'get', '/api/v1/typeClass/1');
+  });
+
+  it('restricts PUT /typeClass to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/typeClass');
+  });
+
+  it('restricts DELETE /typeClass/:id to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/typeClass/1');
+  });
+
+  it('restricts PATCH /typeClass/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', '/api/v1/typeClass/restore/1');
+  });
+});
+
+describe('UserController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(UserController, [
+      {
+        provide: UserService,
+        useValue: {
+          adminCreateUser: jest.fn().mockResolvedValue({}),
+          updateProfile: jest.fn().mockResolvedValue({}),
+          findAll: jest.fn().mockResolvedValue([]),
+          searchUsers: jest.fn().mockResolvedValue([]),
+          findAllDeleted: jest.fn().mockResolvedValue([]),
+          findUser: jest.fn().mockResolvedValue({}),
+          adminUpdateUser: jest.fn().mockResolvedValue({}),
+          deleteUsers: jest.fn().mockResolvedValue({}),
+          restoreUsers: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /user to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/user');
+  });
+
+  it('opens PATCH /user/me to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'patch', '/api/v1/user/me');
+  });
+
+  it('restricts GET /user to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/user');
+  });
+
+  it('restricts GET /user/search to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/user/search');
+    // A member searching the member directory by somebody else's dni.
+    await call(
+      app,
+      'get',
+      `/api/v1/user/search?dni=${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts GET /user/filter/deleted to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/user/filter/deleted');
+  });
+
+  it('restricts GET /user/:dni to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/user/${OWN_DNI}`);
+    // A member reading another member's profile.
+    await call(
+      app,
+      'get',
+      `/api/v1/user/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts PATCH /user/:dni to an admin', async () => {
+    await adminOnly(app, 'patch', `/api/v1/user/${OWN_DNI}`);
+    // A member editing another member's profile, role included.
+    await call(
+      app,
+      'patch',
+      `/api/v1/user/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts DELETE /user/:dni to an admin', async () => {
+    await adminOnly(app, 'delete', `/api/v1/user/${OWN_DNI}`);
+    await call(
+      app,
+      'delete',
+      `/api/v1/user/${OTHER_DNI}`,
+      tokenFor('member', OWN_DNI),
+    ).expect(403);
+  });
+
+  it('restricts PATCH /user/restore/:dni to an admin', async () => {
+    await adminOnly(app, 'patch', `/api/v1/user/restore/${OWN_DNI}`);
+  });
+});

@@ -15,14 +15,42 @@ import {
   restorePlan,
 } from '../../services/plan.service';
 import type { Plan, PlanFeature } from '../../types/plan';
+import { classAllowanceLabel } from '../plans/plans.data';
 import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
 
-const emptyForm: Plan = { name: '', description: '', price: 0, numDays: 30 };
+const emptyForm: Plan = {
+  name: '',
+  description: '',
+  price: 0,
+  numDays: 30,
+  maxClasses: 0,
+  highlighted: false,
+};
+
+// The allowance is three states, not a number: "unlimited" travels as null and
+// cannot be typed into a number input.
+type ClassesMode = 'none' | 'limited' | 'unlimited';
+
+const CLASSES_MODES: { value: ClassesMode; label: string }[] = [
+  { value: 'none', label: 'Sin clases' },
+  { value: 'limited', label: 'Cantidad fija' },
+  { value: 'unlimited', label: 'Ilimitadas' },
+];
+
+const classesModeOf = (maxClasses?: number | null): ClassesMode => {
+  if (maxClasses === null) return 'unlimited';
+  if (maxClasses && maxClasses > 0) return 'limited';
+  return 'none';
+};
 
 const PlansSection = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // "Loading" is derived from the filter the list in state came from, so
+  // toggling the deleted filter shows the spinner without this component
+  // writing state from inside an effect.
+  const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
+  const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Plan | null>(null);
@@ -35,6 +63,8 @@ const PlansSection = () => {
   const [priceText, setPriceText] = useState('');
   const [numDaysText, setNumDaysText] = useState('');
   const [featuresForm, setFeaturesForm] = useState<PlanFeature[]>([]);
+  const [classesMode, setClassesMode] = useState<ClassesMode>('none');
+  const [maxClassesText, setMaxClassesText] = useState('1');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -42,31 +72,37 @@ const PlansSection = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = showDeleted ? await getDeletedPlans() : await getPlans();
-      setPlans(data);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : 'No se pudo cargar la lista.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Every setState lives in an async callback, so the effect below only starts
+  // the request instead of updating state while React renders.
+  const fetchPlans = (deleted: boolean) =>
+    (deleted ? getDeletedPlans() : getPlans())
+      .then((data) => {
+        setPlans(data);
+        setLoadError(null);
+      })
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'No se pudo cargar la lista.',
+        );
+      })
+      .finally(() => setLoadedFilter(deleted));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchPlans(showDeleted);
   }, [showDeleted]);
+
+  const reload = () => {
+    setLoadedFilter(null);
+    return fetchPlans(showDeleted);
+  };
 
   const openCreate = () => {
     setForm(emptyForm);
     setPriceText('');
     setNumDaysText(String(emptyForm.numDays));
     setFeaturesForm([]);
+    setClassesMode('none');
+    setMaxClassesText('1');
     setFormError(null);
     setIsCreating(true);
   };
@@ -76,6 +112,8 @@ const PlansSection = () => {
     setPriceText(formatPriceDisplay(plan.price));
     setNumDaysText(String(plan.numDays));
     setFeaturesForm(plan.features ?? []);
+    setClassesMode(classesModeOf(plan.maxClasses));
+    setMaxClassesText(String(plan.maxClasses || 1));
     setFormError(null);
     setEditing(plan);
   };
@@ -119,10 +157,34 @@ const PlansSection = () => {
       return;
     }
 
+    const maxClasses =
+      classesMode === 'unlimited'
+        ? null
+        : classesMode === 'none'
+          ? 0
+          : Number(maxClassesText);
+
+    if (
+      classesMode === 'limited' &&
+      (!Number.isInteger(maxClasses) || Number(maxClasses) < 1)
+    ) {
+      setFormError(
+        'La cantidad de clases incluidas tiene que ser un número entero mayor a cero.',
+      );
+      return;
+    }
+
     const features = featuresForm
       .map((f) => ({ ...f, label: f.label.trim() }))
       .filter((f) => f.label.length > 0);
-    const payload: Plan = { ...form, price, numDays, features };
+    const payload: Plan = {
+      ...form,
+      name: form.name.trim(),
+      price,
+      numDays,
+      features,
+      maxClasses,
+    };
 
     setIsSaving(true);
     try {
@@ -132,7 +194,7 @@ const PlansSection = () => {
         await updatePlan(payload);
       }
       closeModal();
-      await load();
+      await reload();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
@@ -151,7 +213,7 @@ const PlansSection = () => {
         await deletePlan(pendingDelete.id);
       }
       setPendingDelete(null);
-      await load();
+      await reload();
     } catch (err) {
       setListError(
         err instanceof Error ? err.message : 'No se pudo completar la acción.',
@@ -162,9 +224,25 @@ const PlansSection = () => {
   };
 
   const columns: DataTableColumn<Plan>[] = [
-    { header: 'Nombre', cell: (p) => p.name },
+    {
+      header: 'Nombre',
+      cell: (p) => (
+        <span className="flex items-center gap-2">
+          {p.name}
+          {p.highlighted && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              Más popular
+            </span>
+          )}
+        </span>
+      ),
+    },
     { header: 'Precio', cell: (p) => `$${formatPriceDisplay(p.price)}` },
     { header: 'Días', cell: (p) => p.numDays },
+    {
+      header: 'Clases',
+      cell: (p) => classAllowanceLabel(p.maxClasses, 'short'),
+    },
     {
       header: 'Acciones',
       cell: (p) => (
@@ -287,6 +365,62 @@ const PlansSection = () => {
                 onChange={(e) => setNumDaysText(e.target.value)}
               />
             </div>
+
+            <div>
+              <span className="font-body text-xs sm:text-sm font-medium text-text">
+                Clases grupales incluidas
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CLASSES_MODES.map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setClassesMode(mode.value)}
+                    aria-pressed={classesMode === mode.value}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      classesMode === mode.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-text-muted hover:text-text'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+              {classesMode === 'limited' && (
+                <div className="mt-3 max-w-40">
+                  <InputField
+                    label="Cantidad"
+                    type="number"
+                    min={1}
+                    value={maxClassesText}
+                    onChange={(e) => setMaxClassesText(e.target.value)}
+                  />
+                </div>
+              )}
+              <p className="mt-2 text-xs text-text-muted">
+                Cuántas clases distintas puede tener a la vez un socio con este
+                plan. Con "Sin clases" el plan solo da acceso al gimnasio.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={form.highlighted ?? false}
+                onChange={(e) =>
+                  setForm({ ...form, highlighted: e.target.checked })
+                }
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span className="text-sm text-text">
+                Destacar como "Más popular"
+                <span className="mt-0.5 block text-xs text-text-muted">
+                  Muestra la etiqueta en la página de planes. Se puede destacar
+                  más de un plan.
+                </span>
+              </span>
+            </label>
 
             <div className="border-t border-border pt-4">
               <div className="mb-2 flex items-center justify-between">

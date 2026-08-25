@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from '../modules/user/user.service';
@@ -15,6 +16,8 @@ import { GoogleLoginDto } from './dto/google-login-dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -50,33 +53,19 @@ export class AuthService {
       loginDto.email,
     );
 
-    // TODO: collapse every failure below into a single 'Credenciales
-    // invalidas' message. Right now the distinct errors let anyone probe which
-    // emails are registered and which of those signed up through Google.
+    const genericFailure = () =>
+      new UnauthorizedException('Credenciales invalidas');
 
-    if (!user) {
-      throw new UnauthorizedException(
-        `El usuario con email ${loginDto.email} no existe.`,
-      );
-    }
-
-    if (!user.password) {
-      throw new UnauthorizedException(
-        `Esta cuenta se registro con Google. Inicia sesión con Google.`,
-      );
-    }
-
-    if (user.deleted) {
-      throw new UnauthorizedException(`El usuario esta dado de baja`);
+    if (!user || user.deleted || !user.password) {
+      throw genericFailure();
     }
 
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
-
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales invalidas');
+      throw genericFailure();
     }
 
     return this.buildAuthResponse(user);
@@ -135,8 +124,10 @@ export class AuthService {
 
       return payload;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Token inválido';
-      throw new UnauthorizedException(`Token de Google no válido: ${message}`);
+      this.logger.warn(
+        `Google token verification failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new UnauthorizedException('Token de Google no válido.');
     }
   }
 

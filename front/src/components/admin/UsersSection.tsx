@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import UserDetailPanel from './UserDetailPanel';
+import NewMemberWizard from './NewMemberWizard';
 import { searchUsers } from '../../services/user.service';
 import { useAuth } from '../../context/useAuth';
 import type { User } from '../../types/user';
@@ -21,6 +22,11 @@ const UsersSection = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  // Bumped when the wizard closes to force UserDetailPanel to remount: the
+  // wizard writes the plan, class and payment through their own endpoints,
+  // which the panel's dni-keyed effects have no reason to re-fetch on their own.
+  const [panelNonce, setPanelNonce] = useState(0);
 
   const handleSearch = async () => {
     if (!searchValue.trim()) return;
@@ -74,7 +80,19 @@ const UsersSection = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-display text-lg font-semibold text-text">Usuarios</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-lg font-semibold text-text">
+          Usuarios
+        </h3>
+        <Button
+          size="sm"
+          onClick={() => setIsCreating(true)}
+          className="flex items-center gap-1.5"
+        >
+          <UserPlus className="h-4 w-4" />
+          Nuevo socio
+        </Button>
+      </div>
 
       <div className="flex items-end gap-2">
         <div className="w-32 shrink-0">
@@ -131,10 +149,22 @@ const UsersSection = () => {
 
       {selectedUser && currentAdmin && (
         <UserDetailPanel
+          key={`${selectedUser.dni}-${panelNonce}`}
           user={selectedUser}
           currentAdminDni={currentAdmin.dni}
           onClose={() => setSelectedUser(null)}
           onChanged={refreshSearch}
+        />
+      )}
+
+      {isCreating && (
+        <NewMemberWizard
+          onClose={() => {
+            setIsCreating(false);
+            setPanelNonce((n) => n + 1);
+            refreshSearch();
+          }}
+          onCreated={setSelectedUser}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import type { Trainer } from '../types/trainer';
+import type { Trainer, TrainerWorkShift } from '../types/trainer';
 import api from './api';
 import { getApiErrorMessage } from './api-error';
 
@@ -29,6 +29,21 @@ export const getTrainerByDni = async (dni: number): Promise<Trainer> => {
   }
 };
 
+// ADMIN-only: unlike getTrainers() (the public listing), this includes email
+// and phone, which the admin Trainers panel needs to populate the edit form —
+// it edits a row straight out of this list rather than fetching one by dni.
+export const getTrainersForAdmin = async (): Promise<Trainer[]> => {
+  try {
+    const { data } = await api.get<Trainer[]>('/trainer/admin');
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener lista de profesores'),
+      { cause: error },
+    );
+  }
+};
+
 export const getDeletedTrainers = async (): Promise<Trainer[]> => {
   try {
     const { data } = await api.get<Trainer[]>('/trainer/filter/deleted');
@@ -41,9 +56,39 @@ export const getDeletedTrainers = async (): Promise<Trainer[]> => {
   }
 };
 
-export const createTrainer = async (profesor: Trainer): Promise<Trainer> => {
+interface TrainerPayload {
+  dni: number;
+  name: string;
+  surname: string;
+  email: string;
+  phone?: string;
+  speciality?: string;
+  instagram?: string;
+  certifications: string[];
+  workSchedule: TrainerWorkShift[];
+}
+
+// The API runs ValidationPipe with forbidNonWhitelisted, so posting back the
+// object GET returned — which carries photoUrl and classes — is a 400. Only the
+// writable fields travel.
+export const toTrainerPayload = (trainer: Trainer): TrainerPayload => ({
+  dni: trainer.dni,
+  name: trainer.name,
+  surname: trainer.surname,
+  email: trainer.email,
+  phone: trainer.phone ?? undefined,
+  speciality: trainer.speciality ?? undefined,
+  instagram: trainer.instagram ?? undefined,
+  certifications: trainer.certifications ?? [],
+  workSchedule: trainer.workSchedule ?? [],
+});
+
+export const createTrainer = async (trainer: Trainer): Promise<Trainer> => {
   try {
-    const { data } = await api.post<Trainer>('/trainer', profesor);
+    const { data } = await api.post<Trainer>(
+      '/trainer',
+      toTrainerPayload(trainer),
+    );
     return data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Error al crear profesor'), {
@@ -52,9 +97,12 @@ export const createTrainer = async (profesor: Trainer): Promise<Trainer> => {
   }
 };
 
-export const updateTrainer = async (profesor: Trainer): Promise<Trainer> => {
+export const updateTrainer = async (trainer: Trainer): Promise<Trainer> => {
   try {
-    const { data } = await api.put<Trainer>('/trainer', profesor);
+    const { data } = await api.put<Trainer>(
+      '/trainer',
+      toTrainerPayload(trainer),
+    );
     return data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Error al actualizar profesor'), {
@@ -88,6 +136,47 @@ export const restoreTrainer = async (
   } catch (error) {
     throw new Error(
       getApiErrorMessage(error, `Error al restaurar profesor con DNI ${dni}`),
+      { cause: error },
+    );
+  }
+};
+
+export const uploadTrainerPhoto = async (
+  dni: number,
+  file: File,
+): Promise<Trainer> => {
+  const body = new FormData();
+  body.append('photo', file);
+
+  try {
+    const { data } = await api.post<Trainer>(`/trainer/${dni}/photo`, body, {
+      // Cleared on purpose: the browser has to write the multipart boundary,
+      // which it cannot do while the shared JSON default is in place.
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, `Error al subir la foto del profesor ${dni}`),
+      { cause: error },
+    );
+  }
+};
+
+export const deleteTrainerPhoto = async (
+  dni: number,
+): Promise<{ message: string }> => {
+  try {
+    const { data } = await api.delete<{ message: string }>(
+      `/trainer/${dni}/photo`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        `Error al eliminar la foto del profesor ${dni}`,
+      ),
       { cause: error },
     );
   }
