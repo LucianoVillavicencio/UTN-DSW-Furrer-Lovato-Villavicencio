@@ -29,7 +29,7 @@ export class Class {
   @Column({ type: Number, nullable: false })
   trainerDni!: number;
 
-  @ManyToOne(() => Trainer, { eager: true, nullable: false })
+  @ManyToOne(() => Trainer, { nullable: false })
   @JoinColumn({ name: 'trainerDni' })
   trainer!: Trainer;
 

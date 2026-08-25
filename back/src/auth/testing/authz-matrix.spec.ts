@@ -634,6 +634,7 @@ describe('TrainerController authorization', () => {
           createTrainer: jest.fn().mockResolvedValue({}),
           findAllWithClasses: jest.fn().mockResolvedValue([]),
           findAllDeleted: jest.fn().mockResolvedValue([]),
+          findAllForAdmin: jest.fn().mockResolvedValue([]),
           findTrainerWithClasses: jest.fn().mockResolvedValue({}),
           updateTrainer: jest.fn().mockResolvedValue({}),
           deleteTrainer: jest.fn().mockResolvedValue({}),
@@ -659,6 +660,10 @@ describe('TrainerController authorization', () => {
 
   it('restricts GET /trainer/filter/deleted to an admin', async () => {
     await adminOnly(app, 'get', '/api/v1/trainer/filter/deleted');
+  });
+
+  it('restricts GET /trainer/admin to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/trainer/admin');
   });
 
   it('opens GET /trainer/:dni to everyone', async () => {

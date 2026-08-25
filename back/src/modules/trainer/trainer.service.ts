@@ -21,6 +21,12 @@ import {
   trainerPhotoPublicPath,
 } from './trainer-photo.config';
 import { ClassService } from '../class/class.service';
+import { publicTrainerSelect } from './trainer-projection';
+
+// Re-exported so callers (and this module's own test) can keep importing it
+// from './trainer.service' — the projection itself lives in
+// './trainer-projection' to avoid a circular import with class.service.ts.
+export { publicTrainerSelect };
 
 type TrainerWithClasses = TrainerEntity & { classes: TrainerClass[] };
 
@@ -56,16 +62,40 @@ export class TrainerService {
     return await this.trainerRepository.save(newTrainer);
   }
 
+  // Full entity. Used internally by the mutation methods below for their
+  // existence checks and (in updateTrainer's case) a merge, and by the
+  // admin-only findTrainer route — never by a public one.
   async findTrainer(dni: number) {
     return await this.trainerRepository.findOne({ where: { dni } });
   }
 
-  async findAll() {
-    return await this.trainerRepository.find({ where: { deleted: false } });
+  // Public projection of the same lookup, for findTrainerWithClasses
+  // (GET /trainer/:dni, unauthenticated).
+  private async findPublicTrainer(dni: number) {
+    return await this.trainerRepository.findOne({
+      where: { dni },
+      select: publicTrainerSelect,
+    });
   }
 
+  // Public projection: GET /trainer is unauthenticated.
+  async findAll() {
+    return await this.trainerRepository.find({
+      where: { deleted: false },
+      select: publicTrainerSelect,
+    });
+  }
+
+  // Full entity: GET /trainer/filter/deleted is ADMIN-only.
   async findAllDeleted() {
     return await this.trainerRepository.find({ where: { deleted: true } });
+  }
+
+  // Full entity, ADMIN-only: the admin Trainers panel edits an entry straight
+  // out of this list (no separate per-trainer fetch), so it needs email and
+  // phone here rather than through the public findAll()/GET /trainer.
+  async findAllForAdmin() {
+    return await this.trainerRepository.find({ where: { deleted: false } });
   }
 
   async findAllWithClasses(): Promise<TrainerWithClasses[]> {
@@ -74,7 +104,7 @@ export class TrainerService {
   }
 
   async findTrainerWithClasses(dni: number): Promise<TrainerWithClasses> {
-    const trainer = await this.findTrainer(dni);
+    const trainer = await this.findPublicTrainer(dni);
     if (!trainer) {
       throw new NotFoundException(`El profesor con DNI: ${dni} no existe.`);
     }

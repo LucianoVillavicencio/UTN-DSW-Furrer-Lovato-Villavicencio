@@ -29,6 +29,21 @@ export const getTrainerByDni = async (dni: number): Promise<Trainer> => {
   }
 };
 
+// ADMIN-only: unlike getTrainers() (the public listing), this includes email
+// and phone, which the admin Trainers panel needs to populate the edit form —
+// it edits a row straight out of this list rather than fetching one by dni.
+export const getTrainersForAdmin = async (): Promise<Trainer[]> => {
+  try {
+    const { data } = await api.get<Trainer[]>('/trainer/admin');
+    return data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener lista de profesores'),
+      { cause: error },
+    );
+  }
+};
+
 export const getDeletedTrainers = async (): Promise<Trainer[]> => {
   try {
     const { data } = await api.get<Trainer[]>('/trainer/filter/deleted');

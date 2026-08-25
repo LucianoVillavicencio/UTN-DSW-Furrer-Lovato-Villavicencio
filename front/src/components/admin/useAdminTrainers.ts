@@ -3,7 +3,7 @@ import {
   createTrainer,
   deleteTrainer,
   getDeletedTrainers,
-  getTrainers,
+  getTrainersForAdmin,
   restoreTrainer,
   updateTrainer,
 } from '../../services/trainer.service';
@@ -22,7 +22,7 @@ export const useAdminTrainers = (showDeleted: boolean) => {
   const isLoading = loadedFilter !== showDeleted;
 
   const fetchTrainers = (deleted: boolean) =>
-    (deleted ? getDeletedTrainers() : getTrainers())
+    (deleted ? getDeletedTrainers() : getTrainersForAdmin())
       .then((data) => {
         setTrainers(data);
         setLoadError(null);

@@ -46,6 +46,14 @@ export class TrainerController {
     return this.trainerService.findAllDeleted();
   }
 
+  // ADMIN-only, full entity (email, phone included): the admin Trainers panel
+  // edits a row straight out of this list, unlike the public listing above.
+  @Get('admin')
+  @Auth(Role.ADMIN)
+  getTrainersForAdmin() {
+    return this.trainerService.findAllForAdmin();
+  }
+
   @Get('/:dni')
   getTrainerByDni(@Param('dni', ParseIntPipe) dni: number) {
     return this.trainerService.findTrainerWithClasses(dni);
