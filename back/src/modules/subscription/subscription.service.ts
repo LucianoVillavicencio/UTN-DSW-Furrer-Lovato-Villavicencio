@@ -21,6 +21,25 @@ function toDateOnly(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// The paid period of a subscription on a plan of `numDays`, counted from
+// `from` (today by default). Shared by changePlan and activate so a
+// subscription that is created and one that is promoted cannot end up with
+// their dates computed differently.
+//
+// Dates are 'YYYY-MM-DD' strings rather than a Date carrying a time, so the
+// MySQL 'date' column cannot shift them by a day through timezone conversion —
+// the same approach the frontend already uses in Plan.tsx with
+// toISOString().split('T')[0]. The cast is what lets a string reach a column
+// TypeORM types as Date.
+function subscriptionPeriod(numDays: number, from: Date = new Date()) {
+  const endJs = new Date(from);
+  endJs.setDate(endJs.getDate() + numDays);
+  return {
+    startDate: toDateOnly(from) as unknown as Date,
+    endDate: toDateOnly(endJs) as unknown as Date,
+  };
+}
+
 @Injectable()
 export class subscriptionService {
   constructor(
@@ -51,39 +70,54 @@ export class subscriptionService {
       },
     });
 
-    if (currentActive) {
-      if (currentActive.planId === planId) {
-        throw new ConflictException(
-          byAdmin
-            ? 'El socio ya está suscripto a este plan.'
-            : 'Ya estás suscripto a este plan.',
-        );
-      }
-      // The front-desk path is supervised and swaps the plan on the spot; the
-      // self-service path keeps the member's current access until the new
-      // plan's payment is recorded — see `activate`, which cancels the old
-      // ACTIVE subscription once the new one is paid, not before.
-      if (byAdmin) {
-        currentActive.state = SubscriptionState.CANCELLED;
-        await this.subscriptionRepository.save(currentActive);
-      }
+    // A self-service change stays PENDING until an admin records its payment,
+    // and nothing used to stop a member from asking for the same plan again
+    // and again: every call opened one more PENDING row, unbounded, and any of
+    // them could later be activated. One outstanding request per plan is all
+    // the flow needs — to settle an existing one, record its payment against
+    // it rather than opening another.
+    const pendingSamePlan = await this.subscriptionRepository.findOne({
+      where: {
+        userDni,
+        planId,
+        state: SubscriptionState.PENDING,
+        deleted: false,
+      },
+    });
+
+    // Both duplicate checks run before anything is written, so a rejected
+    // change cannot leave the member's current plan already cancelled.
+    if (currentActive && currentActive.planId === planId) {
+      throw new ConflictException(
+        byAdmin
+          ? 'El socio ya está suscripto a este plan.'
+          : 'Ya estás suscripto a este plan.',
+      );
     }
 
-    // Dates as 'YYYY-MM-DD' strings rather than a Date carrying a time, so the
-    // MySQL 'date' column cannot shift them by a day through timezone
-    // conversion — the same approach the frontend already uses in Plan.tsx with
-    // toISOString().split('T')[0].
-    const today = new Date();
-    const start = toDateOnly(today);
-    const endJs = new Date(today);
-    endJs.setDate(endJs.getDate() + plan.numDays);
-    const end = toDateOnly(endJs);
+    if (pendingSamePlan) {
+      throw new ConflictException(
+        byAdmin
+          ? 'El socio ya tiene un cambio a este plan pendiente de pago.'
+          : 'Ya tenés un cambio a este plan pendiente de pago.',
+      );
+    }
+
+    // The front-desk path is supervised and swaps the plan on the spot; the
+    // self-service path keeps the member's current access until the new plan's
+    // payment is recorded — see `activate`, which cancels the old ACTIVE
+    // subscription once the new one is paid, not before.
+    if (currentActive && byAdmin) {
+      currentActive.state = SubscriptionState.CANCELLED;
+      await this.subscriptionRepository.save(currentActive);
+    }
+
+    const period = subscriptionPeriod(plan.numDays);
 
     const newSubscription = this.subscriptionRepository.create({
       userDni,
       planId,
-      startDate: start as unknown as Date,
-      endDate: end as unknown as Date,
+      ...period,
       // A self-service change opens PENDING: it only becomes ACTIVE once an
       // admin records the payment (see PaymentService.createManualPayment).
       // The front-desk path goes through assignPlanToMember, which is
@@ -140,6 +174,21 @@ export class subscriptionService {
       previousActive.state = SubscriptionState.CANCELLED;
       await this.subscriptionRepository.save(previousActive);
     }
+
+    // A PENDING row keeps the dates it was born with. One that sat unpaid for
+    // weeks — the member changed their mind, then came back — would otherwise
+    // go ACTIVE with an endDate already in the past, and since nothing expires
+    // a subscription yet (FLG-SEC-24) that reads as permanent access. The paid
+    // period starts when the payment lands, not when it was requested.
+    const plan = await this.planService.findPlan(subscription.planId);
+    if (!plan) {
+      throw new NotFoundException(
+        `El plan con ID: ${subscription.planId} no existe.`,
+      );
+    }
+    const period = subscriptionPeriod(plan.numDays);
+    subscription.startDate = period.startDate;
+    subscription.endDate = period.endDate;
 
     subscription.state = SubscriptionState.ACTIVE;
     return this.subscriptionRepository.save(subscription);

@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { subscriptionService } from './subscription.service';
@@ -5,6 +6,17 @@ import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
+
+// Local date parts, matching the 'YYYY-MM-DD' the service writes. Spelled out
+// here rather than imported so the assertions do not check the helper against
+// itself.
+function localDate(date: Date): string {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
 
 describe('subscriptionService', () => {
   let service: subscriptionService;
@@ -58,7 +70,9 @@ describe('subscriptionService', () => {
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne.mockResolvedValue(currentActive);
+      repository.findOne
+        .mockResolvedValueOnce(currentActive) // the current ACTIVE row
+        .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
       await service.changePlan(30111222, 9, false);
 
@@ -75,11 +89,54 @@ describe('subscriptionService', () => {
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne.mockResolvedValue(currentActive);
+      repository.findOne
+        .mockResolvedValueOnce(currentActive) // the current ACTIVE row
+        .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
       await service.changePlan(30111222, 9, true);
 
       expect(currentActive.state).toBe(SubscriptionState.CANCELLED);
+    });
+
+    it('refuses a second change to a plan already pending payment', async () => {
+      const pendingSamePlan = {
+        id: 4,
+        userDni: 30111222,
+        planId: 9,
+        state: SubscriptionState.PENDING,
+      };
+      repository.findOne
+        .mockResolvedValueOnce(null) // no ACTIVE row
+        .mockResolvedValueOnce(pendingSamePlan); // one already pending
+
+      await expect(service.changePlan(30111222, 9, false)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('does not cancel the current plan when the change is refused', async () => {
+      const currentActive = {
+        id: 1,
+        userDni: 30111222,
+        planId: 5,
+        state: SubscriptionState.ACTIVE,
+      };
+      repository.findOne
+        .mockResolvedValueOnce(currentActive)
+        .mockResolvedValueOnce({
+          id: 4,
+          userDni: 30111222,
+          planId: 9,
+          state: SubscriptionState.PENDING,
+        });
+
+      await expect(service.changePlan(30111222, 9, true)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
+      expect(repository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -124,6 +181,38 @@ describe('subscriptionService', () => {
 
       expect(previousActive.state).toBe(SubscriptionState.CANCELLED);
       expect(target.state).toBe(SubscriptionState.ACTIVE);
+    });
+
+    it("recomputes the period from today, not the row's stale dates", async () => {
+      const stale = {
+        id: 7,
+        userDni: 30111222,
+        planId: 1,
+        state: SubscriptionState.PENDING,
+        startDate: '2025-01-10',
+        endDate: '2025-02-09',
+        deleted: false,
+      };
+      repository.findOne
+        .mockResolvedValueOnce(stale) // findSubscription(id) inside activate
+        .mockResolvedValueOnce(null); // no previously active row
+
+      await service.activate(7);
+
+      const today = new Date();
+      const in30Days = new Date(today);
+      in30Days.setDate(in30Days.getDate() + 30);
+
+      expect(stale.startDate).toBe(localDate(today));
+      expect(stale.endDate).toBe(localDate(in30Days));
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 7,
+          state: SubscriptionState.ACTIVE,
+          startDate: localDate(today),
+          endDate: localDate(in30Days),
+        }),
+      );
     });
   });
 });
