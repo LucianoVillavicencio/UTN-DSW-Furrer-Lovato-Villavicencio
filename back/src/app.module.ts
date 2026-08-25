@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { buildTypeOrmConfig } from './config/typeorm.config';
@@ -17,6 +17,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
 import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
 import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
+import { SecurityLogFilter } from './common/filters/security-log.filter';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SecurityLogInterceptor } from './common/interceptors/security-log.inter
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: SecurityLogInterceptor },
+    { provide: APP_FILTER, useClass: SecurityLogFilter },
   ],
 })
 export class AppModule {}

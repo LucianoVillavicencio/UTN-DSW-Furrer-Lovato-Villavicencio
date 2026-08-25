@@ -1,15 +1,16 @@
 import { CallHandler, ExecutionContext } from '@nestjs/common';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { SecurityLogInterceptor } from './security-log.interceptor';
 
 function contextFor(
   statusCode: number,
   method = 'POST',
-  url = '/api/v1/auth/login',
+  url = '/api/v1/plan',
+  user?: { role?: string },
 ) {
   return {
     switchToHttp: () => ({
-      getRequest: () => ({ method, url }),
+      getRequest: () => ({ method, url, user }),
       getResponse: () => ({ statusCode }),
     }),
   } as unknown as ExecutionContext;
@@ -24,33 +25,24 @@ describe('SecurityLogInterceptor', () => {
     logSpy = jest.spyOn(interceptor['logger'], 'warn').mockImplementation();
   });
 
-  it('logs a 401 on the login route', (done) => {
-    const handler: CallHandler = {
-      handle: () => throwError(() => ({ status: 401 })),
-    };
-    interceptor.intercept(contextFor(401), handler).subscribe({
-      error: () => {
-        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('401'));
-        done();
-      },
-    });
-  });
-
-  it('logs a 403', (done) => {
-    const handler: CallHandler = {
-      handle: () => throwError(() => ({ status: 403 })),
-    };
+  it('logs a successful admin write', (done) => {
+    const handler: CallHandler = { handle: () => of({ ok: true }) };
     interceptor
-      .intercept(contextFor(403, 'GET', '/api/v1/contact'), handler)
+      .intercept(
+        contextFor(201, 'POST', '/api/v1/plan', { role: 'admin' }),
+        handler,
+      )
       .subscribe({
-        error: () => {
-          expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('403'));
+        next: () => {
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('201 POST /api/v1/plan'),
+          );
           done();
         },
       });
   });
 
-  it('does not log a normal successful request', (done) => {
+  it('does not log a normal successful request with no user', (done) => {
     const handler: CallHandler = { handle: () => of({ ok: true }) };
     interceptor.intercept(contextFor(200), handler).subscribe({
       next: () => {
@@ -58,5 +50,52 @@ describe('SecurityLogInterceptor', () => {
         done();
       },
     });
+  });
+
+  it('does not log a non-admin write', (done) => {
+    const handler: CallHandler = { handle: () => of({ ok: true }) };
+    interceptor
+      .intercept(
+        contextFor(201, 'POST', '/api/v1/classRegistration/enroll', {
+          role: 'user',
+        }),
+        handler,
+      )
+      .subscribe({
+        next: () => {
+          expect(logSpy).not.toHaveBeenCalled();
+          done();
+        },
+      });
+  });
+
+  it('does not log an admin GET (read, not a write)', (done) => {
+    const handler: CallHandler = { handle: () => of({ ok: true }) };
+    interceptor
+      .intercept(
+        contextFor(200, 'GET', '/api/v1/user', { role: 'admin' }),
+        handler,
+      )
+      .subscribe({
+        next: () => {
+          expect(logSpy).not.toHaveBeenCalled();
+          done();
+        },
+      });
+  });
+
+  it('does not log an admin write that failed', (done) => {
+    const handler: CallHandler = { handle: () => of({ ok: true }) };
+    interceptor
+      .intercept(
+        contextFor(400, 'POST', '/api/v1/plan', { role: 'admin' }),
+        handler,
+      )
+      .subscribe({
+        next: () => {
+          expect(logSpy).not.toHaveBeenCalled();
+          done();
+        },
+      });
   });
 });

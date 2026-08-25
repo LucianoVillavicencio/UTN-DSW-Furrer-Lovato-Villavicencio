@@ -6,13 +6,16 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { catchError, tap, throwError } from 'rxjs';
+import { tap } from 'rxjs';
 
 /**
- * A failed login, a 403 from RolesGuard, or an admin write are the events an
- * incident investigation needs and none of them currently leaves a trace
- * anywhere. One interceptor over every route, rather than a log call bolted
- * onto each guard and handler.
+ * Logs every successful admin write (create/update/delete/restore) so an
+ * incident investigation has a trace of what an admin did and when. Auth
+ * failures (a 401 from AuthGuard, a 403 from RolesGuard) are NOT logged
+ * here: Guards run before interceptors in Nest's pipeline, so an exception
+ * a Guard throws never reaches this interceptor's handler at all — that is
+ * SecurityLogFilter's job (`../filters/security-log.filter.ts`), which sits
+ * outside the whole pipeline and sees every thrown exception.
  */
 @Injectable()
 export class SecurityLogInterceptor implements NestInterceptor {
@@ -27,13 +30,6 @@ export class SecurityLogInterceptor implements NestInterceptor {
         if (this.isAdminWrite(request, response.statusCode)) {
           this.logger.warn(this.describe(request, response.statusCode));
         }
-      }),
-      catchError((error: { status?: number }) => {
-        const status = error.status ?? 500;
-        if (status === 401 || status === 403) {
-          this.logger.warn(this.describe(request, status));
-        }
-        return throwError(() => error);
       }),
     );
   }
