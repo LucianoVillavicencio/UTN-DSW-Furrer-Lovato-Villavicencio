@@ -154,7 +154,7 @@ cd front && npm run dev
 | Variable | Descripción | Ejemplo |
 | :--- | :--- | :--- |
 | `PORT` | Puerto donde escucha la API | `3000` |
-| `NODE_ENV` | En producción: `synchronize` de TypeORM desactivado y Swagger no servido. Set to `production` in any real deployment. | `development` |
+| `NODE_ENV` | En producción: desactiva el `synchronize` de TypeORM y deja de servir Swagger. Configurá esto en cualquier despliegue real. | `development` |
 | `DB_HOST` | Host de MySQL | `localhost` |
 | `DB_PORT` | Puerto de MySQL | `3306` |
 | `DB_USER` | Usuario de MySQL | `root` |
