@@ -50,38 +50,19 @@ export class AuthService {
       loginDto.email,
     );
 
-    // TODO: collapse every failure below into a single 'Credenciales
-    // invalidas' message. Right now the distinct errors let anyone probe which
-    // emails are registered and which of those signed up through Google.
+    const genericFailure = () =>
+      new UnauthorizedException('Credenciales invalidas');
 
-    if (!user) {
-      throw new UnauthorizedException(
-        `El usuario con email ${loginDto.email} no existe.`,
-      );
-    }
-
-    if (!user.password) {
-      // A passwordless account is either a Google sign-up or a member the gym
-      // created at the front desk. Telling the second group to use Google
-      // sends them somewhere that will never work.
-      throw new UnauthorizedException(
-        user.googleId
-          ? `Esta cuenta se registro con Google. Inicia sesión con Google.`
-          : `Esta cuenta fue creada en el gimnasio y todavía no tiene contraseña. Acercate al mostrador para activarla.`,
-      );
-    }
-
-    if (user.deleted) {
-      throw new UnauthorizedException(`El usuario esta dado de baja`);
+    if (!user || user.deleted || !user.password) {
+      throw genericFailure();
     }
 
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
-
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales invalidas');
+      throw genericFailure();
     }
 
     return this.buildAuthResponse(user);

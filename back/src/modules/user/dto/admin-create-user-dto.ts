@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -39,6 +40,9 @@ export class AdminCreateUserDto {
   )
   @IsString()
   @MinLength(8)
+  @Matches(/(?=.*[A-Za-z])(?=.*\d)/, {
+    message: 'La contraseña debe tener al menos una letra y un número.',
+  })
   @IsOptional()
   password?: string;
 }
