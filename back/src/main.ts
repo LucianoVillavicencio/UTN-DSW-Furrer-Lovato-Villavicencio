@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { applySecurityHeaders } from './main.security';
 
 async function bootstrap() {
@@ -27,10 +28,15 @@ async function bootstrap() {
   );
 
   // The document lists every route, including the admin ones. Useful while
-  // developing, a map of the attack surface once the API is reachable publicly.
-  // Inert until something in the deployment path sets NODE_ENV=production —
-  // see FLG-SEC-10 in the security audit.
-  if (process.env.NODE_ENV !== 'production') {
+  // developing, a map of the attack surface once the API is reachable
+  // publicly, so it is served in development only — opt-in by name, the same
+  // rule and the same validated read as `synchronize` in typeorm.config.ts.
+  // A deployment with no NODE_ENV has already failed to boot by this point,
+  // because the TypeORM config is built during AppModule initialisation.
+  // See FLG-SEC-10 and FLG-SEC-11 in the security audit.
+  const configService = app.get(ConfigService);
+
+  if (configService.getOrThrow<string>('NODE_ENV') === 'development') {
     const config = new DocumentBuilder()
       .setTitle('Gimnasio')
       .setDescription('Trabajo Practico Desarrollo de Software')

@@ -1,26 +1,59 @@
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import { buildTypeOrmConfig } from './typeorm.config';
 
-describe('buildTypeOrmConfig', () => {
-  const complete = {
-    DB_HOST: 'db.internal',
-    DB_PORT: '3306',
-    DB_USER: 'flg_app',
-    DB_PASSWORD: 's3cret',
-    DB_NAME: 'flg',
-  };
+// Minimal ConfigService stand-in: getOrThrow throws on a missing key, which is
+// the behaviour under test.
+const configWith = (values: Record<string, string>): ConfigService =>
+  ({
+    getOrThrow: (key: string) => {
+      if (!(key in values)) {
+        throw new Error(`Configuration key "${key}" does not exist`);
+      }
+      return values[key];
+    },
+  }) as unknown as ConfigService;
 
-  it('builds the config when every DB_* variable is set', () => {
-    const config = new ConfigService(complete);
-    expect(() => buildTypeOrmConfig(config)).not.toThrow();
+const DB_VALUES = {
+  DB_HOST: 'localhost',
+  DB_PORT: '3306',
+  DB_USER: 'flg_app',
+  DB_PASSWORD: 'irrelevant-to-this-test',
+  DB_NAME: 'flg',
+};
+
+describe('buildTypeOrmConfig', () => {
+  it('refuses to build when NODE_ENV is not declared', () => {
+    expect(() => buildTypeOrmConfig(configWith(DB_VALUES))).toThrow(/NODE_ENV/);
   });
 
-  it.each(['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'])(
-    'refuses to boot when %s is missing',
-    (missing) => {
-      const partial = { ...complete, [missing]: undefined };
-      const config = new ConfigService(partial);
-      expect(() => buildTypeOrmConfig(config)).toThrow();
-    },
-  );
+  it('enables synchronize only in development', () => {
+    const config = buildTypeOrmConfig(
+      configWith({ ...DB_VALUES, NODE_ENV: 'development' }),
+    );
+    expect(config).toMatchObject({ synchronize: true });
+  });
+
+  it('disables synchronize in production', () => {
+    const config = buildTypeOrmConfig(
+      configWith({ ...DB_VALUES, NODE_ENV: 'production' }),
+    );
+    expect(config).toMatchObject({ synchronize: false });
+  });
+
+  // The case the old `!== 'production'` test got wrong: any environment that
+  // is not literally "production" selected the destructive branch, so staging
+  // auto-applied schema changes from whatever entities were built.
+  it('disables synchronize in staging', () => {
+    const config = buildTypeOrmConfig(
+      configWith({ ...DB_VALUES, NODE_ENV: 'staging' }),
+    );
+    expect(config).toMatchObject({ synchronize: false });
+  });
+
+  it('disables synchronize for a typo rather than guessing', () => {
+    const config = buildTypeOrmConfig(
+      configWith({ ...DB_VALUES, NODE_ENV: 'developement' }),
+    );
+    expect(config).toMatchObject({ synchronize: false });
+  });
 });
