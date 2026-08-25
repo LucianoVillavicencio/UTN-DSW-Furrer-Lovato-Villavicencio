@@ -395,16 +395,12 @@ describe('ContactController authorization', () => {
     await unguarded(app, 'post', '/api/v1/contact');
   });
 
-  it('opens GET /contact to everyone', async () => {
-    // FLG-SEC-04: expected 401 for anonymous and 403 for a member. The whole
-    // contact inbox is unguarded — see the audit report.
-    await unguarded(app, 'get', '/api/v1/contact');
+  it('restricts GET /contact to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/contact');
   });
 
-  it('opens GET /contact/:id to everyone', async () => {
-    // FLG-SEC-04: expected 401 for anonymous and 403 for a member, see the
-    // audit report.
-    await unguarded(app, 'get', '/api/v1/contact/1');
+  it('restricts GET /contact/:id to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/contact/1');
   });
 });
 
