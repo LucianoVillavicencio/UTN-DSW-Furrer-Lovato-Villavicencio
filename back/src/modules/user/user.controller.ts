@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { UserService } from './user.service';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
@@ -24,6 +26,8 @@ import { Role } from '../../common/enum/role.enum';
 // Declared at class level, so every endpoint is admin-only unless the handler
 // overrides it with its own @Auth(Role.USER) (see updateMyProfile).
 @Auth(Role.ADMIN)
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class UserController {
   constructor(private userService: UserService) {}
 

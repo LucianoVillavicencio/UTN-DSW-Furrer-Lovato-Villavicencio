@@ -14,11 +14,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { mkdirSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { TrainerDto } from './dto/trainer-dto';
 import { TrainerService } from './trainer.service';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { Role } from '../../common/enum/role.enum';
 import {
@@ -30,6 +32,8 @@ import {
 
 @Controller('api/v1/trainer')
 @ApiTags('Trainers')
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 
 // Same criterion as ClassController: the trainer listing is public (the
 // /trainers page) and creating, updating or deleting is ADMIN-only.

@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { TypeClassDto } from './dto/typeClass-dto';
 import { TypeClassService } from './typeClass.service';
 import { Auth } from '../../auth/decorators/auth.decorator';
@@ -17,6 +19,8 @@ import { Role } from '../../common/enum/role.enum';
 
 @Controller('api/v1/typeClass')
 @ApiTags('Types of classes')
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class TypeClassController {
   constructor(private readonly typeClassService: TypeClassService) {}
 

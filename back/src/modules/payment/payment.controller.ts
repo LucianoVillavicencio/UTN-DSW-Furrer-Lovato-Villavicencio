@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { PaymentService } from './payment.service';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
@@ -23,6 +25,8 @@ import { Role } from '../../common/enum/role.enum';
 @Controller('api/v1/Payment')
 @ApiTags('Payments')
 @Auth(Role.ADMIN)
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 

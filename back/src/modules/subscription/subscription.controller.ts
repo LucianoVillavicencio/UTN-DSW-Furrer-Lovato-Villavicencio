@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { ChangePlanDto } from './dto/change-plan-dto';
 import { subscriptionService } from './subscription.service';
@@ -24,6 +26,8 @@ import { Role } from '../../common/enum/role.enum';
 @Controller('api/v1/subscription')
 @ApiTags('subscriptiones')
 @Auth(Role.ADMIN)
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class subscriptionController {
   constructor(private readonly subscriptionService: subscriptionService) {}
 

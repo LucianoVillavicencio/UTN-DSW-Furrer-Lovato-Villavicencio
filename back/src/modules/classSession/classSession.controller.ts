@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import {
   ClassSessionDto,
   WeeklyClassSessionsDto,
@@ -24,6 +26,8 @@ import { Role } from '../../common/enum/role.enum';
 // session.
 @Controller('api/v1/classSession')
 @ApiTags('Class Session')
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class ClassSessionController {
   constructor(private readonly classSessionService: ClassSessionService) {}
 

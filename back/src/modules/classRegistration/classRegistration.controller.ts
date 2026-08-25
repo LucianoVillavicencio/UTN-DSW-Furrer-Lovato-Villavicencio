@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 
 import { ClassRegistrationService } from './classRegistration.service';
 import { ClassRegistrationDto } from './dto/classRegistration-dto';
@@ -26,6 +28,8 @@ import { Role } from '../../common/enum/role.enum';
 @Controller('api/v1/classRegistration')
 @ApiTags('Class registration')
 @Auth(Role.ADMIN)
+// Not rate limited — see auth.throttle.ts.
+@SkipThrottle(SKIP_ALL_THROTTLERS)
 export class ClassRegistrationController {
   constructor(
     private readonly classRegistrationService: ClassRegistrationService,
