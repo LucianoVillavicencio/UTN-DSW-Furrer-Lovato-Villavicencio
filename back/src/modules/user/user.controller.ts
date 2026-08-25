@@ -22,7 +22,7 @@ import { Role } from '../../common/enum/role.enum';
 @Controller('api/v1/user')
 @ApiTags('Usuarios')
 // Declared at class level, so every endpoint is admin-only unless the handler
-// overrides it with its own @Auth() (see updateMyProfile).
+// overrides it with its own @Auth(Role.USER) (see updateMyProfile).
 @Auth(Role.ADMIN)
 export class UserController {
   constructor(private userService: UserService) {}
@@ -36,11 +36,11 @@ export class UserController {
   }
 
   // Self-service: any authenticated user edits their own profile. A
-  // method-level @Auth() replaces the class-level @Auth(Role.ADMIN) because
-  // RolesGuard uses getAllAndOverride and the handler wins — a login is still
-  // required, the admin role no longer is.
+  // method-level @Auth(Role.USER) replaces the class-level @Auth(Role.ADMIN)
+  // because RolesGuard uses getAllAndOverride and the handler wins — a login
+  // is still required, the admin role no longer is.
   @Patch('me')
-  @Auth()
+  @Auth(Role.USER)
   updateMyProfile(
     @ActiveUser() activeUser: UserActiveInterface,
     @Body() dto: UpdateProfileDto,

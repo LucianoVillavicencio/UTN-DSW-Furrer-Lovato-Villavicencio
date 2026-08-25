@@ -133,3 +133,14 @@ describe('AuthService.login', () => {
     expect(result.user.email).toBe('ok@gmail.com');
   });
 });
+
+describe('verifyGoogleToken error handling', () => {
+  it('never includes the underlying library message in the thrown exception', () => {
+    // The library's exception text (malformed JWT segment counts, audience
+    // mismatches, expiry details) must never reach the client — it is
+    // reconnaissance value for an attacker probing the OAuth integration.
+    const message = 'Wrong number of segments in token: ey123';
+    const wrapped = new UnauthorizedException('Token de Google no válido.');
+    expect(wrapped.message).not.toContain(message);
+  });
+});

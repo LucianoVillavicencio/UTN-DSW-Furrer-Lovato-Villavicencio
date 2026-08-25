@@ -34,14 +34,14 @@ export class ClassRegistrationController {
   // The classes page and the dashboard: what this member holds, what the plan
   // allows and how many changes are left this month.
   @Get('me')
-  @Auth()
+  @Auth(Role.USER)
   getMyEnrollments(@ActiveUser() user: UserActiveInterface) {
     return this.classRegistrationService.findMyEnrollments(user.sub);
   }
 
   // Books a class at an hour, on every weekday it runs at that hour.
   @Post('enroll')
-  @Auth()
+  @Auth(Role.USER)
   enroll(@ActiveUser() user: UserActiveInterface, @Body() dto: EnrollClassDto) {
     return this.classRegistrationService.enroll(user.sub, dto);
   }
@@ -49,7 +49,7 @@ export class ClassRegistrationController {
   // Moves the member to another class or hour, spending one of the monthly
   // changes when the plan is limited.
   @Put('me')
-  @Auth()
+  @Auth(Role.USER)
   changeMyEnrollment(
     @ActiveUser() user: UserActiveInterface,
     @Body() dto: ChangeEnrollmentDto,
@@ -58,7 +58,7 @@ export class ClassRegistrationController {
   }
 
   @Delete('enrollment/:group')
-  @Auth()
+  @Auth(Role.USER)
   cancelMyEnrollment(
     @ActiveUser() user: UserActiveInterface,
     @Param('group') group: string,

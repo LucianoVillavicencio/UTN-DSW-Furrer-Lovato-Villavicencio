@@ -31,7 +31,7 @@ export class subscriptionController {
   // different plan. userDni comes from the JWT, never from the body — see
   // ChangePlanDto.
   @Post('change-plan')
-  @Auth()
+  @Auth(Role.USER)
   changePlan(
     @ActiveUser() user: UserActiveInterface,
     @Body() dto: ChangePlanDto,
@@ -53,7 +53,7 @@ export class subscriptionController {
   // dashboard's "Mi plan" tab. Before this there was no way to ask for "mine"
   // without pulling the full list of every user.
   @Get('me')
-  @Auth()
+  @Auth(Role.USER)
   getMySubscription(@ActiveUser() user: UserActiveInterface) {
     return this.subscriptionService.findActiveForUser(user.sub);
   }

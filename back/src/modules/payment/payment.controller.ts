@@ -29,7 +29,7 @@ export class PaymentController {
   // Self-service: payment history of the authenticated user (see specs.md
   // §2.2/§3.5). userDni comes from the JWT, never from a param.
   @Get('me')
-  @Auth()
+  @Auth(Role.USER)
   getMyPayments(@ActiveUser() user: UserActiveInterface) {
     return this.paymentService.findMineForUser(user.sub);
   }

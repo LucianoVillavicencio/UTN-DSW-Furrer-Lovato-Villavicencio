@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from '../modules/user/user.service';
@@ -15,6 +16,8 @@ import { GoogleLoginDto } from './dto/google-login-dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -121,8 +124,10 @@ export class AuthService {
 
       return payload;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Token inválido';
-      throw new UnauthorizedException(`Token de Google no válido: ${message}`);
+      this.logger.warn(
+        `Google token verification failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new UnauthorizedException('Token de Google no válido.');
     }
   }
 
