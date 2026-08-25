@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# FLG-SEC-08 — stop a credential reaching a commit.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# This hook fails closed. If gitleaks is not installed it refuses the commit
+# rather than passing it through unchecked — a guard that silently disables
+# itself is the failure mode this finding is about. To bypass deliberately:
+# git commit --no-verify
+set -uo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed, so staged changes cannot be scanned." >&2
+  echo "  Windows: winget install --id gitleaks.gitleaks" >&2
+  echo "  macOS:   brew install gitleaks" >&2
+  echo "  Or bypass deliberately with: git commit --no-verify" >&2
+  exit 1
+fi
+
+# gitleaks renamed its staged-scan subcommand in v8.19. Prefer the current
+# spelling and fall back to the old one so the hook works on either.
+if gitleaks git --help >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner
+else
+  gitleaks protect --staged --redact --no-banner
+fi

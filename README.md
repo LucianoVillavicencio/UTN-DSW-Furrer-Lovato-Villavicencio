@@ -131,6 +131,25 @@ cd ../front && npm install && cp .env.example .env
 
 Completá los `.env` (ver [Configuración](#configuración)) antes de levantar los servidores.
 
+### Escaneo de secretos en pre-commit
+
+El repositorio incluye un hook de pre-commit que rechaza cualquier commit que contenga una
+credencial. Git no activa los hooks del working tree automáticamente, así que hay que habilitarlo
+una vez por clon:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Requiere [gitleaks](https://github.com/gitleaks/gitleaks) en el `PATH`:
+
+```bash
+winget install --id gitleaks.gitleaks
+```
+
+El hook falla cerrado: si gitleaks no está instalado, rechaza el commit en lugar de dejarlo pasar
+sin revisar. Para saltearlo deliberadamente, `git commit --no-verify`.
+
 ## Uso rápido
 
 En dos terminales, desde la raíz del repo:
