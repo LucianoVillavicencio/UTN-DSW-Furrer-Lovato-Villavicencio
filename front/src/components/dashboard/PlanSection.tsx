@@ -15,6 +15,7 @@ import { formatDateOnly } from '../../lib/date';
 
 const stateBadge: Record<string, string> = {
   activa: 'bg-primary/10 text-primary border-primary/30',
+  pendiente: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   vencida: 'bg-red-500/10 text-red-400 border-red-500/30',
   cancelada: 'bg-text-muted/10 text-text-muted border-border',
 };
@@ -83,7 +84,7 @@ const PlanSection = () => {
       const updated = await changePlan(pendingPlan.id);
       setSubscription(updated);
       setActionSuccess(
-        `Tu cambio de plan a "${pendingPlan.name}" fue registrado. Acercate al gimnasio para abonar.`,
+        `Tu cambio de plan a "${pendingPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago.`,
       );
       setPendingPlan(null);
     } catch (err) {
@@ -202,8 +203,9 @@ const PlanSection = () => {
                 "{pendingPlan.name}"
               </span>{' '}
               ({pendingPlan.price}
-              {pendingPlan.period}). El cambio queda registrado con el pago
-              pendiente hasta que lo abones en el gimnasio.
+              {pendingPlan.period}). El cambio queda registrado como pendiente:
+              el plan se activa cuando abones en el gimnasio y registremos tu
+              pago.
             </p>
             <div className="mt-6 flex gap-3">
               <Button

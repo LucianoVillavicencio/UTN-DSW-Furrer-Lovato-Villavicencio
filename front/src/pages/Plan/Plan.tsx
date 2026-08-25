@@ -132,7 +132,7 @@ function Plan() {
 
       setActionFeedback({
         type: 'success',
-        message: `Tu cambio de plan a "${selectedPlan.name}" fue registrado. Acercate al gimnasio para abonar.`,
+        message: `Tu cambio de plan a "${selectedPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago.`,
       });
     } catch (err: unknown) {
       setActionFeedback({

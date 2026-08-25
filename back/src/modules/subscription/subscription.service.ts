@@ -33,7 +33,10 @@ export class subscriptionService {
   // Moves the authenticated user to another plan: closes the active
   // subscription, if there is one, and opens a new one on the chosen plan. This
   // is not a payment — the charge is settled separately (in person for now,
-  // through Mercado Pago later); see specs.md §2.3.
+  // through Mercado Pago later); see specs.md §2.3. Because of that, a
+  // self-service change opens the new subscription PENDING and an admin
+  // recording the payment is what activates it: otherwise anyone could register
+  // and grant themselves an active plan for free.
   async changePlan(userDni: number, planId: number, byAdmin = false) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
@@ -75,7 +78,11 @@ export class subscriptionService {
       planId,
       startDate: start as unknown as Date,
       endDate: end as unknown as Date,
-      state: SubscriptionState.ACTIVE,
+      // A self-service change opens PENDING: it only becomes ACTIVE once an
+      // admin records the payment (see PaymentService.createManualPayment).
+      // The front-desk path goes through assignPlanToMember, which is
+      // staff-supervised, so it keeps activating on the spot.
+      state: byAdmin ? SubscriptionState.ACTIVE : SubscriptionState.PENDING,
       deleted: false,
     });
 
@@ -103,6 +110,17 @@ export class subscriptionService {
       relations: { plan: true },
       order: { id: 'DESC' },
     });
+  }
+
+  // Promotes a PENDING subscription once its payment is recorded. Called by
+  // PaymentService so that payment never has to reach into this repository.
+  async activate(id: number) {
+    const subscription = await this.findSubscription(id);
+    if (!subscription) {
+      throw new NotFoundException(`La suscripción con ID: ${id} no existe.`);
+    }
+    subscription.state = SubscriptionState.ACTIVE;
+    return this.subscriptionRepository.save(subscription);
   }
 
   // The authenticated user's active subscription, or null if there is none.
