@@ -8,7 +8,10 @@ export interface Payment {
   date: string;
   payMethod: string;
   state?: string;
-  registeredByDni?: number | null;
+  registeredById?: number | null;
+  // Populated by the backend join when available; a raw id means nothing to
+  // staff, so the admin table renders this instead.
+  registeredByName?: string | null;
   deleted?: boolean;
 }
 

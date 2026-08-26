@@ -11,6 +11,7 @@ import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +19,7 @@ export class PaymentService {
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
     private readonly subscriptionService: subscriptionService,
+    private readonly userService: UserService,
   ) {}
 
   // In-person payment recorded by an admin (see specs.md §3.5). Still the
@@ -91,13 +93,44 @@ export class PaymentService {
     });
   }
 
+  // A raw registeredById means nothing to the admin looking at the "Pagos
+  // recientes" table, so each row is annotated with the recording admin's
+  // name. registeredById has no relation on the entity — it is a bare
+  // nullable column, not a foreign key TypeORM can join — so the lookup is
+  // done by hand rather than through `relations`. One findUser() call per
+  // distinct admin, not per payment: a front desk records many payments a
+  // day under a handful of admins.
   async findAll() {
-    return await this.paymentRepository.find({
+    const payments = await this.paymentRepository.find({
       where: { deleted: false },
       // Explicit relations down to 'user'/'plan': eager:true on the
       // Subscription entity cannot be assumed to cascade here.
       relations: { subscription: { user: true, plan: true } },
     });
+
+    const adminIds = [
+      ...new Set(
+        payments
+          .map((p) => p.registeredById)
+          .filter((id): id is number => id != null),
+      ),
+    ];
+
+    const adminNames = new Map<number, string>();
+    for (const id of adminIds) {
+      const admin = await this.userService.findUser(id);
+      if (admin) {
+        adminNames.set(id, `${admin.name} ${admin.surname ?? ''}`.trim());
+      }
+    }
+
+    return payments.map((p) => ({
+      ...p,
+      registeredByName:
+        p.registeredById != null
+          ? (adminNames.get(p.registeredById) ?? null)
+          : null,
+    }));
   }
 
   async findAllDeleted() {

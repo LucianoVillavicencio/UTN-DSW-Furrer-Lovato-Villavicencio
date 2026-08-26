@@ -50,7 +50,7 @@ const AdminPaymentsSection = () => {
     { header: 'Método', cell: (p) => p.payMethod },
     {
       header: 'Registrado por',
-      cell: (p) => (p.registeredByDni ? `DNI ${p.registeredByDni}` : '—'),
+      cell: (p) => p.registeredByName ?? '—',
     },
   ];
 

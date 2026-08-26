@@ -60,9 +60,11 @@ export const getPayments = async (): Promise<Payment[]> => {
 };
 
 // Admin-only: payment history of one specific user (Users panel).
-export const getPaymentsByUser = async (dni: number): Promise<Payment[]> => {
+export const getPaymentsByUser = async (
+  userId: number,
+): Promise<Payment[]> => {
   try {
-    const { data } = await api.get<Payment[]>(`/Payment/by-user/${dni}`);
+    const { data } = await api.get<Payment[]>(`/Payment/by-user/${userId}`);
     return data;
   } catch (error) {
     throw new Error(

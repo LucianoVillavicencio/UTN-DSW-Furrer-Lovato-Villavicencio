@@ -7,13 +7,13 @@ import { formatPriceDisplay } from '../../lib/currency';
 import type { Plan } from '../../types/plan';
 
 interface AssignPlanFormProps {
-  userDni: number;
+  userId: number;
   onAssigned: () => void | Promise<void>;
 }
 
 // Shared by the Users panel and the new-member wizard: an admin picks a plan
 // and the member's active subscription is replaced by one on that plan.
-const AssignPlanForm = ({ userDni, onAssigned }: AssignPlanFormProps) => {
+const AssignPlanForm = ({ userId, onAssigned }: AssignPlanFormProps) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -41,7 +41,7 @@ const AssignPlanForm = ({ userDni, onAssigned }: AssignPlanFormProps) => {
     }
     setIsSaving(true);
     try {
-      await assignPlanToMember(userDni, Number(selectedPlanId));
+      await assignPlanToMember(userId, Number(selectedPlanId));
       setSelectedPlanId('');
       await onAssigned();
     } catch (err) {

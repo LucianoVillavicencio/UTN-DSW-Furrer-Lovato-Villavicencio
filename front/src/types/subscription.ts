@@ -3,7 +3,7 @@ import type { Plan } from './plan';
 
 export interface Subscription {
   id?: number;
-  userDni: number;
+  userId: number;
   user?: User;
   planId: number;
   plan?: Plan;
