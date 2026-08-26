@@ -12,6 +12,7 @@ import { UsersDto } from './dto/users-dto';
 import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
+import { CompleteProfileDto } from '../../auth/dto/complete-profile-dto';
 import { findAdminCreateUserError, placeholderEmailFor } from './user.rules';
 import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
@@ -390,5 +391,55 @@ export class UserService {
     });
 
     return this.usersRepository.save(newUser);
+  }
+
+  // Fills in the fields a Google sign-in cannot supply. The caller comes from
+  // the JWT (see AuthController#completeProfile) — the body never names a
+  // user, so nobody can complete somebody else's profile.
+  //
+  // The dni is write-once for the member: once set, a value in the body is
+  // dropped rather than refused, so a walk-in member adding only a missing
+  // phone is not blocked. Correcting a dni is an admin action
+  // (adminUpdateUser).
+  async completeProfile(id: number, dto: CompleteProfileDto) {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        dni: true,
+        email: true,
+        name: true,
+        surname: true,
+        phone: true,
+        password: true,
+        role: true,
+        googleId: true,
+        picture: true,
+        deleted: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`El usuario con ID: ${id} no existe.`);
+    }
+
+    if (user.dni == null) {
+      if (dto.dni == null) {
+        throw new BadRequestException('El DNI es obligatorio.');
+      }
+
+      const dniTaken = await this.findUserByDni(dto.dni);
+      if (dniTaken) {
+        throw new ConflictException(
+          `El DNI ${dto.dni} ya está registrado en otra cuenta. Acercate al gimnasio para resolverlo.`,
+        );
+      }
+
+      user.dni = dto.dni;
+    }
+
+    user.phone = dto.phone.trim();
+
+    return await this.usersRepository.save(user);
   }
 }

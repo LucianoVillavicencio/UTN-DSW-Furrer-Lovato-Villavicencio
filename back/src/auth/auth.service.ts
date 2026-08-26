@@ -13,6 +13,7 @@ import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { GoogleLoginDto } from './dto/google-login-dto';
+import { CompleteProfileDto } from './dto/complete-profile-dto';
 import { isProfileComplete } from '../modules/user/user.rules';
 
 @Injectable()
@@ -130,6 +131,14 @@ export class AuthService {
       );
       throw new UnauthorizedException('Token de Google no válido.');
     }
+  }
+
+  // Returns a freshly signed token. This is what releases the gate: without a
+  // new token the member keeps a claim that says profileComplete: false and
+  // stays locked out until the old one expires.
+  async completeProfile(id: number, dto: CompleteProfileDto) {
+    const user = await this.userService.completeProfile(id, dto);
+    return this.buildAuthResponse(user);
   }
 
   async profile({ email }: { email: string; role: string }) {
