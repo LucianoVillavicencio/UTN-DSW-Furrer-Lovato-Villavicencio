@@ -4,6 +4,7 @@ import {
   loginUser as loginRequest,
   registerUser as registerRequest,
   loginWithGoogleApi as loginWithGoogleRequest,
+  completeProfileApi as completeProfileRequest,
   logoutUser as clearSession,
   getStoredToken,
   getStoredUser,
@@ -64,6 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
+  const completeProfile: AuthContextValue['completeProfile'] = async (
+    payload,
+  ) => {
+    const data = await completeProfileRequest(payload);
+    setSession({ user: data.user, role: data.user.role });
+    return data;
+  };
+
   const logout = () => {
     clearSession();
     setSession({ user: null, role: null });
@@ -83,9 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: session.role,
     isAuthenticated: !!session.user,
     isAdmin: session.role === 'admin',
+    // `=== true` rather than truthy: a stored user object from before this
+    // field existed has no such property, and that must read as incomplete
+    // rather than silently pass the gate.
+    isProfileComplete: session.user?.profileComplete === true,
     login,
     register,
     loginWithGoogle,
+    completeProfile,
     logout,
     updateUser,
   };

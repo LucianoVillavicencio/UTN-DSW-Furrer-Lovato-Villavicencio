@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import Login from '../pages/Login/Login';
 import Register from '../pages/Register/Register';
+import CompleteProfile from '../pages/CompleteProfile/CompleteProfile';
 import Home from '../pages/Home/Home';
 import Classes from '../pages/Classes/Classes';
 import About from '../pages/About/About';
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: '/register',
         element: <Register />,
+      },
+      {
+        path: '/complete-profile',
+        element: <CompleteProfile />,
       },
       {
         path: '/class',
