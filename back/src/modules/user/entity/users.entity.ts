@@ -1,12 +1,23 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { Role } from '../../../common/enum/role.enum';
 
 @Entity('users')
 export class Users {
-  @PrimaryColumn({ type: 'int' })
-  dni!: number;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-  @Column({ type: String, nullable: false, length: 100 })
+  // No longer the primary key, and no longer invented for Google accounts:
+  // null until the member types it into the completion screen. The unique
+  // index tolerates any number of NULLs in MySQL, so "unique when present"
+  // needs no application-level workaround — but the service still checks for a
+  // duplicate first, so the member sees a Spanish 409 and not a driver error.
+  @Column({ type: 'int', nullable: true, unique: true })
+  dni?: number | null;
+
+  // Unique index added along with this change: email is the login identifier
+  // and uniqueness was previously enforced only by a service-layer lookup,
+  // which is a race between two concurrent registrations.
+  @Column({ type: String, nullable: false, length: 100, unique: true })
   email!: string;
 
   @Column({ type: String, nullable: false, length: 100 })

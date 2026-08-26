@@ -24,7 +24,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const userByDni = await this.userService.findUser(registerDto.dni);
+    const userByDni = await this.userService.findUserByDni(registerDto.dni);
     if (userByDni) {
       throw new ConflictException(
         `El usuario con el DNI: ${registerDto.dni} ya existe.`,

@@ -66,7 +66,7 @@ describe('subscriptionService', () => {
     it('does not cancel the current plan when a self-service change is requested', async () => {
       const currentActive = {
         id: 1,
-        userDni: 30111222,
+        userId: 30111222,
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
@@ -85,7 +85,7 @@ describe('subscriptionService', () => {
     it('still cancels the current plan immediately for an admin-assigned change', async () => {
       const currentActive = {
         id: 1,
-        userDni: 30111222,
+        userId: 30111222,
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
@@ -101,7 +101,7 @@ describe('subscriptionService', () => {
     it('refuses a second change to a plan already pending payment', async () => {
       const pendingSamePlan = {
         id: 4,
-        userDni: 30111222,
+        userId: 30111222,
         planId: 9,
         state: SubscriptionState.PENDING,
       };
@@ -119,7 +119,7 @@ describe('subscriptionService', () => {
     it('does not cancel the current plan when the change is refused', async () => {
       const currentActive = {
         id: 1,
-        userDni: 30111222,
+        userId: 30111222,
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
@@ -127,7 +127,7 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(currentActive)
         .mockResolvedValueOnce({
           id: 4,
-          userDni: 30111222,
+          userId: 30111222,
           planId: 9,
           state: SubscriptionState.PENDING,
         });
@@ -165,12 +165,12 @@ describe('subscriptionService', () => {
     it('cancels the previously active subscription when activating a new one', async () => {
       const target = {
         id: 2,
-        userDni: 30111222,
+        userId: 30111222,
         state: SubscriptionState.PENDING,
       };
       const previousActive = {
         id: 1,
-        userDni: 30111222,
+        userId: 30111222,
         state: SubscriptionState.ACTIVE,
       };
       repository.findOne
@@ -186,7 +186,7 @@ describe('subscriptionService', () => {
     it("recomputes the period from today, not the row's stale dates", async () => {
       const stale = {
         id: 7,
-        userDni: 30111222,
+        userId: 30111222,
         planId: 1,
         state: SubscriptionState.PENDING,
         startDate: '2025-01-10',

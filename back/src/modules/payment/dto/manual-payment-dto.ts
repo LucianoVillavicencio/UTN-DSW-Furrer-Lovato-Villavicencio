@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 
 // In-person payment recorded by an admin. subscriptionId is what identifies
-// WHO is being charged — a userDni is never accepted here, so there is no way
+// WHO is being charged — a user id is never accepted here, so there is no way
 // to record a payment "on behalf of" someone without going through their real
 // subscription.
 export class ManualPaymentDto {

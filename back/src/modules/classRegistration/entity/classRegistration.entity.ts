@@ -14,10 +14,10 @@ export class ClassRegistration {
   id!: number;
 
   @Column({ type: Number, nullable: false })
-  userDni!: number;
+  userId!: number;
 
   @ManyToOne(() => Users, { eager: true, nullable: false })
-  @JoinColumn({ name: 'userDni' })
+  @JoinColumn({ name: 'userId' })
   user!: Users;
 
   @Column({ type: Number, nullable: false })

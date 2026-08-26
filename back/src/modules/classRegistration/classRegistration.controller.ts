@@ -22,9 +22,9 @@ import type { UserActiveInterface } from '../../common/interfaces/user-active.in
 import { Role } from '../../common/enum/role.enum';
 
 // Admin-only except the four self-service routes below. This controller used to
-// have no guard at all: anyone could enroll anybody by putting a DNI in the
-// body, and GET / returned every member's registrations along with their name,
-// email and phone.
+// have no guard at all: anyone could enroll anybody by putting a user id in
+// the body, and GET / returned every member's registrations along with their
+// name, email and phone.
 @Controller('api/v1/classRegistration')
 @ApiTags('Class registration')
 @Auth(Role.ADMIN)
@@ -72,27 +72,27 @@ export class ClassRegistrationController {
 
   // What a member holds, viewed by an admin for the change-in-person flow.
   // No extra @Auth: the controller-level guard already restricts this to ADMIN.
-  @Get('admin/:dni')
-  getMemberEnrollments(@Param('dni', ParseIntPipe) dni: number) {
-    return this.classRegistrationService.findMyEnrollments(dni);
+  @Get('admin/:id')
+  getMemberEnrollments(@Param('id', ParseIntPipe) id: number) {
+    return this.classRegistrationService.findMyEnrollments(id);
   }
 
   // Changes (or, for a member with none yet, creates) a member's class from
   // the admin panel, ignoring the monthly change cap.
-  @Put('admin/:dni')
+  @Put('admin/:id')
   changeMemberEnrollment(
-    @Param('dni', ParseIntPipe) dni: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: ChangeEnrollmentDto,
   ) {
-    return this.classRegistrationService.adminSetEnrollment(dni, dto);
+    return this.classRegistrationService.adminSetEnrollment(id, dto);
   }
 
-  @Delete('admin/:dni/:group')
+  @Delete('admin/:id/:group')
   cancelMemberEnrollment(
-    @Param('dni', ParseIntPipe) dni: number,
+    @Param('id', ParseIntPipe) id: number,
     @Param('group') group: string,
   ) {
-    return this.classRegistrationService.cancelEnrollment(dni, group);
+    return this.classRegistrationService.cancelEnrollment(id, group);
   }
 
   @Post()

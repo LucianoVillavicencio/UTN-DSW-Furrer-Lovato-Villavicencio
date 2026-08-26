@@ -57,6 +57,7 @@ describe('AuthService.login', () => {
 
   it('rejects a Google-only account with the generic message', async () => {
     findUserByEmailWithPassword.mockResolvedValue({
+      id: 101,
       dni: 1,
       email: 'google-user@gmail.com',
       name: 'Google',
@@ -71,6 +72,7 @@ describe('AuthService.login', () => {
 
   it('rejects a front-desk account with no password with the generic message', async () => {
     findUserByEmailWithPassword.mockResolvedValue({
+      id: 102,
       dni: 2,
       email: 'front-desk@gmail.com',
       name: 'Front Desk',
@@ -85,6 +87,7 @@ describe('AuthService.login', () => {
 
   it('rejects a soft-deleted account with the generic message', async () => {
     findUserByEmailWithPassword.mockResolvedValue({
+      id: 103,
       dni: 3,
       email: 'gone@gmail.com',
       name: 'Gone',
@@ -99,6 +102,7 @@ describe('AuthService.login', () => {
 
   it('rejects a wrong password on a real account with the generic message', async () => {
     findUserByEmailWithPassword.mockResolvedValue({
+      id: 104,
       dni: 4,
       email: 'rosa@gmail.com',
       name: 'Rosa',
@@ -114,6 +118,7 @@ describe('AuthService.login', () => {
 
   it('does not throw and returns a token for a correct password', async () => {
     findUserByEmailWithPassword.mockResolvedValue({
+      id: 105,
       dni: 5,
       email: 'ok@gmail.com',
       name: 'Ok',

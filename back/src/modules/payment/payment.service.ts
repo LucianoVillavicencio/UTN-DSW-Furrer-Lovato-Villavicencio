@@ -22,7 +22,7 @@ export class PaymentService {
 
   // In-person payment recorded by an admin (see specs.md §3.5). Still the
   // only way a payment gets written until Mercado Pago exists.
-  async createManualPayment(dto: ManualPaymentDto, adminDni: number) {
+  async createManualPayment(dto: ManualPaymentDto, adminId: number) {
     const subscription = await this.subscriptionService.findSubscription(
       dto.subscriptionId,
     );
@@ -49,26 +49,26 @@ export class PaymentService {
       payMethod: dto.payMethod,
       date: new Date(),
       state: PaymentState.COMPLETED,
-      registeredByDni: adminDni,
+      registeredById: adminId,
       deleted: false,
     });
     return this.paymentRepository.save(newPayment);
   }
 
   // Payment history of the authenticated user, through their own
-  // subscriptions. userDni comes from the JWT — never accept one as a
+  // subscriptions. userId comes from the JWT — never accept one as a
   // parameter here or anyone could read another person's payment history.
-  async findMineForUser(userDni: number) {
-    return this.findByUser(userDni);
+  async findMineForUser(userId: number) {
+    return this.findByUser(userId);
   }
 
   // Payment history of one specific user (admin Users panel).
-  async findByUser(userDni: number) {
+  async findByUser(userId: number) {
     return this.paymentRepository
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.subscription', 'subscription')
       .leftJoinAndSelect('subscription.plan', 'plan')
-      .where('subscription.userDni = :userDni', { userDni })
+      .where('subscription.userId = :userId', { userId })
       .andWhere('payment.deleted = false')
       .orderBy('payment.date', 'DESC')
       .getMany();

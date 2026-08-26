@@ -41,7 +41,7 @@ export class UserService {
       throw new BadRequestException(ruleError);
     }
 
-    const existingByDni = await this.findUser(dto.dni);
+    const existingByDni = await this.findUserByDni(dto.dni);
     if (existingByDni) {
       throw new ConflictException(
         `El usuario con el DNI: ${dto.dni} ya existe.`,
@@ -68,12 +68,18 @@ export class UserService {
       role: Role.USER,
       deleted: false,
     });
-    await this.usersRepository.save(newUser);
+    const saved = await this.usersRepository.save(newUser);
 
-    return this.findUser(dto.dni);
+    return this.findUser(saved.id);
   }
 
-  async findUser(dni: number) {
+  async findUser(id: number) {
+    return await this.usersRepository.findOne({ where: { id } });
+  }
+
+  // Used by the duplicate checks, and by nothing else. Addressing a member for
+  // read or write always goes through findUser(id).
+  async findUserByDni(dni: number) {
     return await this.usersRepository.findOne({ where: { dni } });
   }
 
@@ -85,6 +91,7 @@ export class UserService {
     return await this.usersRepository.findOne({
       where: { email },
       select: {
+        id: true,
         dni: true,
         email: true,
         name: true,
@@ -105,10 +112,13 @@ export class UserService {
     return await this.usersRepository.find({ where: { deleted: false } });
   }
 
-  // Admin search: dni and email match exactly, name/surname match with a
-  // partial LIKE. Every filter is independent, so searching by just one is
-  // valid; with none of them this behaves like findAll().
+  // Admin search: id and dni and email match exactly, name/surname match with
+  // a partial LIKE. Every filter is independent, so searching by just one is
+  // valid; with none of them this behaves like findAll(). Searching by dni
+  // survives this change deliberately — it is how the front desk finds a
+  // member by the number on their document.
   async searchUsers(query: {
+    id?: number;
     dni?: number;
     email?: string;
     name?: string;
@@ -120,6 +130,7 @@ export class UserService {
       // Repository.find/findOne, so the columns are listed by hand rather than
       // risk returning the password hash.
       .select([
+        'user.id',
         'user.dni',
         'user.email',
         'user.name',
@@ -132,6 +143,9 @@ export class UserService {
       ])
       .where('user.deleted = false');
 
+    if (query.id) {
+      qb.andWhere('user.id = :id', { id: query.id });
+    }
     if (query.dni) {
       qb.andWhere('user.dni = :dni', { dni: query.dni });
     }
@@ -156,13 +170,14 @@ export class UserService {
     return await this.usersRepository.find({ where: { deleted: true } });
   }
 
-  // Self-service profile update. dni always comes from the JWT (see
+  // Self-service profile update. id always comes from the JWT (see
   // UserController#updateMyProfile), never from the body, so a user cannot edit
   // another user's record even by trying.
-  async updateProfile(dni: number, dto: UpdateProfileDto) {
+  async updateProfile(id: number, dto: UpdateProfileDto) {
     const user = await this.usersRepository.findOne({
-      where: { dni },
+      where: { id },
       select: {
+        id: true,
         dni: true,
         email: true,
         name: true,
@@ -177,7 +192,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException(`El usuario con DNI: ${dni} no existe.`);
+      throw new NotFoundException(`El usuario con ID: ${id} no existe.`);
     }
 
     if (dto.email && dto.email !== user.email) {
@@ -218,13 +233,14 @@ export class UserService {
   // Admin-side edit (Users panel). Unlike the updateUsers/UsersDto pair that
   // PUT /user used before that route was deleted, it never touches password,
   // so there is no risk of storing an unhashed value.
-  async adminUpdateUser(dni: number, dto: AdminUpdateUserDto) {
+  async adminUpdateUser(id: number, dto: AdminUpdateUserDto) {
     // Explicit select including password, same as updateProfile: without it,
     // save() on an entity that is missing the column can overwrite it with
     // null.
     const user = await this.usersRepository.findOne({
-      where: { dni },
+      where: { id },
       select: {
+        id: true,
         dni: true,
         email: true,
         name: true,
@@ -238,7 +254,7 @@ export class UserService {
       },
     });
     if (!user) {
-      throw new NotFoundException(`El usuario con DNI: ${dni} no existe.`);
+      throw new NotFoundException(`El usuario con ID: ${id} no existe.`);
     }
 
     if (dto.email && dto.email !== user.email) {
@@ -251,6 +267,18 @@ export class UserService {
       user.email = dto.email;
     }
 
+    // The admin correction path for a write-once field. A member cannot do
+    // this to themselves: UpdateProfileDto carries no dni.
+    if (dto.dni != null && dto.dni !== user.dni) {
+      const dniTaken = await this.findUserByDni(dto.dni);
+      if (dniTaken) {
+        throw new ConflictException(
+          `El DNI ${dto.dni} ya está en uso por otra cuenta.`,
+        );
+      }
+      user.dni = dto.dni;
+    }
+
     if (dto.name) user.name = dto.name;
     if (dto.surname) user.surname = dto.surname;
     if (dto.phone) user.phone = dto.phone;
@@ -261,11 +289,11 @@ export class UserService {
     return safeUser;
   }
 
-  async deleteUsers(dni: number) {
-    const userExists = await this.findUser(dni);
+  async deleteUsers(id: number) {
+    const userExists = await this.findUser(id);
 
     if (!userExists) {
-      throw new ConflictException(`El usuario con DNI: ${dni} no existe.`);
+      throw new ConflictException(`El usuario con ID: ${id} no existe.`);
     }
 
     if (userExists.deleted) {
@@ -273,7 +301,7 @@ export class UserService {
     }
 
     const rows: UpdateResult = await this.usersRepository.update(
-      { dni },
+      { id },
       { deleted: true },
     );
 
@@ -284,11 +312,11 @@ export class UserService {
     return { message: `Eliminado correctamente` };
   }
 
-  async restoreUsers(dni: number) {
-    const userExists = await this.findUser(dni);
+  async restoreUsers(id: number) {
+    const userExists = await this.findUser(id);
 
     if (!userExists) {
-      throw new ConflictException(`El usuario con DNI: ${dni} no existe.`);
+      throw new ConflictException(`El usuario con ID: ${id} no existe.`);
     }
 
     if (!userExists.deleted) {
@@ -296,7 +324,7 @@ export class UserService {
     }
 
     const rows: UpdateResult = await this.usersRepository.update(
-      { dni },
+      { id },
       { deleted: false },
     );
 
@@ -344,9 +372,11 @@ export class UserService {
       return existing;
     }
 
-    const dni = await this.generateUniqueDni();
+    // No dni and no phone: Google does not tell us either. The account is
+    // "incomplete" until the member fills them in through
+    // POST /auth/complete-profile, and CompleteProfileGuard keeps it from
+    // being used for anything else until then.
     const newUser = this.usersRepository.create({
-      dni,
       email: googleProfile.email,
       name: googleProfile.name,
       surname: googleProfile.surname,
@@ -354,18 +384,11 @@ export class UserService {
       googleId: googleProfile.googleId,
       role: Role.USER,
       password: null,
+      dni: null,
       phone: null,
       deleted: false,
     });
 
     return this.usersRepository.save(newUser);
-  }
-
-  private async generateUniqueDni(): Promise<number> {
-    let dni: number;
-    do {
-      dni = Math.floor(10000000 + Math.random() * 89999999);
-    } while (await this.findUser(dni));
-    return dni;
   }
 }
