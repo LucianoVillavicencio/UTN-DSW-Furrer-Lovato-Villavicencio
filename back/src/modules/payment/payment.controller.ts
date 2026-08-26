@@ -31,7 +31,7 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   // Self-service: payment history of the authenticated user (see specs.md
-  // §2.2/§3.5). userDni comes from the JWT, never from a param.
+  // §2.2/§3.5). userId comes from the JWT, never from a param.
   @Get('me')
   @Auth(Role.USER)
   getMyPayments(@ActiveUser() user: UserActiveInterface) {
@@ -64,9 +64,9 @@ export class PaymentController {
 
   // Payment history of one specific user (Users panel). Declared before
   // '/:id' for the same reason as 'search'/'by-user' in the other modules.
-  @Get('by-user/:dni')
-  getPaymentsByUser(@Param('dni', ParseIntPipe) dni: number) {
-    return this.paymentService.findByUser(dni);
+  @Get('by-user/:id')
+  getPaymentsByUser(@Param('id', ParseIntPipe) id: number) {
+    return this.paymentService.findByUser(id);
   }
 
   @Get('/:id')

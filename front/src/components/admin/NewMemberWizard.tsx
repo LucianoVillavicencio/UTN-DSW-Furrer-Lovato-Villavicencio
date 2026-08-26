@@ -67,7 +67,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
     if (!createdUser) return;
     setHasSubscription(true);
     try {
-      const subs = await getSubscriptionsByUser(createdUser.dni);
+      const subs = await getSubscriptionsByUser(createdUser.id);
       const active = subs.find((s) => s.state?.toLowerCase() === 'activa');
       setPlanMaxClasses(active?.plan?.maxClasses ?? null);
     } catch (err) {
@@ -121,7 +121,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
         {step === 'plan' && createdUser && (
           <>
             <AssignPlanForm
-              userDni={createdUser.dni}
+              userId={createdUser.id}
               onAssigned={handlePlanAssigned}
             />
             <div className="flex justify-end">
@@ -139,7 +139,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
         {step === 'clase' && createdUser && (
           <>
             <MemberClassStep
-              userDni={createdUser.dni}
+              userId={createdUser.id}
               maxClasses={planMaxClasses}
               onAssigned={() => setStep('cobro')}
             />

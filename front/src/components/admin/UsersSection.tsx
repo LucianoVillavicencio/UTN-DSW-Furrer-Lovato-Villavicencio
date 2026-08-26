@@ -25,7 +25,7 @@ const UsersSection = () => {
   const [isCreating, setIsCreating] = useState(false);
   // Bumped when the wizard closes to force UserDetailPanel to remount: the
   // wizard writes the plan, class and payment through their own endpoints,
-  // which the panel's dni-keyed effects have no reason to re-fetch on their own.
+  // which the panel's id-keyed effects have no reason to re-fetch on their own.
   const [panelNonce, setPanelNonce] = useState(0);
 
   const handleSearch = async () => {
@@ -51,7 +51,7 @@ const UsersSection = () => {
   };
 
   const columns: DataTableColumn<User>[] = [
-    { header: 'DNI', cell: (u) => u.dni },
+    { header: 'DNI', cell: (u) => u.dni ?? 'Sin DNI' },
     { header: 'Nombre', cell: (u) => `${u.name} ${u.surname}` },
     { header: 'Email', cell: (u) => u.email },
     {
@@ -140,7 +140,7 @@ const UsersSection = () => {
         <DataTable
           columns={columns}
           rows={results}
-          rowKey={(u) => u.dni}
+          rowKey={(u) => u.id}
           isLoading={isSearching}
           emptyMessage="No se encontraron usuarios con ese criterio."
           onRowClick={setSelectedUser}
@@ -149,9 +149,9 @@ const UsersSection = () => {
 
       {selectedUser && currentAdmin && (
         <UserDetailPanel
-          key={`${selectedUser.dni}-${panelNonce}`}
+          key={`${selectedUser.id}-${panelNonce}`}
           user={selectedUser}
-          currentAdminDni={currentAdmin.dni}
+          currentAdminId={currentAdmin.id}
           onClose={() => setSelectedUser(null)}
           onChanged={refreshSearch}
         />

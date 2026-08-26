@@ -31,10 +31,10 @@ export class Payment {
   @Column({ type: String, nullable: false, default: 'completado' })
   state!: string;
 
-  // DNI of the admin who recorded the in-person payment. Null for payments
+  // Id of the admin who recorded the in-person payment. Null for payments
   // that will come from Mercado Pago later on, since nobody records those.
   @Column({ type: Number, nullable: true })
-  registeredByDni?: number | null;
+  registeredById?: number | null;
 
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;

@@ -16,7 +16,7 @@ export class SubscriptionDto {
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  userDni!: number;
+  userId!: number;
 
   @IsNumber()
   @IsPositive()

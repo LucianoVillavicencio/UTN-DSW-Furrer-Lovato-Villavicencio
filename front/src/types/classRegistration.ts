@@ -30,7 +30,7 @@ export interface MyEnrollments {
 
 export interface ClassRegistration {
   id?: number;
-  userDni: number;
+  userId: number;
   user?: User;
   classSessionId?: number;
   classSession?: ClassSession;

@@ -1,6 +1,7 @@
 import {
   findAdminCreateUserError,
   isPlaceholderEmail,
+  isProfileComplete,
   placeholderEmailFor,
 } from './user.rules';
 
@@ -58,5 +59,34 @@ describe('findAdminCreateUserError', () => {
     expect(
       findAdminCreateUserError({ email: '   ', password: 'unaClave1' }),
     ).toBe('Para definir una contraseña el socio necesita un email.');
+  });
+});
+
+// A member is usable only once we hold the two things Google never gives us.
+// Derived on read rather than stored, so an admin filling in a missing phone
+// through the Users panel cannot leave a stale flag behind.
+describe('isProfileComplete', () => {
+  it('accepts a member with both dni and phone', () => {
+    expect(isProfileComplete({ dni: 40123456, phone: '3411234567' })).toBe(true);
+  });
+
+  it('rejects a member with no dni', () => {
+    expect(isProfileComplete({ dni: null, phone: '3411234567' })).toBe(false);
+    expect(isProfileComplete({ phone: '3411234567' })).toBe(false);
+  });
+
+  it('rejects a member with no phone', () => {
+    expect(isProfileComplete({ dni: 40123456, phone: null })).toBe(false);
+    expect(isProfileComplete({ dni: 40123456 })).toBe(false);
+  });
+
+  it('rejects a phone that is only whitespace', () => {
+    expect(isProfileComplete({ dni: 40123456, phone: '   ' })).toBe(false);
+  });
+
+  it('does not treat dni 0 as missing', () => {
+    // `!user.dni` would call 0 absent. It is not a valid DNI, but rejecting it
+    // is the DTO's job, not this function's — conflating the two hides bugs.
+    expect(isProfileComplete({ dni: 0, phone: '3411234567' })).toBe(true);
   });
 });

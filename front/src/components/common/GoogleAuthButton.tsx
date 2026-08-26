@@ -135,9 +135,13 @@ const GoogleAuthButton = ({
     try {
       // loginWithGoogle (AuthContext) persists token+user in localStorage and
       // updates the global state, so the Navbar reacts without a reload.
-      await loginWithGoogle(credentialResponse.credential);
+      const data = await loginWithGoogle(credentialResponse.credential);
 
-      if (onSuccess) {
+      // A brand-new Google account has no dni and no phone. Going home first
+      // and bouncing off ProtectedRoute would flash a page they cannot use.
+      if (!data.user.profileComplete) {
+        navigate('/complete-profile', { replace: true });
+      } else if (onSuccess) {
         onSuccess();
       } else {
         navigate('/');

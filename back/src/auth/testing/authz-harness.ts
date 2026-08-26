@@ -47,10 +47,16 @@ export async function buildAuthzApp(
 }
 
 /**
- * A signed token for one of the two actors. `sub` carries the member's dni, so
+ * A signed token for one of the two actors. `sub` carries the member's id, so
  * a test can ask for a token belonging to somebody else's account.
+ * `profileComplete` defaults to true, because almost every row of the
+ * authorization matrix is about roles rather than about the completion gate.
  */
-export function tokenFor(actor: 'member' | 'admin', sub = 40000001): string {
+export function tokenFor(
+  actor: 'member' | 'admin',
+  sub = 40000001,
+  profileComplete = true,
+): string {
   if (!jwtService) {
     throw new Error('tokenFor called before buildAuthzApp');
   }
@@ -59,6 +65,7 @@ export function tokenFor(actor: 'member' | 'admin', sub = 40000001): string {
     sub,
     email: actor === 'admin' ? 'admin@flg.test' : 'member@flg.test',
     role: actor === 'admin' ? Role.ADMIN : Role.USER,
+    profileComplete,
   };
 
   return jwtService.sign(payload);

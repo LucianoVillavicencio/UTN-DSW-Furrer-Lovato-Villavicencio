@@ -110,10 +110,10 @@ export class ClassRegistrationService implements OnModuleInit {
 
   // ---------------------------------------------------------------- members
 
-  private async activeRegistrationsOf(userDni: number) {
+  private async activeRegistrationsOf(userId: number) {
     return this.classRegistrationRepository.find({
       where: {
-        userDni,
+        userId,
         state: ClassRegistrationState.CONFIRMED,
         deleted: false,
       },
@@ -152,12 +152,12 @@ export class ClassRegistrationService implements OnModuleInit {
 
   // Changes already spent this calendar month, counted in groups: one switch
   // books several turnos but costs one change.
-  private async changesUsedThisMonth(userDni: number) {
+  private async changesUsedThisMonth(userId: number) {
     const now = new Date();
     const rows = await this.classRegistrationRepository
       .createQueryBuilder('registration')
       .select('DISTINCT registration.enrollmentGroup', 'enrollmentGroup')
-      .where('registration.userDni = :userDni', { userDni })
+      .where('registration.userId = :userId', { userId })
       .andWhere('registration.isChange = true')
       .andWhere('registration.date >= :from', { from: startOfMonth(now) })
       .andWhere('registration.date < :to', { to: startOfNextMonth(now) })
@@ -165,11 +165,11 @@ export class ClassRegistrationService implements OnModuleInit {
     return rows.length;
   }
 
-  private async hasCancelledThisMonth(userDni: number) {
+  private async hasCancelledThisMonth(userId: number) {
     const now = new Date();
     const cancelled = await this.classRegistrationRepository
       .createQueryBuilder('registration')
-      .where('registration.userDni = :userDni', { userDni })
+      .where('registration.userId = :userId', { userId })
       .andWhere('registration.cancelledAt IS NOT NULL')
       .andWhere('registration.cancelledAt >= :from', {
         from: startOfMonth(now),
@@ -183,8 +183,8 @@ export class ClassRegistrationService implements OnModuleInit {
    * Everything the classes page and the dashboard need about one member: the
    * classes they hold, what their plan allows, and how many changes are left.
    */
-  async findMyEnrollments(userDni: number) {
-    const subscription = await this.subscriptions.findActiveForUser(userDni);
+  async findMyEnrollments(userId: number) {
+    const subscription = await this.subscriptions.findActiveForUser(userId);
     // `??` is wrong for the allowance: null is a real value there (unlimited),
     // so only a missing plan or subscription falls back to "no classes".
     const maxClasses =
@@ -194,9 +194,9 @@ export class ClassRegistrationService implements OnModuleInit {
     const isLimited = maxClasses !== null;
 
     const enrollments = this.groupRegistrations(
-      await this.activeRegistrationsOf(userDni),
+      await this.activeRegistrationsOf(userId),
     );
-    const changesUsed = await this.changesUsedThisMonth(userDni);
+    const changesUsed = await this.changesUsedThisMonth(userId);
     const resets = startOfNextMonth(new Date());
 
     return {
@@ -217,14 +217,14 @@ export class ClassRegistrationService implements OnModuleInit {
    * the member keeps the same spot week after week.
    */
   async enroll(
-    userDni: number,
+    userId: number,
     dto: EnrollClassDto,
     replacing?: string,
     bypassChangeLimit = false,
   ) {
     const startTime = toTimeOfDay(dto.startTime);
 
-    const subscription = await this.subscriptions.findActiveForUser(userDni);
+    const subscription = await this.subscriptions.findActiveForUser(userId);
     if (!subscription) {
       throw new ForbiddenException(
         'Necesitás un plan activo para inscribirte a una clase.',
@@ -253,7 +253,7 @@ export class ClassRegistrationService implements OnModuleInit {
     }
 
     const active = this.groupRegistrations(
-      await this.activeRegistrationsOf(userDni),
+      await this.activeRegistrationsOf(userId),
     );
 
     if (
@@ -279,10 +279,10 @@ export class ClassRegistrationService implements OnModuleInit {
     const isChange =
       remaining.length > 0 ||
       !!replacing ||
-      (await this.hasCancelledThisMonth(userDni));
+      (await this.hasCancelledThisMonth(userId));
 
     if (isChange && maxClasses !== null && !bypassChangeLimit) {
-      const used = await this.changesUsedThisMonth(userDni);
+      const used = await this.changesUsedThisMonth(userId);
       if (used >= MONTHLY_CLASS_CHANGES) {
         const resets = startOfNextMonth(new Date());
         throw new ForbiddenException(
@@ -305,7 +305,7 @@ export class ClassRegistrationService implements OnModuleInit {
     for (const slot of slots) {
       await this.classRegistrationRepository.save(
         this.classRegistrationRepository.create({
-          userDni,
+          userId,
           classSessionId: slot.id,
           enrollmentGroup: group,
           isChange,
@@ -317,7 +317,7 @@ export class ClassRegistrationService implements OnModuleInit {
       await this.classSessionService.adjustAvailableSpots(slot.id, -1);
     }
 
-    return this.findMyEnrollments(userDni);
+    return this.findMyEnrollments(userId);
   }
 
   /**
@@ -326,12 +326,12 @@ export class ClassRegistrationService implements OnModuleInit {
    * with the class they already had instead of with none.
    */
   async changeEnrollment(
-    userDni: number,
+    userId: number,
     dto: ChangeEnrollmentDto,
     bypassChangeLimit = false,
   ) {
     const active = this.groupRegistrations(
-      await this.activeRegistrationsOf(userDni),
+      await this.activeRegistrationsOf(userId),
     );
     if (active.length === 0) {
       throw new ConflictException(
@@ -353,8 +353,8 @@ export class ClassRegistrationService implements OnModuleInit {
       );
     }
 
-    await this.enroll(userDni, dto, target.group, bypassChangeLimit);
-    return await this.cancelEnrollment(userDni, target.group);
+    await this.enroll(userId, dto, target.group, bypassChangeLimit);
+    return await this.cancelEnrollment(userId, target.group);
   }
 
   /**
@@ -363,23 +363,23 @@ export class ClassRegistrationService implements OnModuleInit {
    * to be movable at the front desk. The plan's class-count allowance still
    * applies — this bypasses the change limit, not the plan itself.
    */
-  async adminSetEnrollment(userDni: number, dto: ChangeEnrollmentDto) {
+  async adminSetEnrollment(userId: number, dto: ChangeEnrollmentDto) {
     const active = this.groupRegistrations(
-      await this.activeRegistrationsOf(userDni),
+      await this.activeRegistrationsOf(userId),
     );
     if (active.length === 0) {
-      return await this.enroll(userDni, dto, undefined, true);
+      return await this.enroll(userId, dto, undefined, true);
     }
-    return await this.changeEnrollment(userDni, dto, true);
+    return await this.changeEnrollment(userId, dto, true);
   }
 
   /**
    * Releases a whole enrollment: every weekly turno it booked frees a spot.
    */
-  async cancelEnrollment(userDni: number, group: string) {
+  async cancelEnrollment(userId: number, group: string) {
     const rows = await this.classRegistrationRepository.find({
       where: {
-        userDni,
+        userId,
         enrollmentGroup: group,
         state: ClassRegistrationState.CONFIRMED,
         deleted: false,
@@ -403,7 +403,7 @@ export class ClassRegistrationService implements OnModuleInit {
       );
     }
 
-    return this.findMyEnrollments(userDni);
+    return this.findMyEnrollments(userId);
   }
 
   // ------------------------------------------------------------------ admin
@@ -421,7 +421,7 @@ export class ClassRegistrationService implements OnModuleInit {
     }
 
     const activeSubscription = await this.subscriptions.findActiveForUser(
-      classRegistration.userDni,
+      classRegistration.userId,
     );
     if (!activeSubscription) {
       throw new ForbiddenException(
@@ -431,7 +431,7 @@ export class ClassRegistrationService implements OnModuleInit {
 
     const alreadyRegistered = await this.classRegistrationRepository.findOne({
       where: {
-        userDni: classRegistration.userDni,
+        userId: classRegistration.userId,
         classSessionId: classRegistration.classSessionId,
         state: ClassRegistrationState.CONFIRMED,
         deleted: false,

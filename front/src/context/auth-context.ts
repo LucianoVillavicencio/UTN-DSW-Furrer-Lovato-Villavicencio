@@ -1,5 +1,10 @@
 import { createContext } from 'react';
-import type { AuthResponse, RegisterUserData, Role } from '../types/user';
+import type {
+  AuthResponse,
+  CompleteProfilePayload,
+  RegisterUserData,
+  Role,
+} from '../types/user';
 
 export type AuthUser = AuthResponse['user'];
 
@@ -8,9 +13,13 @@ export interface AuthContextValue {
   role: Role | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  // False for an account that has not yet supplied its dni and phone.
+  // ProtectedRoute redirects on it; the API refuses such an account anyway.
+  isProfileComplete: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
   register: (data: RegisterUserData) => Promise<AuthResponse>;
   loginWithGoogle: (idToken: string) => Promise<AuthResponse>;
+  completeProfile: (payload: CompleteProfilePayload) => Promise<AuthResponse>;
   logout: () => void;
   // Refreshes the in-memory and localStorage profile after a successful PATCH
   // /user/me, without logging in again — the role does not change in that flow.

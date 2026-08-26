@@ -1,7 +1,10 @@
 export type Role = 'user' | 'admin';
 
 export interface User {
-  dni: number;
+  // Sequential surrogate key. The dni was the primary key until 2026-08-26.
+  id: number;
+  // Null until the member supplies it — a Google sign-in cannot know it.
+  dni: number | null;
   email: string;
   name: string;
   surname: string;
@@ -32,7 +35,10 @@ export interface LoginCredentials {
 
 export interface AuthResponse {
   token: string;
-  user: Pick<User, 'dni' | 'email' | 'name' | 'surname' | 'phone' | 'role'>;
+  user: Pick<
+    User,
+    'id' | 'dni' | 'email' | 'name' | 'surname' | 'phone' | 'role'
+  > & { profileComplete: boolean };
 }
 
 // The signed-in profile AuthContext exposes, as carried in the JWT.
@@ -47,4 +53,11 @@ export interface UpdateProfilePayload {
   phone?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+// Body of POST /auth/complete-profile. The id never travels here: the backend
+// resolves it from the JWT. `dni` is omitted by a member who already has one.
+export interface CompleteProfilePayload {
+  dni?: number;
+  phone: string;
 }

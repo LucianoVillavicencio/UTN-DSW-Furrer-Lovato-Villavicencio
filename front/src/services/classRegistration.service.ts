@@ -86,16 +86,16 @@ export const cancelEnrollment = async (
 // What a member holds, viewed from the admin panel — same shape as
 // getMyEnrollments, but for a member picked by an admin, not the caller.
 export const getMemberEnrollments = async (
-  dni: number,
+  userId: number,
 ): Promise<MyEnrollments> => {
   try {
     const { data } = await api.get<MyEnrollments>(
-      `/classRegistration/admin/${dni}`,
+      `/classRegistration/admin/${userId}`,
     );
     return data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, `Error al obtener las clases de ${dni}`),
+      getApiErrorMessage(error, `Error al obtener las clases de ${userId}`),
       { cause: error },
     );
   }
@@ -105,37 +105,37 @@ export const getMemberEnrollments = async (
 // from the admin panel. Ignores the monthly change cap: a member who used
 // both changes still has to be movable in person at the front desk.
 export const changeMemberClass = async (
-  dni: number,
+  userId: number,
   classId: number,
   startTime: string,
   group?: string,
 ): Promise<MyEnrollments> => {
   try {
     const { data } = await api.put<MyEnrollments>(
-      `/classRegistration/admin/${dni}`,
+      `/classRegistration/admin/${userId}`,
       { classId, startTime, ...(group ? { group } : {}) },
     );
     return data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, `Error al cambiar la clase de ${dni}`),
+      getApiErrorMessage(error, `Error al cambiar la clase de ${userId}`),
       { cause: error },
     );
   }
 };
 
 export const cancelMemberEnrollment = async (
-  dni: number,
+  userId: number,
   group: string,
 ): Promise<MyEnrollments> => {
   try {
     const { data } = await api.delete<MyEnrollments>(
-      `/classRegistration/admin/${dni}/${group}`,
+      `/classRegistration/admin/${userId}/${group}`,
     );
     return data;
   } catch (error) {
     throw new Error(
-      getApiErrorMessage(error, `Error al cancelar la clase de ${dni}`),
+      getApiErrorMessage(error, `Error al cancelar la clase de ${userId}`),
       { cause: error },
     );
   }

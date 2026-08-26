@@ -1,4 +1,8 @@
-import type { RegisterUserData, AuthResponse } from '../types/user';
+import type {
+  RegisterUserData,
+  AuthResponse,
+  CompleteProfilePayload,
+} from '../types/user';
 import { AxiosError } from 'axios';
 import api from './api'; // tu instancia de axios con baseURL: .../api/v1
 
@@ -34,6 +38,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   if (status === 429)
     return 'Demasiadas solicitudes. Por favor, espera un momento.';
   if (status === 400) return backendMessage || 'Datos inválidos.';
+  if (status === 409) return backendMessage || 'El dato ya está en uso.';
 
   return (
     backendMessage || `Error del servidor (${status}). Inténtalo más tarde.`
@@ -113,6 +118,28 @@ export const loginWithGoogleApi = async (
         error,
         'Ocurrió un error inesperado con la autenticación de Google.',
       ),
+      { cause: error },
+    );
+  }
+};
+
+// Fills in the two fields Google never gives us. Returns a fresh { token, user }
+// whose token carries profileComplete: true — that is what releases the gate,
+// so persisting it is not optional.
+export const completeProfileApi = async (
+  payload: CompleteProfilePayload,
+): Promise<AuthResponse> => {
+  try {
+    const { data } = await api.post<AuthResponse>(
+      '/auth/complete-profile',
+      payload,
+    );
+
+    persistSession(data);
+    return data;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudieron guardar tus datos.'),
       { cause: error },
     );
   }
