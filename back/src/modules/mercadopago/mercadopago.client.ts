@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import MpSdkConfig, {
   CardToken,
   Customer,
-  MercadoPagoError,
   Order,
   Payment,
   PaymentRefund,
@@ -160,22 +159,21 @@ type SdkOrderCreateBody = Parameters<
  */
 @Injectable()
 export class MercadoPagoClient {
-  /** Built once, eagerly, guarded by `enabled` — never holds the token if disabled. */
-  private readonly sdkConfig?: MpSdkConfig;
+  /** Memoized on first `getSdkConfig()` call — never built while disabled. */
+  private sdkConfig?: MpSdkConfig;
 
-  constructor(private readonly config: MercadoPagoConfig) {
-    if (this.config.enabled && this.config.accessToken) {
-      this.sdkConfig = new MpSdkConfig({
-        accessToken: this.config.accessToken,
-      });
-    }
-  }
+  constructor(private readonly config: MercadoPagoConfig) {}
 
   private getSdkConfig(): MpSdkConfig {
-    if (!this.sdkConfig) {
+    if (!this.config.enabled || !this.config.accessToken) {
       throw new MercadoPagoUnavailableError(
         'Mercado Pago is disabled (MP_ENABLED is not "true"); no client is available.',
       );
+    }
+    if (!this.sdkConfig) {
+      this.sdkConfig = new MpSdkConfig({
+        accessToken: this.config.accessToken,
+      });
     }
     return this.sdkConfig;
   }
@@ -185,10 +183,7 @@ export class MercadoPagoClient {
     operation: string,
     err: unknown,
   ): MercadoPagoUnavailableError {
-    const detail =
-      err instanceof MercadoPagoError || err instanceof Error
-        ? err.message
-        : String(err);
+    const detail = err instanceof Error ? err.message : String(err);
     return new MercadoPagoUnavailableError(
       `Mercado Pago request failed (${operation}): ${detail}`,
     );
