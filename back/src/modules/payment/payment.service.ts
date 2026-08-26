@@ -4,13 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult } from 'typeorm';
+import { IsNull, Repository, UpdateResult } from 'typeorm';
 import { Payment } from './entity/payment.entity';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
+import { MercadoPagoPaymentDto } from './dto/mercadopago-payment-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
+import { Subscription } from '../subscription/entity/subscription.entity';
 import { UserService } from '../user/user.service';
 
 @Injectable()
@@ -34,16 +36,12 @@ export class PaymentService {
       );
     }
 
-    // The other half of the self-service gate: a plan change opens the
-    // subscription PENDING, and recording its payment is what makes it
-    // active. Done before the payment row is written so a failure here
-    // leaves no payment standing against a subscription that stayed pending.
-    // `state` is a plain string column, so the enum member is widened to its
-    // value before comparing.
-    const pendingState: string = SubscriptionState.PENDING;
-    if (subscription.state === pendingState) {
-      await this.subscriptionService.activate(subscription.id);
-    }
+    const termMonths = dto.termMonths ?? 1;
+
+    // Done before the payment row is written so a failure here leaves no
+    // payment standing against a subscription that wasn't actually promoted
+    // or extended.
+    await this.promoteOrExtendSubscription(subscription, termMonths);
 
     const newPayment = this.paymentRepository.create({
       subscriptionId: dto.subscriptionId,
@@ -52,9 +50,99 @@ export class PaymentService {
       date: new Date(),
       state: PaymentState.COMPLETED,
       registeredById: adminId,
+      termMonths,
+      monthlyPriceAtPurchase: subscription.plan.price,
       deleted: false,
     });
     return this.paymentRepository.save(newPayment);
+  }
+
+  // A payment coming from Mercado Pago (Checkout Pro webhook, Point, QR, or
+  // the renewal cron). Shares the exact same promotion/extension branch as
+  // createManualPayment — the money-in-advance rule doesn't change based on
+  // who is paying — but is idempotent on mpPaymentId, since Mercado Pago
+  // retries a notification up to eight times over four days and a retry must
+  // not write a second row or extend a membership twice.
+  async createFromMercadoPago(dto: MercadoPagoPaymentDto) {
+    const existing = await this.findByMpPaymentId(dto.mpPaymentId);
+    if (existing) {
+      return existing;
+    }
+
+    const subscription = await this.subscriptionService.findSubscription(
+      dto.subscriptionId,
+    );
+    if (!subscription || subscription.deleted) {
+      throw new NotFoundException(
+        `La suscripción con ID: ${dto.subscriptionId} no existe.`,
+      );
+    }
+
+    await this.promoteOrExtendSubscription(subscription, dto.termMonths);
+
+    const newPayment = this.paymentRepository.create({
+      subscriptionId: dto.subscriptionId,
+      mpPaymentId: dto.mpPaymentId,
+      amount: dto.amount,
+      payMethod: dto.payMethod,
+      date: new Date(),
+      state: PaymentState.COMPLETED,
+      registeredById: dto.registeredById ?? null,
+      termMonths: dto.termMonths,
+      monthlyPriceAtPurchase: subscription.plan.price,
+      deleted: false,
+    });
+    return this.paymentRepository.save(newPayment);
+  }
+
+  // The self-service gate (PENDING → ACTIVE) plus the advance-payment fix
+  // (ACTIVE → extend by the term just paid) plus the PAUSED guard (a frozen
+  // membership must be resumed, not extended here, or the member gets the
+  // same days credited twice — once here, once at unpause).
+  // `state` is a plain string column, so each enum member is widened to its
+  // value before comparing.
+  private async promoteOrExtendSubscription(
+    subscription: Subscription,
+    termMonths: number,
+  ) {
+    const pendingState: string = SubscriptionState.PENDING;
+    const activeState: string = SubscriptionState.ACTIVE;
+    const pausedState: string = SubscriptionState.PAUSED;
+
+    if (subscription.state === pendingState) {
+      await this.subscriptionService.activate(subscription.id);
+    } else if (subscription.state === activeState) {
+      await this.subscriptionService.renew(
+        subscription.id,
+        termMonths * subscription.plan.numDays,
+      );
+    } else if (subscription.state === pausedState) {
+      throw new ConflictException(
+        'Reanudá la membresía antes de registrar un pago.',
+      );
+    }
+  }
+
+  // Looked up first by createFromMercadoPago as the idempotency guarantee: a
+  // second delivery of the same MP notification must return the row already
+  // written, not create another one.
+  async findByMpPaymentId(mpPaymentId: string) {
+    return await this.paymentRepository.findOne({ where: { mpPaymentId } });
+  }
+
+  // The payment that is currently "in force" for a subscription: the most
+  // recent completed, not-yet-refunded, not-deleted one. A refund (task 19)
+  // acts on exactly this row.
+  async findCurrentTermPayment(subscriptionId: number) {
+    return await this.paymentRepository.findOne({
+      where: {
+        subscriptionId,
+        state: PaymentState.COMPLETED,
+        refundedAt: IsNull(),
+        deleted: false,
+      },
+      order: { date: 'DESC' },
+    });
   }
 
   // Payment history of the authenticated user, through their own
@@ -77,10 +165,22 @@ export class PaymentService {
   }
 
   async createPayment(paymentDto: PaymentDto) {
+    // termMonths/monthlyPriceAtPurchase are NOT NULL on the entity but this
+    // DTO predates them (it also backs the generic admin CRUD update, where
+    // they're rarely relevant), so a value here is not guaranteed. Fall back
+    // to "one month, at the amount actually charged" rather than letting the
+    // write fail — this path is not the primary place those columns are
+    // meant to be accurate; createManualPayment and createFromMercadoPago are.
+    const termMonths = paymentDto.termMonths ?? 1;
+    const monthlyPriceAtPurchase =
+      paymentDto.monthlyPriceAtPurchase ?? paymentDto.amount / termMonths;
+
     const newPayment = this.paymentRepository.create({
       ...paymentDto,
       date: new Date(paymentDto.date),
       state: paymentDto.state ?? PaymentState.COMPLETED,
+      termMonths,
+      monthlyPriceAtPurchase,
       deleted: paymentDto.deleted ?? false,
     });
     return await this.paymentRepository.save(newPayment);

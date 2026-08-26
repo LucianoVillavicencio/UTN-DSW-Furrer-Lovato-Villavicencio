@@ -2,6 +2,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
@@ -24,4 +25,12 @@ export class ManualPaymentDto {
   @IsString()
   @IsIn(['efectivo', 'debito', 'credito', 'transferencia'])
   payMethod!: string;
+
+  // How many months this in-person payment covers. Only meaningful for an
+  // advance payment against an already-ACTIVE subscription; defaults to 1
+  // when omitted.
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  termMonths?: number;
 }
