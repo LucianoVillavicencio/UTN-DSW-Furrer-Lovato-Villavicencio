@@ -17,6 +17,7 @@ import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
+import { AllowIncompleteProfile } from '../../auth/decorators/allow-incomplete-profile.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
 import { Role } from '../../common/enum/role.enum';
@@ -42,9 +43,12 @@ export class UserController {
   // Self-service: any authenticated user edits their own profile. A
   // method-level @Auth(Role.USER) replaces the class-level @Auth(Role.ADMIN)
   // because RolesGuard uses getAllAndOverride and the handler wins — a login
-  // is still required, the admin role no longer is.
+  // is still required, the admin role no longer is. @AllowIncompleteProfile
+  // because a member whose Google profile came through wrong must still be
+  // able to fix their name or email without being trapped by the gate.
   @Patch('me')
   @Auth(Role.USER)
+  @AllowIncompleteProfile()
   updateMyProfile(
     @ActiveUser() activeUser: UserActiveInterface,
     @Body() dto: UpdateProfileDto,
