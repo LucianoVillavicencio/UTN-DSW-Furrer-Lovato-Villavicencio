@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UserService } from '../modules/user/user.service';
+import { Role } from '../common/enum/role.enum';
 
 // bcrypt is a native binding; its exports are not configurable, so
 // jest.spyOn(bcrypt, 'compare') fails with "Cannot redefine property".
@@ -147,5 +148,79 @@ describe('verifyGoogleToken error handling', () => {
     const message = 'Wrong number of segments in token: ey123';
     const wrapped = new UnauthorizedException('Token de Google no válido.');
     expect(wrapped.message).not.toContain(message);
+  });
+});
+
+describe('AuthService token claims', () => {
+  // buildAuthResponse is private; login() is the shortest public path to it.
+  const loginWith = async (user: Record<string, unknown>) => {
+    const signAsync = jest.fn().mockResolvedValue('signed-token');
+    const findUserByEmailWithPassword = jest.fn().mockResolvedValue({
+      password: 'hashed',
+      deleted: false,
+      ...user,
+    });
+    const service = new AuthService(
+      { findUserByEmailWithPassword } as unknown as UserService,
+      { signAsync } as unknown as JwtService,
+    );
+    mockedCompare.mockResolvedValue(true);
+
+    const result = await service.login({
+      email: 'socio@gmail.com',
+      password: 'password1',
+    });
+    return { result, signAsync };
+  };
+
+  const completeUser = {
+    id: 7,
+    dni: 40123456,
+    email: 'socio@gmail.com',
+    name: 'Ana',
+    surname: 'Pérez',
+    phone: '3411234567',
+    role: Role.USER,
+  };
+
+  it('signs the id as sub, not the dni', async () => {
+    const { signAsync } = await loginWith(completeUser);
+
+    expect(signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ sub: 7 }),
+    );
+  });
+
+  it('signs profileComplete true for a member with dni and phone', async () => {
+    const { signAsync } = await loginWith(completeUser);
+
+    expect(signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ profileComplete: true }),
+    );
+  });
+
+  it('signs profileComplete false for a Google account with no dni', async () => {
+    const { signAsync } = await loginWith({
+      ...completeUser,
+      dni: null,
+      phone: null,
+    });
+
+    expect(signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ profileComplete: false }),
+    );
+  });
+
+  it('returns the flag on the user object too', async () => {
+    const { result } = await loginWith({ ...completeUser, phone: null });
+
+    expect(result.user.profileComplete).toBe(false);
+    expect(result.user.id).toBe(7);
+  });
+
+  it('never returns the password hash', async () => {
+    const { result } = await loginWith(completeUser);
+
+    expect(result.user).not.toHaveProperty('password');
   });
 });

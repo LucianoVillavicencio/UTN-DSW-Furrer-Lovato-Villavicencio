@@ -13,6 +13,7 @@ import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { GoogleLoginDto } from './dto/google-login-dto';
+import { isProfileComplete } from '../modules/user/user.rules';
 
 @Injectable()
 export class AuthService {
@@ -132,32 +133,44 @@ export class AuthService {
   }
 
   async profile({ email }: { email: string; role: string }) {
-    return await this.userService.findUserByEmail(email);
+    const user = await this.userService.findUserByEmail(email);
+    if (!user) {
+      return null;
+    }
+    return { ...user, profileComplete: isProfileComplete(user) };
   }
 
   // Signs the JWT and builds the { token, user } shape shared by login(),
-  // register() and googleLogin().
-
+  // register(), googleLogin() and completeProfile().
   private async buildAuthResponse(user: {
-    dni: number;
+    id: number;
+    dni?: number | null;
     email: string;
     name: string;
     surname?: string | null;
     phone?: string | null;
     role: string;
   }) {
-    const payload = { sub: user.dni, email: user.email, role: user.role };
+    const profileComplete = isProfileComplete(user);
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      profileComplete,
+    };
     const token = await this.jwtService.signAsync(payload);
 
     return {
       token,
       user: {
-        dni: user.dni,
+        id: user.id,
+        dni: user.dni ?? null,
         email: user.email,
         name: user.name,
         surname: user.surname,
         phone: user.phone,
         role: user.role,
+        profileComplete,
       },
     };
   }
