@@ -39,11 +39,11 @@ import { ANONYMOUS, buildAuthzApp, tokenFor } from './authz-harness';
 
 type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
-/** The dni carried by `tokenFor('member')`, i.e. the caller's own. */
-const OWN_DNI = 40000001;
+/** The id carried by `tokenFor('member')`, i.e. the caller's own. */
+const OWN_ID = 40000001;
 
 /** A second member, used for the "another member's resource" column. */
-const OTHER_DNI = 40000002;
+const OTHER_ID = 40000002;
 
 // A body is only ever needed where the handler dereferences the dto before
 // reaching the mocked service; everywhere else the dto is passed straight
@@ -249,38 +249,38 @@ describe('ClassRegistrationController authorization', () => {
     await anyLoggedIn(app, 'delete', '/api/v1/classRegistration/enrollment/g1');
   });
 
-  it('restricts GET /classRegistration/admin/:dni to an admin', async () => {
-    await adminOnly(app, 'get', `/api/v1/classRegistration/admin/${OWN_DNI}`);
+  it('restricts GET /classRegistration/admin/:id to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/classRegistration/admin/${OWN_ID}`);
     // Member reading another member's enrollments.
     await call(
       app,
       'get',
-      `/api/v1/classRegistration/admin/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/classRegistration/admin/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
-  it('restricts PUT /classRegistration/admin/:dni to an admin', async () => {
-    await adminOnly(app, 'put', `/api/v1/classRegistration/admin/${OWN_DNI}`);
+  it('restricts PUT /classRegistration/admin/:id to an admin', async () => {
+    await adminOnly(app, 'put', `/api/v1/classRegistration/admin/${OWN_ID}`);
     await call(
       app,
       'put',
-      `/api/v1/classRegistration/admin/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/classRegistration/admin/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
-  it('restricts DELETE /classRegistration/admin/:dni/:group to an admin', async () => {
+  it('restricts DELETE /classRegistration/admin/:id/:group to an admin', async () => {
     await adminOnly(
       app,
       'delete',
-      `/api/v1/classRegistration/admin/${OWN_DNI}/g1`,
+      `/api/v1/classRegistration/admin/${OWN_ID}/g1`,
     );
     await call(
       app,
       'delete',
-      `/api/v1/classRegistration/admin/${OTHER_DNI}/g1`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/classRegistration/admin/${OTHER_ID}/g1`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
@@ -451,14 +451,14 @@ describe('PaymentController authorization', () => {
     await adminOnly(app, 'get', '/api/v1/Payment/filter/deleted');
   });
 
-  it('restricts GET /Payment/by-user/:dni to an admin', async () => {
-    await adminOnly(app, 'get', `/api/v1/Payment/by-user/${OWN_DNI}`);
+  it('restricts GET /Payment/by-user/:id to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/Payment/by-user/${OWN_ID}`);
     // A member asking for somebody else's payment history.
     await call(
       app,
       'get',
-      `/api/v1/Payment/by-user/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/Payment/by-user/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
@@ -566,16 +566,16 @@ describe('subscriptionController authorization', () => {
     });
   });
 
-  it('restricts POST /subscription/admin/:dni to an admin', async () => {
-    await adminOnly(app, 'post', `/api/v1/subscription/admin/${OWN_DNI}`, {
+  it('restricts POST /subscription/admin/:id to an admin', async () => {
+    await adminOnly(app, 'post', `/api/v1/subscription/admin/${OWN_ID}`, {
       planId: 1,
     });
     // A member assigning a plan to somebody else.
     await call(
       app,
       'post',
-      `/api/v1/subscription/admin/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/subscription/admin/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
@@ -595,14 +595,14 @@ describe('subscriptionController authorization', () => {
     await adminOnly(app, 'get', '/api/v1/subscription/filter/deleted');
   });
 
-  it('restricts GET /subscription/by-user/:dni to an admin', async () => {
-    await adminOnly(app, 'get', `/api/v1/subscription/by-user/${OWN_DNI}`);
+  it('restricts GET /subscription/by-user/:id to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/subscription/by-user/${OWN_ID}`);
     // A member asking for somebody else's subscription history.
     await call(
       app,
       'get',
-      `/api/v1/subscription/by-user/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/subscription/by-user/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
@@ -793,8 +793,8 @@ describe('UserController authorization', () => {
     await call(
       app,
       'get',
-      `/api/v1/user/search?dni=${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/user/search?dni=${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
@@ -802,39 +802,127 @@ describe('UserController authorization', () => {
     await adminOnly(app, 'get', '/api/v1/user/filter/deleted');
   });
 
-  it('restricts GET /user/:dni to an admin', async () => {
-    await adminOnly(app, 'get', `/api/v1/user/${OWN_DNI}`);
+  it('restricts GET /user/:id to an admin', async () => {
+    await adminOnly(app, 'get', `/api/v1/user/${OWN_ID}`);
     // A member reading another member's profile.
     await call(
       app,
       'get',
-      `/api/v1/user/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/user/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
-  it('restricts PATCH /user/:dni to an admin', async () => {
-    await adminOnly(app, 'patch', `/api/v1/user/${OWN_DNI}`);
+  it('restricts PATCH /user/:id to an admin', async () => {
+    await adminOnly(app, 'patch', `/api/v1/user/${OWN_ID}`);
     // A member editing another member's profile, role included.
     await call(
       app,
       'patch',
-      `/api/v1/user/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/user/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
-  it('restricts DELETE /user/:dni to an admin', async () => {
-    await adminOnly(app, 'delete', `/api/v1/user/${OWN_DNI}`);
+  it('restricts DELETE /user/:id to an admin', async () => {
+    await adminOnly(app, 'delete', `/api/v1/user/${OWN_ID}`);
     await call(
       app,
       'delete',
-      `/api/v1/user/${OTHER_DNI}`,
-      tokenFor('member', OWN_DNI),
+      `/api/v1/user/${OTHER_ID}`,
+      tokenFor('member', OWN_ID),
     ).expect(403);
   });
 
-  it('restricts PATCH /user/restore/:dni to an admin', async () => {
-    await adminOnly(app, 'patch', `/api/v1/user/restore/${OWN_DNI}`);
+  it('restricts PATCH /user/restore/:id to an admin', async () => {
+    await adminOnly(app, 'patch', `/api/v1/user/restore/${OWN_ID}`);
+  });
+});
+
+// The completion gate as an axis of the matrix. A member whose token says
+// profileComplete: false may reach exactly three routes, and nothing else.
+describe('completion gate', () => {
+  let app: INestApplication;
+
+  const authServiceMock = {
+    provide: AuthService,
+    useValue: {
+      profile: jest.fn().mockResolvedValue({}),
+      completeProfile: jest.fn().mockResolvedValue({ token: 't', user: {} }),
+      login: jest.fn().mockResolvedValue({}),
+      register: jest.fn().mockResolvedValue({}),
+      googleLogin: jest.fn().mockResolvedValue({}),
+    },
+  };
+
+  afterEach(async () => {
+    await app?.close();
+  });
+
+  const incompleteToken = () => tokenFor('member', OWN_ID, false);
+
+  it('lets an incomplete member read their own profile', async () => {
+    app = await buildAuthzApp(AuthController, [authServiceMock]);
+
+    await call(app, 'get', '/api/v1/auth/profile', incompleteToken()).expect(
+      200,
+    );
+  });
+
+  it('lets an incomplete member complete their profile', async () => {
+    app = await buildAuthzApp(AuthController, [authServiceMock]);
+
+    await call(app, 'post', '/api/v1/auth/complete-profile', incompleteToken(), {
+      dni: 40123456,
+      phone: '3411234567',
+    }).expect(201);
+  });
+
+  it('lets an incomplete member edit their own profile', async () => {
+    app = await buildAuthzApp(UserController, [
+      {
+        provide: UserService,
+        useValue: { updateProfile: jest.fn().mockResolvedValue({}) },
+      },
+    ]);
+
+    await call(app, 'patch', '/api/v1/user/me', incompleteToken(), {
+      name: 'Ana',
+    }).expect(200);
+  });
+
+  it('refuses an incomplete member on a gated member route', async () => {
+    app = await buildAuthzApp(subscriptionController, [
+      {
+        provide: subscriptionService,
+        useValue: { findActiveForUser: jest.fn().mockResolvedValue({}) },
+      },
+    ]);
+
+    const response = await call(
+      app,
+      'get',
+      '/api/v1/subscription/me',
+      incompleteToken(),
+    ).expect(403);
+
+    expect((response.body as { code?: string }).code).toBe(
+      'PROFILE_INCOMPLETE',
+    );
+  });
+
+  it('refuses an incomplete admin on the admin surface', async () => {
+    // An admin is not exempt: the account that repairs member data must not be
+    // the account allowed to hold bad data.
+    app = await buildAuthzApp(UserController, [
+      { provide: UserService, useValue: { findAll: jest.fn().mockResolvedValue([]) } },
+    ]);
+
+    await call(
+      app,
+      'get',
+      '/api/v1/user',
+      tokenFor('admin', OWN_ID, false),
+    ).expect(403);
   });
 });
