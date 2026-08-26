@@ -53,6 +53,14 @@ const UserDetailPanel = ({
     phone: user.phone,
     role: user.role,
   });
+  // DNI is a string here, same reasoning as new-member-wizard.ts: an empty
+  // number input reads back as NaN, which can't be told apart from a typo.
+  // Correcting it is an admin-only action — a member's own profile form has
+  // no such field, since the value is write-once for them.
+  const [dniInput, setDniInput] = useState(
+    user.dni != null ? String(user.dni) : '',
+  );
+  const [dniError, setDniError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -100,14 +108,27 @@ const UserDetailPanel = ({
     form.surname !== user.surname ||
     form.email !== (hasPlaceholderEmail ? '' : user.email) ||
     form.phone !== user.phone ||
-    form.role !== user.role;
+    form.role !== user.role ||
+    dniInput !== (user.dni != null ? String(user.dni) : '');
 
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(null);
+    setDniError(null);
+
+    const trimmedDni = dniInput.trim();
+    if (!trimmedDni) {
+      setDniError('El DNI es obligatorio.');
+      return;
+    }
+    if (!/^\d+$/.test(trimmedDni) || Number(trimmedDni) <= 0) {
+      setDniError('El DNI tiene que ser un número entero.');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const payload: AdminUpdateUserPayload = { ...form };
+      const payload: AdminUpdateUserPayload = { ...form, dni: Number(trimmedDni) };
       if (!payload.email?.trim()) delete payload.email;
       await adminUpdateUser(user.id, payload);
       setSaveSuccess('Cambios guardados.');
@@ -162,9 +183,15 @@ const UserDetailPanel = ({
             <FormAlert type="success" message={saveSuccess} />
             <InputField
               label="DNI"
-              value={user.dni ?? 'Sin DNI'}
-              disabled
-              readOnly
+              type="text"
+              inputMode="numeric"
+              value={dniInput}
+              onChange={(e) => {
+                setDniInput(e.target.value);
+                if (dniError) setDniError(null);
+              }}
+              error={dniError}
+              placeholder="40123456"
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <InputField
