@@ -43,3 +43,49 @@ export function isCurrentOn(endDate: Date | string, today: string): boolean {
       : String(endDate).slice(0, 10);
   return end >= today;
 }
+
+// How many days out a renewal charge is attempted, before the current
+// endDate. Three tries: a first failure still leaves two more attempts
+// before access actually lapses and the nightly sweep takes over.
+export const RENEWAL_LEAD_DAYS = 3;
+
+// The extended paid period when a subscription is renewed, counted from its
+// current `endDate` rather than from today — a renewal charged early must
+// not cost the member the days they already hold. Takes `days`, not months;
+// a multi-month term is the caller's job (months × plan.numDays) so this
+// function only ever adds the days it is given.
+//
+// `endDate` accepts a Date as well as a string, using the same
+// `String(endDate).slice(0, 10)` tolerance isCurrentOn uses: a MySQL 'date'
+// column comes back from the driver as a string, and subscriptionPeriod
+// writes strings cast to Date, so both forms occur here too.
+export function renewalPeriod(
+  endDate: Date | string,
+  days: number,
+): { endDate: Date } {
+  const current =
+    endDate instanceof Date
+      ? toDateOnly(endDate)
+      : String(endDate).slice(0, 10);
+  const [year, month, day] = current.split('-').map(Number);
+  const next = new Date(year, month - 1, day);
+  next.setDate(next.getDate() + days);
+  return { endDate: toDateOnly(next) as unknown as Date };
+}
+
+// The RENEWAL_LEAD_DAYS dates on which a renewal charge may be attempted for
+// a subscription ending `RENEWAL_LEAD_DAYS` days from `today`, furthest first.
+// All sit strictly before that endDate, so a successful charge never costs a
+// day of access, and a total failure needs no grace period — the existing
+// nightly sweep in expireLapsedSubscriptions already takes over from there.
+export function renewalDueDates(today: string): string[] {
+  const [year, month, day] = today.split('-').map(Number);
+  const base = new Date(year, month - 1, day);
+  const dates: string[] = [];
+  for (let leadDays = RENEWAL_LEAD_DAYS; leadDays >= 1; leadDays--) {
+    const due = new Date(base);
+    due.setDate(due.getDate() + leadDays);
+    dates.push(toDateOnly(due));
+  }
+  return dates;
+}

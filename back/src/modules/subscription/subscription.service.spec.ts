@@ -1,6 +1,7 @@
 import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 import { subscriptionService } from './subscription.service';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
@@ -20,13 +21,19 @@ function localDate(date: Date): string {
 
 describe('subscriptionService', () => {
   let service: subscriptionService;
-  let repository: { create: jest.Mock; save: jest.Mock; findOne: jest.Mock };
+  let repository: {
+    create: jest.Mock;
+    save: jest.Mock;
+    findOne: jest.Mock;
+    find: jest.Mock;
+  };
 
   beforeEach(async () => {
     repository = {
       create: jest.fn((entity: object) => entity),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -213,6 +220,90 @@ describe('subscriptionService', () => {
           endDate: localDate(in30Days),
         }),
       );
+    });
+  });
+
+  describe('renew', () => {
+    it('extends the endDate from its current value, not from today', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 3,
+        userDni: 30111222,
+        endDate: '2026-09-30',
+        state: SubscriptionState.ACTIVE,
+      });
+
+      await service.renew(3, 30);
+
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 3, endDate: '2026-10-30' }),
+      );
+    });
+
+    it('sets the state back to ACTIVE, lifting a subscription the nightly sweep marked INACTIVE', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 3,
+        userDni: 30111222,
+        endDate: '2026-09-30',
+        state: SubscriptionState.INACTIVE,
+      });
+
+      await service.renew(3, 30);
+
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 3, state: SubscriptionState.ACTIVE }),
+      );
+    });
+
+    it('rejects an id that does not exist', async () => {
+      await expect(service.renew(404, 30)).rejects.toThrow(
+        'La suscripción con ID: 404 no existe.',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it("does not cancel the member's other subscriptions", async () => {
+      // Unlike activate, renew never looks up a previously-active row to
+      // cancel — the only findOne call is findSubscription's own lookup of
+      // the row being renewed.
+      repository.findOne.mockResolvedValue({
+        id: 3,
+        userDni: 30111222,
+        endDate: '2026-09-30',
+        state: SubscriptionState.ACTIVE,
+      });
+
+      await service.renew(3, 30);
+
+      expect(repository.findOne).toHaveBeenCalledTimes(1);
+      expect(repository.save).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findDueForRenewal', () => {
+    it('queries autoRenew, ACTIVE, non-deleted subscriptions ending on one of the given dates', async () => {
+      const dueDates = ['2026-09-11', '2026-09-12', '2026-09-13'];
+
+      await service.findDueForRenewal(dueDates);
+
+      expect(repository.find).toHaveBeenCalledWith({
+        where: {
+          autoRenew: true,
+          state: SubscriptionState.ACTIVE,
+          deleted: false,
+          endDate: In(dueDates),
+        },
+        relations: { plan: true, user: true },
+      });
+    });
+
+    it('never selects a PAUSED subscription for charging', async () => {
+      await service.findDueForRenewal(['2026-09-11']);
+
+      const call = repository.find.mock.calls[0][0] as {
+        where: { state: SubscriptionState };
+      };
+      expect(call.where.state).toBe(SubscriptionState.ACTIVE);
+      expect(call.where.state).not.toBe(SubscriptionState.PAUSED);
     });
   });
 });

@@ -38,4 +38,13 @@ export class Subscription {
 
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
+
+  @Column({ type: Boolean, nullable: false, default: false })
+  autoRenew!: boolean;
+
+  @Column({ type: 'datetime', nullable: true })
+  pausedAt!: Date | null;
+
+  @Column({ type: Number, nullable: true })
+  pausedById!: number | null;
 }

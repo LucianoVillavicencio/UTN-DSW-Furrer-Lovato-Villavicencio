@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository, UpdateResult } from 'typeorm';
+import { In, LessThan, Repository, UpdateResult } from 'typeorm';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
@@ -13,6 +13,7 @@ import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
 import {
   isCurrentOn,
+  renewalPeriod,
   subscriptionPeriod,
   toDateOnly,
 } from './subscription.rules';
@@ -171,6 +172,27 @@ export class subscriptionService {
     return this.subscriptionRepository.save(subscription);
   }
 
+  // Extends a paid membership. Unlike `activate`, which recomputes the dates from
+  // today because a PENDING subscription may have sat unpaid for weeks, this one
+  // counts from the existing endDate: the member is paying early, on purpose, and
+  // must not lose the days they already hold. Also lifts a subscription the
+  // nightly sweep already marked INACTIVE, which happens when a renewal lands late.
+  //
+  // Deliberately does NOT cancel the member's other subscriptions. That is
+  // `activate`'s job, and doing it here would cancel the very membership being renewed.
+  async renew(id: number, days: number) {
+    const subscription = await this.findSubscription(id);
+    if (!subscription) {
+      throw new NotFoundException(`La suscripción con ID: ${id} no existe.`);
+    }
+
+    const period = renewalPeriod(subscription.endDate, days);
+    subscription.endDate = period.endDate;
+    subscription.state = SubscriptionState.ACTIVE;
+
+    return this.subscriptionRepository.save(subscription);
+  }
+
   // The authenticated user's active subscription, or null if there is none.
   //
   // The endDate check is the security boundary for FLG-SEC-24, and it is
@@ -221,6 +243,24 @@ export class subscriptionService {
       },
       { state: SubscriptionState.INACTIVE },
     );
+  }
+
+  // The subscriptions an auto-renewal charge should be attempted for today —
+  // `dueDates` is the output of renewalDueDates, so this only ever returns
+  // rows ending within the RENEWAL_LEAD_DAYS lookahead window. Filters on
+  // ACTIVE, so a PAUSED membership (autoRenew or not) is never selected for
+  // charging. Loads `plan` and `user` because the renewal cron needs the
+  // plan's price and the member's contact details without a second query.
+  async findDueForRenewal(dueDates: string[]) {
+    return this.subscriptionRepository.find({
+      where: {
+        autoRenew: true,
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+        endDate: In(dueDates),
+      },
+      relations: { plan: true, user: true },
+    });
   }
 
   async createSubscription(subscriptionDto: SubscriptionDto) {
