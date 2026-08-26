@@ -197,6 +197,53 @@ describe('createManualPayment — advance payment', () => {
     ).resolves.toBeDefined();
     expect(repository.save).toHaveBeenCalled();
   });
+
+  it('treats an INACTIVE (lapsed) subscription like PENDING and activates it', async () => {
+    // The nightly sweep (expireLapsedSubscriptions) sets state: INACTIVE on
+    // a lapsed subscription without deleting it. A lapsed member paying to
+    // come back is the single most common real case this branch handles —
+    // silently no-op'ing here would mean they pay and still have no access.
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.INACTIVE,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService();
+
+    await service.createManualPayment(dto, 30111222);
+
+    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.renew).not.toHaveBeenCalled();
+    expect(repository.save).toHaveBeenCalled();
+  });
+
+  it('refuses a payment against a CANCELLED subscription', async () => {
+    // A cancelled subscription is a dead historical record; an admin must
+    // pay against the member's actual current subscription, not this one.
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.CANCELLED,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService();
+
+    await expect(service.createManualPayment(dto, 30111222)).rejects.toThrow(
+      new ConflictException('Esta suscripción está cancelada.'),
+    );
+    expect(subscriptions.activate).not.toHaveBeenCalled();
+    expect(subscriptions.renew).not.toHaveBeenCalled();
+    expect(repository.save).not.toHaveBeenCalled();
+  });
 });
 
 describe('createFromMercadoPago', () => {
@@ -366,6 +413,104 @@ describe('createFromMercadoPago', () => {
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({ termMonths: 3, monthlyPriceAtPurchase: 20000 }),
     );
+  });
+
+  it('activates an INACTIVE (lapsed) subscription, confirming it shares the fixed branch', async () => {
+    // Same shared promoteOrExtendSubscription helper as createManualPayment;
+    // this just confirms the wiring is used here too, not a full re-test of
+    // every branch (that's covered in the 'advance payment' describe block).
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.INACTIVE,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService(null);
+
+    await service.createFromMercadoPago({
+      mpPaymentId: 'mp-128',
+      subscriptionId: 7,
+      amount: 15000,
+      termMonths: 1,
+      payMethod: 'mercadopago',
+    });
+
+    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.renew).not.toHaveBeenCalled();
+  });
+
+  it('recovers gracefully when a duplicate-key race loses to another delivery', async () => {
+    // Two near-simultaneous deliveries of the same mpPaymentId can both pass
+    // the findByMpPaymentId check before either saves. The DB's UNIQUE
+    // constraint stops the second payment ROW from being written, but that
+    // surfaces as a duplicate-key error from save() rather than a graceful
+    // "already exists" — this must be caught and turned into returning the
+    // row the other delivery wrote, not an uncaught 500.
+    const existingPayment = { id: 100, mpPaymentId: 'mp-129', amount: 15000 };
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.PENDING,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService(null);
+    // First findOne (the pre-save idempotency check) sees nothing; the
+    // second (inside the catch block, after save() fails) sees the row the
+    // other delivery already committed.
+    repository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existingPayment);
+    const duplicateKeyError = Object.assign(new Error('Duplicate entry'), {
+      code: 'ER_DUP_ENTRY',
+    });
+    repository.save.mockRejectedValueOnce(duplicateKeyError);
+
+    const result = await service.createFromMercadoPago({
+      mpPaymentId: 'mp-129',
+      subscriptionId: 7,
+      amount: 15000,
+      termMonths: 1,
+      payMethod: 'mercadopago',
+    });
+
+    expect(result).toBe(existingPayment);
+    expect(repository.findOne).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-throws a save() failure that is not a duplicate-key error', async () => {
+    // The catch block must not swallow real failures — only the specific
+    // duplicate-key shape triggers the recovery path.
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.PENDING,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService(null);
+    const genuineError = new Error('connection lost');
+    repository.save.mockRejectedValueOnce(genuineError);
+
+    await expect(
+      service.createFromMercadoPago({
+        mpPaymentId: 'mp-130',
+        subscriptionId: 7,
+        amount: 15000,
+        termMonths: 1,
+        payMethod: 'mercadopago',
+      }),
+    ).rejects.toBe(genuineError);
   });
 });
 

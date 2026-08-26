@@ -92,13 +92,73 @@ export class PaymentService {
       monthlyPriceAtPurchase: subscription.plan.price,
       deleted: false,
     });
-    return this.paymentRepository.save(newPayment);
+
+    try {
+      return await this.paymentRepository.save(newPayment);
+    } catch (error) {
+      // The DB's UNIQUE constraint on mpPaymentId is the real idempotency
+      // guarantee against two payment ROWS for the same MP notification: the
+      // findByMpPaymentId check above is a fast path, not a lock, so two
+      // genuinely simultaneous deliveries can both pass it before either
+      // saves, and the second save() here hits a duplicate-key error.
+      // Recover by returning the row the other delivery just wrote, rather
+      // than letting an ugly 500 propagate for what is, from the caller's
+      // perspective (Mercado Pago retrying a notification), a successful
+      // outcome.
+      //
+      // This does NOT close the whole race: the subscription mutation
+      // (activate/renew above) already ran for both deliveries by the time
+      // either reaches this point, since it isn't wrapped in the same
+      // transaction as the payment write. subscriptionService.activate()/
+      // renew() use their own injected repository rather than a
+      // transaction-scoped EntityManager, so making this properly atomic
+      // would mean threading an optional EntityManager through
+      // subscription.service.ts — a cross-cutting change to an
+      // already-reviewed file, out of proportion to what this fixes. The
+      // accepted residual risk: in a genuine simultaneous-delivery race, a
+      // subscription could be activated/extended twice (a few extra free
+      // days) — never charged twice, since there is only ever one real
+      // Mercado Pago payment behind a given mpPaymentId.
+      if (this.isDuplicateKeyError(error)) {
+        const existingPayment = await this.findByMpPaymentId(dto.mpPaymentId);
+        if (existingPayment) {
+          return existingPayment;
+        }
+      }
+      throw error;
+    }
+  }
+
+  private isDuplicateKeyError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    const err = error as { code?: unknown; driverError?: { code?: unknown } };
+    return (
+      err.code === 'ER_DUP_ENTRY' || err.driverError?.code === 'ER_DUP_ENTRY'
+    );
   }
 
   // The self-service gate (PENDING → ACTIVE) plus the advance-payment fix
   // (ACTIVE → extend by the term just paid) plus the PAUSED guard (a frozen
   // membership must be resumed, not extended here, or the member gets the
   // same days credited twice — once here, once at unpause).
+  //
+  // INACTIVE is treated the same as PENDING: the nightly sweep
+  // (expireLapsedSubscriptions in subscription.service.ts) sets state to
+  // INACTIVE on a lapsed subscription without deleting it, so a lapsed
+  // member paying to come back is the single most common real case this
+  // branch has to handle. activate() is state-agnostic — it recomputes
+  // startDate/endDate fresh from today, cancels any other ACTIVE
+  // subscription for the same user, and sets state to ACTIVE — which is
+  // exactly right whether the subscription was PENDING or had lapsed to
+  // INACTIVE.
+  //
+  // CANCELLED is refused, same pattern as PAUSED: a cancelled subscription
+  // is a dead historical record (superseded by a plan change, or explicitly
+  // cancelled/refunded). An admin recording a payment must be paying against
+  // the member's actual current subscription, not an old cancelled row.
+  //
   // `state` is a plain string column, so each enum member is widened to its
   // value before comparing.
   private async promoteOrExtendSubscription(
@@ -107,9 +167,14 @@ export class PaymentService {
   ) {
     const pendingState: string = SubscriptionState.PENDING;
     const activeState: string = SubscriptionState.ACTIVE;
+    const inactiveState: string = SubscriptionState.INACTIVE;
     const pausedState: string = SubscriptionState.PAUSED;
+    const cancelledState: string = SubscriptionState.CANCELLED;
 
-    if (subscription.state === pendingState) {
+    if (
+      subscription.state === pendingState ||
+      subscription.state === inactiveState
+    ) {
       await this.subscriptionService.activate(subscription.id);
     } else if (subscription.state === activeState) {
       await this.subscriptionService.renew(
@@ -120,14 +185,20 @@ export class PaymentService {
       throw new ConflictException(
         'Reanudá la membresía antes de registrar un pago.',
       );
+    } else if (subscription.state === cancelledState) {
+      throw new ConflictException('Esta suscripción está cancelada.');
     }
   }
 
   // Looked up first by createFromMercadoPago as the idempotency guarantee: a
   // second delivery of the same MP notification must return the row already
-  // written, not create another one.
+  // written, not create another one. Filtered to deleted: false so a
+  // soft-deleted payment (e.g. an admin correction) can never be mistaken by
+  // a later webhook retry for "already processed".
   async findByMpPaymentId(mpPaymentId: string) {
-    return await this.paymentRepository.findOne({ where: { mpPaymentId } });
+    return await this.paymentRepository.findOne({
+      where: { mpPaymentId, deleted: false },
+    });
   }
 
   // The payment that is currently "in force" for a subscription: the most
