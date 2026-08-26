@@ -50,3 +50,12 @@ export const getApiErrorMessage = (
     backendMessage || `Error del servidor (${status}). Inténtalo más tarde.`
   );
 };
+
+// The 403 CompleteProfileGuard throws, told apart from an ordinary
+// authorization failure by its machine-readable code. The frontend redirects
+// on this one instead of showing an error.
+export const isProfileIncompleteError = (error: unknown): boolean =>
+  error instanceof AxiosError &&
+  error.response?.status === 403 &&
+  (error.response.data as { code?: string } | undefined)?.code ===
+    'PROFILE_INCOMPLETE';
