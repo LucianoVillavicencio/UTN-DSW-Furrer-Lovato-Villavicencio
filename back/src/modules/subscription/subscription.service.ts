@@ -11,6 +11,7 @@ import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
+import { PlanTermService } from '../planTerm/planTerm.service';
 import {
   isCurrentOn,
   renewalPeriod,
@@ -25,7 +26,35 @@ export class subscriptionService {
     private subscriptionRepository: Repository<Subscription>,
     private readonly planService: PlanService,
     private readonly userService: UserService,
+    private readonly planTermService: PlanTermService,
   ) {}
+
+  // Resolves which PlanTerm a plan change buys: the one the caller picked
+  // (validated to belong to `planId`, since a term id from another plan must
+  // not silently apply that plan's price/months here), or, when none was
+  // picked, the plan's 1-month term — every plan is expected to carry one
+  // (see PlanTerm.entity.ts), and a plan missing it fails loudly here rather
+  // than corrupting the subscription's period with a null-pointer crash.
+  private async resolvePlanTerm(planId: number, planTermId?: number) {
+    if (planTermId) {
+      const term = await this.planTermService.findTerm(planTermId);
+      if (!term || term.planId !== planId) {
+        throw new NotFoundException(
+          `El plazo con ID: ${planTermId} no existe para este plan.`,
+        );
+      }
+      return term;
+    }
+
+    const terms = await this.planTermService.findForPlan(planId);
+    const defaultTerm = terms.find((t) => t.months === 1);
+    if (!defaultTerm) {
+      throw new NotFoundException(
+        `El plan con ID: ${planId} no tiene un plazo de 1 mes configurado.`,
+      );
+    }
+    return defaultTerm;
+  }
 
   // Moves the authenticated user to another plan: closes the active
   // subscription, if there is one, and opens a new one on the chosen plan. This
@@ -34,11 +63,18 @@ export class subscriptionService {
   // self-service change opens the new subscription PENDING and an admin
   // recording the payment is what activates it: otherwise anyone could register
   // and grant themselves an active plan for free.
-  async changePlan(userId: number, planId: number, byAdmin = false) {
+  async changePlan(
+    userId: number,
+    planId: number,
+    planTermId?: number,
+    byAdmin = false,
+  ) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
       throw new NotFoundException(`El plan con ID: ${planId} no existe.`);
     }
+
+    const term = await this.resolvePlanTerm(planId, planTermId);
 
     const currentActive = await this.subscriptionRepository.findOne({
       where: {
@@ -90,7 +126,7 @@ export class subscriptionService {
       await this.subscriptionRepository.save(currentActive);
     }
 
-    const period = subscriptionPeriod(plan.numDays);
+    const period = subscriptionPeriod(term.months * plan.numDays);
 
     const newSubscription = this.subscriptionRepository.create({
       userId,
@@ -112,12 +148,16 @@ export class subscriptionService {
   // Same move as changePlan, made by an admin on behalf of a member who is
   // standing at the counter. The id comes from the route instead of the JWT,
   // so unlike the self-service path it has to be checked.
-  async assignPlanToMember(userId: number, planId: number) {
+  async assignPlanToMember(
+    userId: number,
+    planId: number,
+    planTermId?: number,
+  ) {
     const member = await this.userService.findUser(userId);
     if (!member || member.deleted) {
       throw new NotFoundException(`El socio con ID: ${userId} no existe.`);
     }
-    return this.changePlan(userId, planId, true);
+    return this.changePlan(userId, planId, planTermId, true);
   }
 
   // Full subscription history of one specific user (admin Users panel), most

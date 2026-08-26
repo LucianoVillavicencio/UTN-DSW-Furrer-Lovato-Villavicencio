@@ -7,6 +7,7 @@ import { buildTypeOrmConfig } from './config/typeorm.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PlanModule } from './modules/plan/plan.module';
+import { PlanTermModule } from './modules/planTerm/planTerm.module';
 import { TrainerModule } from './modules/trainer/trainer.module';
 import { ClassModule } from './modules/class/class.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -34,6 +35,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     UserModule,
     TypeClassModule,
     PlanModule,
+    PlanTermModule,
     TrainerModule,
     ClassModule,
     ClassSessionModule,

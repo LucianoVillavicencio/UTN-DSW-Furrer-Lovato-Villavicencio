@@ -7,6 +7,7 @@ import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
+import { PlanTermService } from '../planTerm/planTerm.service';
 
 // Local date parts, matching the 'YYYY-MM-DD' the service writes. Spelled out
 // here rather than imported so the assertions do not check the helper against
@@ -28,12 +29,24 @@ describe('subscriptionService', () => {
     find: jest.Mock;
   };
 
+  let planTerms: { findTerm: jest.Mock; findForPlan: jest.Mock };
+
   beforeEach(async () => {
     repository = {
       create: jest.fn((entity: object) => entity),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
       find: jest.fn().mockResolvedValue([]),
+    };
+
+    // Every changePlan test below omits planTermId, so the default 1-month
+    // term is what resolvePlanTerm falls back to unless a test overrides
+    // findForPlan/findTerm itself.
+    planTerms = {
+      findTerm: jest.fn().mockResolvedValue(null),
+      findForPlan: jest
+        .fn()
+        .mockResolvedValue([{ id: 100, planId: 1, months: 1, price: 1000 }]),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -49,6 +62,7 @@ describe('subscriptionService', () => {
           },
         },
         { provide: UserService, useValue: {} },
+        { provide: PlanTermService, useValue: planTerms },
       ],
     }).compile();
 
@@ -57,14 +71,14 @@ describe('subscriptionService', () => {
 
   describe('changePlan', () => {
     it('opens a self-service plan change as PENDING, not ACTIVE', async () => {
-      await service.changePlan(30111222, 1, false);
+      await service.changePlan(30111222, 1, undefined, false);
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({ state: SubscriptionState.PENDING }),
       );
     });
 
     it('still opens an admin-assigned plan as ACTIVE', async () => {
-      await service.changePlan(30111222, 1, true);
+      await service.changePlan(30111222, 1, undefined, true);
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({ state: SubscriptionState.ACTIVE }),
       );
@@ -81,7 +95,7 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(currentActive) // the current ACTIVE row
         .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
-      await service.changePlan(30111222, 9, false);
+      await service.changePlan(30111222, 9, undefined, false);
 
       expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
       expect(repository.save).not.toHaveBeenCalledWith(
@@ -100,7 +114,7 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(currentActive) // the current ACTIVE row
         .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
-      await service.changePlan(30111222, 9, true);
+      await service.changePlan(30111222, 9, undefined, true);
 
       expect(currentActive.state).toBe(SubscriptionState.CANCELLED);
     });
@@ -116,9 +130,9 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(null) // no ACTIVE row
         .mockResolvedValueOnce(pendingSamePlan); // one already pending
 
-      await expect(service.changePlan(30111222, 9, false)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.changePlan(30111222, 9, undefined, false),
+      ).rejects.toThrow(ConflictException);
       expect(repository.create).not.toHaveBeenCalled();
       expect(repository.save).not.toHaveBeenCalled();
     });
@@ -139,11 +153,74 @@ describe('subscriptionService', () => {
           state: SubscriptionState.PENDING,
         });
 
-      await expect(service.changePlan(30111222, 9, true)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.changePlan(30111222, 9, undefined, true),
+      ).rejects.toThrow(ConflictException);
       expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
       expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it("defaults to the plan's 1-month term when no planTermId is given", async () => {
+      const before = new Date();
+      await service.changePlan(30111222, 1, undefined, false);
+
+      const expectedEnd = new Date(before);
+      // plan.numDays is 30 (see the PlanService mock above); a 1-month term
+      // must add exactly one plan period (30 days), not a multiple of it.
+      expectedEnd.setDate(expectedEnd.getDate() + 1 * 30);
+
+      expect(planTerms.findForPlan).toHaveBeenCalledWith(1);
+      expect(planTerms.findTerm).not.toHaveBeenCalled();
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ endDate: localDate(expectedEnd) }),
+      );
+    });
+
+    it('throws a clear NotFoundException when the plan has no 1-month term', async () => {
+      planTerms.findForPlan.mockResolvedValue([]);
+
+      await expect(
+        service.changePlan(30111222, 1, undefined, false),
+      ).rejects.toThrow(
+        'El plan con ID: 1 no tiene un plazo de 1 mes configurado.',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('looks up the chosen term by id and rejects one that belongs to a different plan', async () => {
+      planTerms.findTerm.mockResolvedValue({
+        id: 55,
+        planId: 2, // does not match the plan being changed to (1)
+        months: 3,
+        price: 2700,
+      });
+
+      await expect(service.changePlan(30111222, 1, 55, false)).rejects.toThrow(
+        'El plazo con ID: 55 no existe para este plan.',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it("sizes the subscription's period as months × plan.numDays for a chosen multi-month term", async () => {
+      planTerms.findTerm.mockResolvedValue({
+        id: 55,
+        planId: 1,
+        months: 3,
+        price: 2700,
+      });
+
+      const before = new Date();
+      await service.changePlan(30111222, 1, 55, false);
+
+      const expectedEnd = new Date(before);
+      // plan.numDays is 30 (see the PlanService mock above): a 3-month term
+      // must add 90 days, not 30.
+      expectedEnd.setDate(expectedEnd.getDate() + 3 * 30);
+
+      expect(planTerms.findTerm).toHaveBeenCalledWith(55);
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ endDate: localDate(expectedEnd) }),
+      );
     });
   });
 

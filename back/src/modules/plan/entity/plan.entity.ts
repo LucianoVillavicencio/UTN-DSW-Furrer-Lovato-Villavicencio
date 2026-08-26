@@ -16,6 +16,9 @@ export class Plan {
   @Column({ type: String, nullable: true, length: 255 })
   description?: string | null;
 
+  // The regular monthly price — the reference the refund pro-rata formula
+  // charges consumed months at, regardless of any multi-month discount the
+  // member originally paid.
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
   price!: number;
 
