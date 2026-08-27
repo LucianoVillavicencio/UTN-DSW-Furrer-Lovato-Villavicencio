@@ -8,13 +8,18 @@ import {
   Delete,
   Patch,
   ParseIntPipe,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { ChangePlanDto } from './dto/change-plan-dto';
+import { SetAutoRenewDto } from './dto/set-auto-renew-dto';
 import { subscriptionService } from './subscription.service';
+import { SavedCardService } from '../savedCard/savedCard.service';
+import { isChargeable } from '../savedCard/savedCard.rules';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
@@ -29,7 +34,10 @@ import { Role } from '../../common/enum/role.enum';
 // Not rate limited — see auth.throttle.ts.
 @SkipThrottle(SKIP_ALL_THROTTLERS)
 export class subscriptionController {
-  constructor(private readonly subscriptionService: subscriptionService) {}
+  constructor(
+    private readonly subscriptionService: subscriptionService,
+    private readonly savedCardService: SavedCardService,
+  ) {}
 
   // Self-service: creates or renews the authenticated user's subscription on a
   // different plan. userId comes from the JWT, never from the body — see
@@ -68,6 +76,43 @@ export class subscriptionController {
   @Auth(Role.USER)
   getMySubscription(@ActiveUser() user: UserActiveInterface) {
     return this.subscriptionService.findActiveForUser(user.sub);
+  }
+
+  // Self-service: toggles auto-renewal on the authenticated user's active
+  // subscription. Turning it OFF is always allowed. Turning it ON is refused
+  // without an active, chargeable card — auto-renewal without one is a
+  // promise the system cannot keep. The check lives here, in the controller,
+  // rather than in subscriptionService: this is the one place that can reach
+  // both subscriptionService and SavedCardService without a circular module
+  // import (SubscriptionModule imports SavedCardModule for exactly this;
+  // SavedCardModule does not import SubscriptionModule back — see
+  // savedCard.module.ts).
+  @Patch('me/auto-renew')
+  @Auth(Role.USER)
+  async setAutoRenew(
+    @ActiveUser() user: UserActiveInterface,
+    @Body() dto: SetAutoRenewDto,
+  ) {
+    if (dto.autoRenew) {
+      const card = await this.savedCardService.findActiveForUser(user.sub);
+      if (!card || !isChargeable(card, new Date())) {
+        throw new ConflictException(
+          'Necesitás una tarjeta guardada para activar la renovación automática.',
+        );
+      }
+    }
+
+    const subscription = await this.subscriptionService.findActiveForUser(
+      user.sub,
+    );
+    if (!subscription) {
+      throw new NotFoundException('No tenés una suscripción activa.');
+    }
+
+    return this.subscriptionService.setAutoRenew(
+      subscription.id,
+      dto.autoRenew,
+    );
   }
 
   @Post()

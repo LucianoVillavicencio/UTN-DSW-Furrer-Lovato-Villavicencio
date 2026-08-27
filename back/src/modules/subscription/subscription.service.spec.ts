@@ -402,4 +402,43 @@ describe('subscriptionService', () => {
       expect(call.where.state).not.toBe(SubscriptionState.PAUSED);
     });
   });
+
+  describe('setAutoRenew', () => {
+    it('flips autoRenew on the subscription and saves it', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 7,
+        userId: 30111222,
+        autoRenew: false,
+      });
+
+      await service.setAutoRenew(7, true);
+
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, autoRenew: true }),
+      );
+    });
+
+    it('turns autoRenew off just as unconditionally as it turns it on', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 7,
+        userId: 30111222,
+        autoRenew: true,
+      });
+
+      await service.setAutoRenew(7, false);
+
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, autoRenew: false }),
+      );
+    });
+
+    it('throws when the subscription does not exist', async () => {
+      repository.findOne.mockResolvedValue(null);
+
+      await expect(service.setAutoRenew(999, true)).rejects.toThrow(
+        'La suscripción con ID: 999 no existe.',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+  });
 });

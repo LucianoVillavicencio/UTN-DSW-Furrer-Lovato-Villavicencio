@@ -239,6 +239,22 @@ export class subscriptionService {
     return this.subscriptionRepository.save(subscription);
   }
 
+  // Toggles auto-renewal on one subscription. The "needs an active,
+  // chargeable card to turn ON" business rule deliberately does NOT live
+  // here — it lives in subscription.controller.ts's setAutoRenew route,
+  // which is the only caller and is the one place that can reach both
+  // this service and SavedCardService without a circular module import (see
+  // savedCard.module.ts). This method itself stays a simple, unconditional
+  // field write, same as every other single-column update in this file.
+  async setAutoRenew(id: number, autoRenew: boolean) {
+    const subscription = await this.findSubscription(id);
+    if (!subscription) {
+      throw new NotFoundException(`La suscripción con ID: ${id} no existe.`);
+    }
+    subscription.autoRenew = autoRenew;
+    return this.subscriptionRepository.save(subscription);
+  }
+
   // The authenticated user's active subscription, or null if there is none.
   //
   // The endDate check is the security boundary for FLG-SEC-24, and it is

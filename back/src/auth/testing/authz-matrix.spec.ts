@@ -18,6 +18,7 @@ import { PlanController } from '../../modules/plan/plan.controller';
 import { PlanService } from '../../modules/plan/plan.service';
 import { subscriptionController } from '../../modules/subscription/subscription.controller';
 import { subscriptionService } from '../../modules/subscription/subscription.service';
+import { SavedCardService } from '../../modules/savedCard/savedCard.service';
 import { TrainerController } from '../../modules/trainer/trainer.controller';
 import { TrainerService } from '../../modules/trainer/trainer.service';
 import { TypeClassController } from '../../modules/typeClass/typeClass.controller';
@@ -553,6 +554,12 @@ describe('subscriptionController authorization', () => {
           restoreSubscription: jest.fn().mockResolvedValue({}),
         },
       },
+      {
+        provide: SavedCardService,
+        useValue: {
+          findActiveForUser: jest.fn().mockResolvedValue(null),
+        },
+      },
     ]);
   });
 
@@ -896,6 +903,10 @@ describe('completion gate', () => {
       {
         provide: subscriptionService,
         useValue: { findActiveForUser: jest.fn().mockResolvedValue({}) },
+      },
+      {
+        provide: SavedCardService,
+        useValue: { findActiveForUser: jest.fn().mockResolvedValue(null) },
       },
     ]);
 
