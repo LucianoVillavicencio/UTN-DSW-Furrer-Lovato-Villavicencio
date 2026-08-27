@@ -12,6 +12,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { SavedCardService } from './savedCard.service';
 import { SaveCardDto } from './dto/save-card-dto';
+import { toPublicCard } from './savedCard.mapper';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
@@ -31,29 +32,31 @@ export class SavedCardController {
   // Never returns mpCardId or mpCustomerId — the browser has no legitimate
   // use for them and they identify a real payment instrument. Returns null
   // (not a 404) when the member has no active card yet: that's a normal
-  // state, not an error.
+  // state, not an error. Filtering goes through the shared toPublicCard
+  // mapper — see savedCard.mapper.ts — the same one saveCard uses below, so
+  // this response shape can't drift out of sync with that one.
   @Get()
   async getMyCard(@ActiveUser() user: UserActiveInterface) {
     const card = await this.savedCardService.findActiveForUser(user.sub);
-    if (!card) {
-      return null;
-    }
-    return {
-      lastFourDigits: card.lastFourDigits,
-      paymentMethodId: card.paymentMethodId,
-      expirationMonth: card.expirationMonth,
-      expirationYear: card.expirationYear,
-    };
+    return card ? toPublicCard(card) : null;
   }
 
-  // The email comes from the JWT, never the body — see SaveCardDto.
+  // The email comes from the JWT, never the body — see SaveCardDto. The
+  // response is filtered through toPublicCard just like getMyCard's: the
+  // freshly-saved row still carries mpCardId/mpCustomerId, and returning it
+  // unfiltered would leak them the moment a card is saved, not just on
+  // every later read.
   @Post()
-  saveCard(@ActiveUser() user: UserActiveInterface, @Body() dto: SaveCardDto) {
-    return this.savedCardService.saveForUser(
+  async saveCard(
+    @ActiveUser() user: UserActiveInterface,
+    @Body() dto: SaveCardDto,
+  ) {
+    const card = await this.savedCardService.saveForUser(
       user.sub,
       user.email,
       dto.cardToken,
     );
+    return toPublicCard(card);
   }
 
   @Delete('/:id')
