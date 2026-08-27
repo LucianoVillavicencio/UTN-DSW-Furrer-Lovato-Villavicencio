@@ -70,6 +70,16 @@ export interface MpPaymentResult {
   status?: string;
   statusDetail?: string;
   transactionAmount?: number;
+  /**
+   * The `external_reference` the payment was created with — how the webhook
+   * receiver (Task 14) maps an incoming notification back to whatever placed
+   * the order (a front-desk charge order, eventually; a saved-card renewal
+   * never needs this, since that flow already knows its own subscription id
+   * without a webhook at all). Present on `getPayment`'s response; absent
+   * from `chargeSavedCard`'s today only because nothing sets an
+   * external_reference on that call yet.
+   */
+  externalReference?: string;
 }
 
 export interface MpRefundResult {
@@ -198,6 +208,7 @@ export class MercadoPagoClient {
       status: payment.status,
       statusDetail: payment.status_detail,
       transactionAmount: payment.transaction_amount,
+      externalReference: payment.external_reference,
     };
   }
 

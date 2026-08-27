@@ -16,16 +16,17 @@ import { classRegistrationModule } from './modules/classRegistration/classRegist
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { RenewalModule } from './modules/renewal/renewal.module';
+import { MercadoPagoWebhookModule } from './modules/mercadopago/mercadopago-webhook.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
-import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
+import { REGISTERED_THROTTLERS } from './auth/auth.throttle';
 import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
 import { SecurityLogFilter } from './common/filters/security-log.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([AUTH_THROTTLE, CONTACT_THROTTLE]),
+    ThrottlerModule.forRoot(REGISTERED_THROTTLERS),
     // Drives the nightly subscription expiry sweep in subscriptionService.
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
@@ -43,6 +44,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     SubscriptionModule,
     PaymentModule,
     RenewalModule,
+    MercadoPagoWebhookModule,
     classRegistrationModule,
     ContactModule,
     AuthModule,
