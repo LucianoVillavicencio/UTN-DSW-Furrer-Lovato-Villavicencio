@@ -114,13 +114,13 @@ export class MailService {
 
       if (!data.isFinalAttempt) {
         // Retry attempt
-        const text = `Hola ${data.name},\n\nNo pudimos procesar el pago de tu membresía. Tu tarjeta fue rechazada.\n\nNo te preocupes, reintenraremos procesar tu pago en los próximos días. Si lo prefieres, puedes actualizar tu método de pago aquí: ${frontendUrl}/mi-cuenta/pagos\n\nGracias por tu confianza en FLG.`;
+        const text = `Hola ${data.name},\n\nNo pudimos procesar el pago de tu membresía. Tu tarjeta fue rechazada.\n\nNo te preocupes, reintentaremos procesar tu pago en los próximos días. Si lo prefieres, puedes actualizar tu método de pago aquí: ${frontendUrl}/mi-cuenta/pagos\n\nGracias por tu confianza en FLG.`;
 
         const html = `
                   <h3>No pudimos procesar el pago de tu membresía</h3>
                   <p>Hola <strong>${data.name}</strong>,</p>
                   <p>No pudimos procesar el pago de tu membresía. Tu tarjeta fue rechazada.</p>
-                  <p>No te preocupes, reintenraremos procesar tu pago en los próximos días. Si lo prefieres, puedes <a href="${frontendUrl}/mi-cuenta/pagos">actualizar tu método de pago aquí</a>.</p>
+                  <p>No te preocupes, reintentaremos procesar tu pago en los próximos días. Si lo prefieres, puedes <a href="${frontendUrl}/mi-cuenta/pagos">actualizar tu método de pago aquí</a>.</p>
                   <p>Gracias por tu confianza en FLG.</p>
                   `;
 
