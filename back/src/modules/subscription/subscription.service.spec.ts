@@ -201,6 +201,25 @@ describe('subscriptionService', () => {
       expect(repository.save).not.toHaveBeenCalled();
     });
 
+    it('rejects a soft-deleted term even when it belongs to the right plan', async () => {
+      // A discontinued promo term must be just as unpurchasable through an
+      // explicit id as it already is through the default-term fallback
+      // (which filters on `deleted` via findForPlan) — otherwise anyone
+      // still holding the old id could buy it at its old price/duration.
+      planTerms.findTerm.mockResolvedValue({
+        id: 55,
+        planId: 1,
+        months: 3,
+        price: 2700,
+        deleted: true,
+      });
+
+      await expect(service.changePlan(30111222, 1, 55, false)).rejects.toThrow(
+        'El plazo con ID: 55 no existe para este plan.',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
     it("sizes the subscription's period as months × plan.numDays for a chosen multi-month term", async () => {
       planTerms.findTerm.mockResolvedValue({
         id: 55,

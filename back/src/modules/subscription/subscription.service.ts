@@ -38,7 +38,13 @@ export class subscriptionService {
   private async resolvePlanTerm(planId: number, planTermId?: number) {
     if (planTermId) {
       const term = await this.planTermService.findTerm(planTermId);
-      if (!term || term.planId !== planId) {
+      // A soft-deleted term (a discontinued promo, say) must be just as
+      // unpurchasable through an explicit id as it already is through the
+      // default-term fallback below, which filters on `deleted` via
+      // findForPlan — otherwise anyone still holding the old id (a stale
+      // frontend cache, or one member telling another) could buy it at its
+      // discontinued price/duration.
+      if (!term || term.deleted || term.planId !== planId) {
         throw new NotFoundException(
           `El plazo con ID: ${planTermId} no existe para este plan.`,
         );
