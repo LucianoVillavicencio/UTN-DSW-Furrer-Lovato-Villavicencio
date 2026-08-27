@@ -129,6 +129,35 @@ export class PaymentService {
     }
   }
 
+  // A standalone FAILED row for a declined charge — the renewal cron's
+  // decline path. Deliberately does NOT go through promoteOrExtendSubscription
+  // (unlike createManualPayment/createFromMercadoPago): a decline is a
+  // successful API call that simply wasn't approved, and the subscription's
+  // endDate must be left exactly as it was, not activated or extended. No
+  // mpPaymentId either — Mercado Pago's own payment id exists for a decline
+  // too, but nothing here needs to look a failed attempt back up by it the
+  // way createFromMercadoPago's idempotency check does for an approved one.
+  async createFailedPayment(dto: {
+    subscriptionId: number;
+    amount: number;
+    payMethod: string;
+    termMonths: number;
+    monthlyPriceAtPurchase: number;
+  }) {
+    const newPayment = this.paymentRepository.create({
+      subscriptionId: dto.subscriptionId,
+      amount: dto.amount,
+      payMethod: dto.payMethod,
+      date: new Date(),
+      state: PaymentState.FAILED,
+      registeredById: null,
+      termMonths: dto.termMonths,
+      monthlyPriceAtPurchase: dto.monthlyPriceAtPurchase,
+      deleted: false,
+    });
+    return this.paymentRepository.save(newPayment);
+  }
+
   private isDuplicateKeyError(error: unknown): boolean {
     if (!error || typeof error !== 'object') {
       return false;

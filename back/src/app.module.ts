@@ -15,6 +15,7 @@ import { TypeClassModule } from './modules/typeClass/typeClass.module';
 import { classRegistrationModule } from './modules/classRegistration/classRegistration.module';
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { RenewalModule } from './modules/renewal/renewal.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
 import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
@@ -41,6 +42,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     ClassSessionModule,
     SubscriptionModule,
     PaymentModule,
+    RenewalModule,
     classRegistrationModule,
     ContactModule,
     AuthModule,

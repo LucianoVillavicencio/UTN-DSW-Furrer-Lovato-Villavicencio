@@ -6,6 +6,7 @@ import { Payment } from './entity/payment.entity';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 import { UserService } from '../user/user.service';
+import { PaymentState } from './enum/payment-state.enum';
 
 describe('PaymentService.createManualPayment', () => {
   let service: PaymentService;
@@ -579,5 +580,78 @@ describe('PaymentService.findAll', () => {
     await service.findAll();
 
     expect(users.findUser).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PaymentService.createFailedPayment', () => {
+  let service: PaymentService;
+  let repository: { create: jest.Mock; save: jest.Mock };
+  let subscriptions: {
+    findSubscription: jest.Mock;
+    activate: jest.Mock;
+    renew: jest.Mock;
+  };
+  let users: { findUser: jest.Mock };
+
+  const dto = {
+    subscriptionId: 7,
+    amount: 15000,
+    payMethod: 'mercadopago',
+    termMonths: 1,
+    monthlyPriceAtPurchase: 15000,
+  };
+
+  const buildService = async () => {
+    repository = {
+      create: jest.fn((entity: object) => entity),
+      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+    };
+    subscriptions = {
+      findSubscription: jest.fn(),
+      activate: jest.fn(),
+      renew: jest.fn(),
+    };
+    users = { findUser: jest.fn() };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentService,
+        { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: subscriptionService, useValue: subscriptions },
+        { provide: UserService, useValue: users },
+      ],
+    }).compile();
+
+    service = moduleRef.get(PaymentService);
+  };
+
+  // The renewal cron's decline path: a standalone FAILED row for the
+  // record, with none of createManualPayment/createFromMercadoPago's
+  // subscription-promoting logic — a decline must leave the subscription
+  // exactly as it was.
+  it('writes a standalone FAILED row without touching the subscription', async () => {
+    await buildService();
+
+    const result = await service.createFailedPayment(dto);
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscriptionId: 7,
+        amount: 15000,
+        payMethod: 'mercadopago',
+        state: PaymentState.FAILED,
+        registeredById: null,
+        termMonths: 1,
+        monthlyPriceAtPurchase: 15000,
+        deleted: false,
+      }),
+    );
+    expect(repository.save).toHaveBeenCalled();
+    expect(subscriptions.findSubscription).not.toHaveBeenCalled();
+    expect(subscriptions.activate).not.toHaveBeenCalled();
+    expect(subscriptions.renew).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({ id: 1, state: PaymentState.FAILED }),
+    );
   });
 });
