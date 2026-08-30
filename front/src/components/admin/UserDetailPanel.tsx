@@ -5,6 +5,7 @@ import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import MembershipActionsDialog from './MembershipActionsDialog';
 import RegisterPaymentForm from './RegisterPaymentForm';
 import AssignPlanForm from './AssignPlanForm';
 import UserClassSection from './UserClassSection';
@@ -20,6 +21,8 @@ import {
 import {
   getSubscriptionsByUser,
   cancelSubscription,
+  pauseSubscription,
+  unpauseSubscription,
 } from '../../services/subscription.service';
 import { getPaymentsByUser } from '../../services/payment.service';
 import type { User } from '../../types/user';
@@ -74,11 +77,17 @@ const UserDetailPanel = ({
   const payments = history?.payments ?? [];
 
   const [confirmDangerAction, setConfirmDangerAction] = useState<
-    'delete' | 'restore' | 'cancelSub' | null
+    'delete' | 'restore' | 'cancelSub' | 'pause' | 'unpause' | null
   >(null);
   const [pendingSubId, setPendingSubId] = useState<number | null>(null);
   const [isActing, setIsActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // The subscription id currently being offered the refund dialog. Separate
+  // from pendingSubId/confirmDangerAction: refund uses a bespoke dialog, not
+  // ConfirmDialog, since it needs a real breakdown ConfirmDialog's plain
+  // description string has no slot for.
+  const [refundSubId, setRefundSubId] = useState<number | null>(null);
 
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
@@ -158,6 +167,12 @@ const UserDetailPanel = ({
           await cancelSubscription(sub);
           await reloadHistory();
         }
+      } else if (confirmDangerAction === 'pause' && pendingSubId) {
+        await pauseSubscription(pendingSubId);
+        await reloadHistory();
+      } else if (confirmDangerAction === 'unpause' && pendingSubId) {
+        await unpauseSubscription(pendingSubId);
+        await reloadHistory();
       }
       setConfirmDangerAction(null);
       setPendingSubId(null);
@@ -274,18 +289,51 @@ const UserDetailPanel = ({
                       — {s.state} · vence {formatDateOnly(s.endDate)}
                     </span>
                   </div>
-                  {s.state?.toLowerCase() === 'activa' && !s.deleted && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingSubId(s.id ?? null);
-                        setConfirmDangerAction('cancelSub');
-                      }}
-                      className="text-xs font-semibold text-red-400 hover:text-red-300"
-                    >
-                      Cancelar
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {s.state?.toLowerCase() === 'activa' && !s.deleted && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingSubId(s.id ?? null);
+                            setConfirmDangerAction('pause');
+                          }}
+                          className="text-xs font-semibold text-text-muted hover:text-primary"
+                        >
+                          Pausar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRefundSubId(s.id ?? null)}
+                          className="text-xs font-semibold text-text-muted hover:text-primary"
+                        >
+                          Reembolsar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingSubId(s.id ?? null);
+                            setConfirmDangerAction('cancelSub');
+                          }}
+                          className="text-xs font-semibold text-red-400 hover:text-red-300"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                    {s.state?.toLowerCase() === 'pausada' && !s.deleted && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingSubId(s.id ?? null);
+                          setConfirmDangerAction('unpause');
+                        }}
+                        className="text-xs font-semibold text-text-muted hover:text-primary"
+                      >
+                        Reanudar
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -386,29 +434,49 @@ const UserDetailPanel = ({
               ? 'Dar de baja cuenta'
               : confirmDangerAction === 'restore'
                 ? 'Restaurar cuenta'
-                : 'Cancelar suscripción'
+                : confirmDangerAction === 'cancelSub'
+                  ? 'Cancelar suscripción'
+                  : confirmDangerAction === 'pause'
+                    ? 'Pausar suscripción'
+                    : 'Reanudar suscripción'
           }
           description={
             confirmDangerAction === 'delete'
               ? `"${user.name} ${user.surname}" no va a poder iniciar sesión hasta que se restaure la cuenta.`
               : confirmDangerAction === 'restore'
                 ? `"${user.name} ${user.surname}" vuelve a poder iniciar sesión.`
-                : 'Esta suscripción va a quedar cancelada.'
+                : confirmDangerAction === 'cancelSub'
+                  ? 'Esta suscripción va a quedar cancelada.'
+                  : confirmDangerAction === 'pause'
+                    ? 'La membresía queda congelada y el socio no puede usarla hasta que se reanude.'
+                    : 'La vigencia se extiende por los días que estuvo pausada.'
           }
           confirmLabel={
             confirmDangerAction === 'delete'
               ? 'Dar de baja'
               : confirmDangerAction === 'restore'
                 ? 'Restaurar'
-                : 'Cancelar suscripción'
+                : confirmDangerAction === 'cancelSub'
+                  ? 'Cancelar suscripción'
+                  : confirmDangerAction === 'pause'
+                    ? 'Pausar'
+                    : 'Reanudar'
           }
-          danger={confirmDangerAction !== 'restore'}
+          danger={confirmDangerAction !== 'restore' && confirmDangerAction !== 'unpause'}
           isLoading={isActing}
           onConfirm={handleDangerConfirm}
           onCancel={() => {
             setConfirmDangerAction(null);
             setPendingSubId(null);
           }}
+        />
+      )}
+
+      {refundSubId !== null && (
+        <MembershipActionsDialog
+          subscriptionId={refundSubId}
+          onClose={() => setRefundSubId(null)}
+          onChanged={reloadHistory}
         />
       )}
     </Modal>

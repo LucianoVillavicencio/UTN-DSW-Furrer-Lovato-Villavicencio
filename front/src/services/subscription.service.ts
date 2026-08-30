@@ -192,3 +192,36 @@ export const restoreSubscription = async (id: number): Promise<boolean> => {
     );
   }
 };
+
+// Freezes a membership (injury/travel, admin-initiated). 409s
+// ('La suscripción ya está pausada.' / 'Solo se puede pausar una
+// suscripción activa.') if the subscription isn't currently 'activa'.
+export const pauseSubscription = async (id: number): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(`/subscription/${id}/pause`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, `Error al pausar suscripción ${id}`),
+      { cause: error },
+    );
+  }
+};
+
+// Resumes a paused membership, extending endDate by the days owed back.
+// 409s ('La suscripción no está pausada.') if it isn't currently paused.
+export const unpauseSubscription = async (
+  id: number,
+): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(
+      `/subscription/${id}/unpause`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, `Error al reanudar suscripción ${id}`),
+      { cause: error },
+    );
+  }
+};
