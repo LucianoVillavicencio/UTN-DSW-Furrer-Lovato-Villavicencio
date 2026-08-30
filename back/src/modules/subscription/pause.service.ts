@@ -34,6 +34,18 @@ export class PauseService {
   // CONFIRMED/CANCELLED filter, not a date, is what draws the line between
   // the ongoing spot pausing must free and the already-cancelled history it
   // must leave alone.
+  //
+  // cancelFutureForUser runs BEFORE the subscription is saved as PAUSED, on
+  // purpose. This is not a real cross-service transaction (that would need a
+  // shared EntityManager threaded across two feature modules, more than a
+  // rare admin action warrants) — it just picks the safer failure mode: if
+  // cancelFutureForUser throws, the subscription is never persisted as
+  // PAUSED, so it simply stays ACTIVE and the admin sees the error and can
+  // retry. The old order could leave a subscription PAUSED with the
+  // member's class spots still reserved — silently breaking the very
+  // guarantee this method exists for. The remaining edge case (reservations
+  // released, then the PAUSED save itself fails) is a smaller, more benign
+  // inconsistency, and is accepted rather than solved here.
   async pause(id: number, adminId: number) {
     const subscription = await this.subscriptionService.findSubscription(id);
     if (!subscription) {
@@ -58,20 +70,18 @@ export class PauseService {
       );
     }
 
-    const now = new Date();
-    subscription.state = SubscriptionState.PAUSED;
-    subscription.pausedAt = now;
-    subscription.pausedById = adminId;
-
-    const saved = await this.subscriptionService.save(subscription);
-
     if (PAUSE_CANCELS_FUTURE_RESERVATIONS) {
       await this.classRegistrationService.cancelFutureForUser(
         subscription.userId,
       );
     }
 
-    return saved;
+    const now = new Date();
+    subscription.state = SubscriptionState.PAUSED;
+    subscription.pausedAt = now;
+    subscription.pausedById = adminId;
+
+    return this.subscriptionService.save(subscription);
   }
 
   // Resumes a PAUSED membership and hands back every day it was frozen. The

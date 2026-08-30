@@ -114,6 +114,26 @@ describe('PauseService', () => {
       await expect(service.pause(404, 999)).rejects.toThrow(NotFoundException);
       expect(subscriptionService.save).not.toHaveBeenCalled();
     });
+
+    it('never persists the subscription as PAUSED when releasing reservations fails', async () => {
+      // cancelFutureForUser runs BEFORE the subscription is saved, so a
+      // failure here must leave the subscription untouched — no
+      // PAUSED-but-still-reserved state. This is a proportionate fix, not a
+      // real cross-service transaction: the old order could save PAUSED
+      // first and then throw, silently breaking the "cannot hold a spot"
+      // guarantee for that request.
+      const subscription = buildSubscription();
+      subscriptionService.findSubscription.mockResolvedValue(subscription);
+      classRegistrationService.cancelFutureForUser.mockRejectedValue(
+        new Error('db unreachable'),
+      );
+
+      await expect(service.pause(7, 999)).rejects.toThrow('db unreachable');
+
+      expect(subscriptionService.save).not.toHaveBeenCalled();
+      expect(subscription.state).toBe(SubscriptionState.ACTIVE);
+      expect(subscription.pausedAt).toBeNull();
+    });
   });
 
   describe('unpause', () => {
