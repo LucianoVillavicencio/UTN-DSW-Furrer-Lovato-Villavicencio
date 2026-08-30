@@ -286,6 +286,16 @@ export class PaymentService {
     return await this.paymentRepository.save(newPayment);
   }
 
+  // Thin passthrough so RefundService (RefundModule) can persist the refund
+  // fields (refundedAmount/refundedAt/refundedById/state) it sets directly
+  // on the entity, without RefundModule reaching into this repository
+  // itself. No business logic here on purpose — same pattern as
+  // subscriptionService.save() in subscription.service.ts, which
+  // pause.service.ts uses the same way.
+  async save(payment: Payment) {
+    return this.paymentRepository.save(payment);
+  }
+
   async findPayment(id: number) {
     return await this.paymentRepository.findOne({
       where: { id },
