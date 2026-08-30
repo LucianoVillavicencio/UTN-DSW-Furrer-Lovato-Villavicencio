@@ -6,7 +6,7 @@ import {
 
 describe('WebhookService.handleNotification', () => {
   let client: { getPayment: jest.Mock };
-  let orderResolver: OrderResolver & { resolve: jest.Mock };
+  let orderResolver: OrderResolver & { resolve: jest.Mock; close: jest.Mock };
   let paymentService: {
     findByMpPaymentId: jest.Mock;
     createFromMercadoPago: jest.Mock;
@@ -41,7 +41,10 @@ describe('WebhookService.handleNotification', () => {
 
   beforeEach(() => {
     client = { getPayment: jest.fn() };
-    orderResolver = { resolve: jest.fn().mockResolvedValue(resolvedOrder) };
+    orderResolver = {
+      resolve: jest.fn().mockResolvedValue(resolvedOrder),
+      close: jest.fn().mockResolvedValue(undefined),
+    };
     paymentService = {
       findByMpPaymentId: jest.fn().mockResolvedValue(null),
       createFromMercadoPago: jest.fn().mockResolvedValue({ id: 1 }),
@@ -75,6 +78,7 @@ describe('WebhookService.handleNotification', () => {
     expect(mailService.sendPaymentReceipt).not.toHaveBeenCalled();
     // Short-circuits before even trying to resolve an order for it.
     expect(orderResolver.resolve).not.toHaveBeenCalled();
+    expect(orderResolver.close).not.toHaveBeenCalled();
   });
 
   // handleNotification's only parameter is the already-verified dataId —
@@ -109,6 +113,7 @@ describe('WebhookService.handleNotification', () => {
 
     expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
     expect(mailService.sendPaymentReceipt).not.toHaveBeenCalled();
+    expect(orderResolver.close).not.toHaveBeenCalled();
   });
 
   it('records an approved payment and activates the subscription', async () => {
@@ -134,6 +139,10 @@ describe('WebhookService.handleNotification', () => {
       payMethod: 'mercadopago',
       registeredById: null,
     });
+    // Closes the resolver's own bookkeeping (ChargeOrder -> 'pagada' for the
+    // real adapter) using the just-created Payment's id, not the MP payment
+    // id — and only once the write has actually succeeded.
+    expect(orderResolver.close).toHaveBeenCalledWith('order-1', 1);
     expect(mailService.sendPaymentReceipt).toHaveBeenCalledWith({
       to: 'member@example.com',
       name: 'Ana',
@@ -143,6 +152,28 @@ describe('WebhookService.handleNotification', () => {
       method: 'mercadopago',
       newEndDate: '2026-09-27',
     });
+  });
+
+  // A front-desk charge order resolves with a registeredById (the admin who
+  // started it); an online renewal's resolved order has none. Both must flow
+  // through to the Payment write untouched.
+  it("passes the resolved order's registeredById through to the payment write", async () => {
+    client.getPayment.mockResolvedValue({
+      id: 'mp-front-desk',
+      status: 'approved',
+      transactionAmount: 15000,
+      externalReference: 'order-1',
+    });
+    orderResolver.resolve.mockResolvedValue({
+      ...resolvedOrder,
+      registeredById: 30111222,
+    });
+
+    await service.handleNotification('mp-front-desk');
+
+    expect(paymentService.createFromMercadoPago).toHaveBeenCalledWith(
+      expect.objectContaining({ registeredById: 30111222 }),
+    );
   });
 
   it('answers 200 for a status it does not act on, such as in_process', async () => {
@@ -179,5 +210,6 @@ describe('WebhookService.handleNotification', () => {
     ).resolves.toBeUndefined();
 
     expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
+    expect(orderResolver.close).not.toHaveBeenCalled();
   });
 });

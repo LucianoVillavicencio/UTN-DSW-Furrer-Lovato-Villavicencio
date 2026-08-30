@@ -18,6 +18,12 @@ export interface ResolvedOrder {
   amount: number;
   termMonths: number;
   payMethod: string;
+  // The admin who started the charge at the counter (ChargeOrder.createdById),
+  // so the resulting Payment.registeredById reflects that someone DID record
+  // this one — unlike an online renewal, which has nobody to attribute it to.
+  // Optional/nullable so a future resolver with no notion of "who" (there
+  // isn't one today) doesn't have to fabricate a value.
+  registeredById?: number | null;
 }
 
 /**
@@ -29,14 +35,18 @@ export interface ResolvedOrder {
  * `PaymentService.createFromMercadoPago` itself), so it never waits on a
  * webhook.
  *
- * `MercadoPagoWebhookModule` binds a placeholder implementation for this
- * task — `resolve` always returns `null`, meaning nothing can be resolved
- * yet. That is safe: an unresolvable notification is a no-op (see
- * `WebhookService.handleNotification`), never a crash and never a write.
- * Task 16 swaps the placeholder for a real `ChargeOrderService`-backed one.
+ * Task 16 binds a real `ChargeOrderService`-backed implementation
+ * (`ChargeOrderResolverAdapter`) in `MercadoPagoWebhookModule`. Before that,
+ * a placeholder whose `resolve` always returned `null` was used — safe,
+ * since `WebhookService.handleNotification` treats an unresolvable
+ * notification as a no-op, never a crash or a write.
  */
 export interface OrderResolver {
   resolve(externalReference: string): Promise<ResolvedOrder | null>;
+  // Called once the webhook has durably recorded the payment for this order,
+  // so the resolver can close its own bookkeeping (e.g. ChargeOrder ->
+  // 'pagada'). Must not be called before the Payment write succeeds.
+  close(externalReference: string, paymentId: number): Promise<void>;
 }
 
 /**
@@ -112,14 +122,22 @@ export class WebhookService {
       return;
     }
 
-    await this.paymentService.createFromMercadoPago({
+    const createdPayment = await this.paymentService.createFromMercadoPago({
       mpPaymentId: payment.id,
       subscriptionId: resolved.subscriptionId,
       amount: resolved.amount,
       termMonths: resolved.termMonths,
       payMethod: resolved.payMethod,
-      registeredById: null,
+      registeredById: resolved.registeredById ?? null,
     });
+
+    // Only after the Payment write has actually succeeded — closing the
+    // resolver's own bookkeeping (e.g. ChargeOrder -> 'pagada') before that
+    // would risk marking an order paid with no Payment row behind it.
+    await this.orderResolver.close(
+      payment.externalReference,
+      createdPayment.id,
+    );
 
     // Re-fetched after the write (rather than resolved beforehand) so the
     // receipt's endDate reflects the activation/renewal that

@@ -141,6 +141,30 @@ export class ChargeOrderService {
     });
   }
 
+  // Used by the controller (Task 16) for the polling GET and for the cancel
+  // endpoint, both of which are keyed on the row's own id rather than its
+  // external_reference.
+  async findById(id: number) {
+    const order = await this.chargeOrderRepository.findOne({ where: { id } });
+    if (!order) {
+      throw new NotFoundException(`La orden de cobro con ID: ${id} no existe.`);
+    }
+    return order;
+  }
+
+  // Fills in the Mercado Pago order id once the controller (Task 16)
+  // successfully creates the order on MP's side. Left null until then — see
+  // the entity's own comment on mpOrderId.
+  async setMpOrderId(id: number, mpOrderId: string) {
+    const order = await this.chargeOrderRepository.findOne({ where: { id } });
+    if (!order) {
+      throw new NotFoundException(`La orden de cobro con ID: ${id} no existe.`);
+    }
+    order.mpOrderId = mpOrderId;
+    order.updatedAt = new Date();
+    return this.chargeOrderRepository.save(order);
+  }
+
   // Closes an order once the webhook (Task 16+) confirms Mercado Pago
   // approved the payment.
   async closeAsPaid(externalReference: string, paymentId: number) {

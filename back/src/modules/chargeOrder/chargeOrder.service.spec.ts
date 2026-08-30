@@ -351,6 +351,81 @@ describe('ChargeOrderService.findByExternalReference', () => {
   });
 });
 
+describe('ChargeOrderService.findById', () => {
+  let service: ChargeOrderService;
+  let repository: { findOne: jest.Mock };
+
+  beforeEach(async () => {
+    repository = { findOne: jest.fn() };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ChargeOrderService,
+        { provide: getRepositoryToken(ChargeOrder), useValue: repository },
+        { provide: subscriptionService, useValue: {} },
+        { provide: PlanTermService, useValue: {} },
+      ],
+    }).compile();
+    service = moduleRef.get(ChargeOrderService);
+  });
+
+  it('looks the order up by id', async () => {
+    repository.findOne.mockResolvedValue({ id: 1 });
+
+    const result = await service.findById(1);
+
+    expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(result).toEqual({ id: 1 });
+  });
+
+  it('throws NotFoundException when the id does not exist', async () => {
+    repository.findOne.mockResolvedValue(null);
+
+    await expect(service.findById(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});
+
+describe('ChargeOrderService.setMpOrderId', () => {
+  let service: ChargeOrderService;
+  let repository: { findOne: jest.Mock; save: jest.Mock };
+
+  beforeEach(async () => {
+    repository = {
+      findOne: jest.fn(),
+      save: jest.fn((entity: object) => Promise.resolve(entity)),
+    };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ChargeOrderService,
+        { provide: getRepositoryToken(ChargeOrder), useValue: repository },
+        { provide: subscriptionService, useValue: {} },
+        { provide: PlanTermService, useValue: {} },
+      ],
+    }).compile();
+    service = moduleRef.get(ChargeOrderService);
+  });
+
+  it('sets the mpOrderId on the order', async () => {
+    repository.findOne.mockResolvedValue({ id: 1, mpOrderId: null });
+
+    await service.setMpOrderId(1, 'mp-order-123');
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ mpOrderId: 'mp-order-123' }),
+    );
+  });
+
+  it('throws NotFoundException when the id does not exist', async () => {
+    repository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.setMpOrderId(999, 'mp-order-123'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+});
+
 describe('ChargeOrderService.closeAsPaid', () => {
   let service: ChargeOrderService;
   let repository: { findOne: jest.Mock; save: jest.Mock };

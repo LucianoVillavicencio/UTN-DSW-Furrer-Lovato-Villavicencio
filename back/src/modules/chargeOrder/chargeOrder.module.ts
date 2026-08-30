@@ -2,18 +2,27 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChargeOrder } from './entity/chargeOrder.entity';
 import { ChargeOrderService } from './chargeOrder.service';
+import { ChargeOrderController } from './chargeOrder.controller';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { PlanTermModule } from '../planTerm/planTerm.module';
+import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
+import { PaymentModule } from '../payment/payment.module';
 
-// No MercadoPagoModule import here — this task is entity + local bookkeeping
-// only. The controller that actually calls the MP client (Task 16) is what
-// pulls that dependency in.
+// MercadoPagoModule and PaymentModule are needed from here on (Task 16): the
+// controller dispatches orders through MercadoPagoClient and looks up the
+// resulting Payment/subscription endDate for the polling GET. Both are safe
+// to import — MercadoPagoModule is a pure leaf, and PaymentModule imports
+// neither this module nor MercadoPagoWebhookModule (see that module's own
+// comment on why the graph stays one-directional).
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChargeOrder]),
     SubscriptionModule,
     PlanTermModule,
+    MercadoPagoModule,
+    PaymentModule,
   ],
+  controllers: [ChargeOrderController],
   providers: [ChargeOrderService],
   exports: [ChargeOrderService],
 })
