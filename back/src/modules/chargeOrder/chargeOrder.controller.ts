@@ -110,7 +110,11 @@ export class ChargeOrderController {
       );
     }
 
-    await this.chargeOrderService.setMpOrderId(chargeOrder.id, mpOrder.id);
+    await this.chargeOrderService.setMpOrderId(
+      chargeOrder.id,
+      mpOrder.id,
+      mpOrder.qrData ?? null,
+    );
 
     return {
       id: chargeOrder.id,
@@ -119,7 +123,9 @@ export class ChargeOrderController {
       amount: chargeOrder.amount,
       // Only meaningful for 'qr' — the panel renders this as the code to
       // scan. Absent (null) for 'point', where the terminal itself prompts.
-      qrData: mpOrder.qrData ?? null,
+      // Same field name as GET /:id's qrPayload — this is the same
+      // persisted value, not a separately-derived one.
+      qrPayload: mpOrder.qrData ?? null,
       expiresAt: chargeOrder.expiresAt,
     };
   }
@@ -142,6 +148,12 @@ export class ChargeOrderController {
       status: chargeOrder.status,
       method: chargeOrder.method,
       amount: chargeOrder.amount,
+      // Persisted by setMpOrderId at order-creation time (see
+      // ChargeOrderService), not derived here — lets a panel reload or
+      // re-poll recover the code for the rest of the order's 5-minute
+      // window, not just see it once in the original POST response. Always
+      // null for a 'point' order.
+      qrPayload: chargeOrder.qrPayload,
       newEndDate,
       expiresAt: chargeOrder.expiresAt,
       updatedAt: chargeOrder.updatedAt,

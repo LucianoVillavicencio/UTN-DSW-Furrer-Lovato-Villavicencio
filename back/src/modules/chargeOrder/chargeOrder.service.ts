@@ -119,6 +119,7 @@ export class ChargeOrderService {
         method,
         externalReference,
         mpOrderId: null,
+        qrPayload: null,
         collectionPointId,
         // Snapshot the term's price, not the plan's — see the entity
         // comment on `amount`.
@@ -152,15 +153,25 @@ export class ChargeOrderService {
     return order;
   }
 
-  // Fills in the Mercado Pago order id once the controller (Task 16)
-  // successfully creates the order on MP's side. Left null until then — see
-  // the entity's own comment on mpOrderId.
-  async setMpOrderId(id: number, mpOrderId: string) {
+  // Fills in the Mercado Pago order id (and, for a 'qr' order, the QR
+  // payload to render) once the controller successfully creates the order
+  // on MP's side. Both are left null until then — see the entity's own
+  // comments on mpOrderId/qrPayload. qrPayload is written in the SAME call
+  // as mpOrderId (not a separate round trip) so a 'qr' order's payload is
+  // persisted before the controller's POST response is even sent — a panel
+  // reload or re-poll of GET /:id must be able to recover it, not just see
+  // it once in that original response.
+  async setMpOrderId(
+    id: number,
+    mpOrderId: string,
+    qrPayload: string | null = null,
+  ) {
     const order = await this.chargeOrderRepository.findOne({ where: { id } });
     if (!order) {
       throw new NotFoundException(`La orden de cobro con ID: ${id} no existe.`);
     }
     order.mpOrderId = mpOrderId;
+    order.qrPayload = qrPayload;
     order.updatedAt = new Date();
     return this.chargeOrderRepository.save(order);
   }

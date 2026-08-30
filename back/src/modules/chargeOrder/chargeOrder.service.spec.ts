@@ -416,6 +416,34 @@ describe('ChargeOrderService.setMpOrderId', () => {
     );
   });
 
+  // A point order's controller call omits the third argument entirely —
+  // must default to null rather than leaving the field untouched, so a
+  // point order's qrPayload never lingers from some earlier state.
+  it('defaults qrPayload to null when not passed', async () => {
+    repository.findOne.mockResolvedValue({ id: 1, qrPayload: 'stale-value' });
+
+    await service.setMpOrderId(1, 'mp-order-123');
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ qrPayload: null }),
+    );
+  });
+
+  // A qr order's controller call passes MpOrderResult.qrData through as the
+  // third argument — this is the only place the payload gets persisted.
+  it('sets qrPayload on the order when passed', async () => {
+    repository.findOne.mockResolvedValue({ id: 1, qrPayload: null });
+
+    await service.setMpOrderId(1, 'mp-order-123', 'qr-payload-data');
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mpOrderId: 'mp-order-123',
+        qrPayload: 'qr-payload-data',
+      }),
+    );
+  });
+
   it('throws NotFoundException when the id does not exist', async () => {
     repository.findOne.mockResolvedValue(null);
 

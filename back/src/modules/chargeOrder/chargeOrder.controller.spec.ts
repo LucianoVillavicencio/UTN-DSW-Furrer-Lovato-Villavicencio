@@ -31,6 +31,7 @@ describe('ChargeOrderController', () => {
     method: 'point' as const,
     externalReference: 'flg-sub-7-abcd1234',
     mpOrderId: null,
+    qrPayload: null,
     collectionPointId: 'terminal-1',
     amount: 15000,
     status: ChargeOrderStatus.PENDING,
@@ -108,16 +109,19 @@ describe('ChargeOrderController', () => {
           point: { terminal_id: 'terminal-1' },
         }),
       );
+      // A 'point' order has no QR payload — persisted as null, same as it
+      // was never set.
       expect(chargeOrderService.setMpOrderId).toHaveBeenCalledWith(
         1,
         'mp-order-1',
+        null,
       );
       expect(response.body).toMatchObject({
         id: 1,
         status: ChargeOrderStatus.PENDING,
         method: 'point',
         amount: 15000,
-        qrData: null,
+        qrPayload: null,
       });
     });
 
@@ -149,7 +153,15 @@ describe('ChargeOrderController', () => {
           qr: { external_pos_id: 'caja-5', mode: 'hibrid' },
         }),
       );
-      expect(response.body).toMatchObject({ qrData: 'qr-payload-data' });
+      // The QR payload must be PERSISTED (not just returned once in this
+      // response) so a panel reload or a later GET /:id can still recover
+      // it for the rest of the order's live window.
+      expect(chargeOrderService.setMpOrderId).toHaveBeenCalledWith(
+        1,
+        'mp-order-2',
+        'qr-payload-data',
+      );
+      expect(response.body).toMatchObject({ qrPayload: 'qr-payload-data' });
     });
 
     it('closes the order as error and responds 502 when Mercado Pago rejects it', async () => {
@@ -208,11 +220,34 @@ describe('ChargeOrderController', () => {
         status: ChargeOrderStatus.PENDING,
         method: 'point',
         amount: 15000,
+        // A 'point' order never has a QR payload.
+        qrPayload: null,
         newEndDate: null,
         expiresAt: pendingOrder.expiresAt.toISOString(),
         updatedAt: pendingOrder.updatedAt.toISOString(),
       });
       expect(paymentService.findPayment).not.toHaveBeenCalled();
+    });
+
+    it('returns the persisted qrPayload for a still-pendiente qr order', async () => {
+      // Simulates a panel reload/re-poll mid-window: the payload must come
+      // back from the persisted row, not just from the original POST
+      // response.
+      chargeOrderService.findById.mockResolvedValue({
+        ...pendingOrder,
+        method: 'qr',
+        qrPayload: 'qr-payload-data',
+      });
+
+      const response = await request(app.getHttpServer() as App)
+        .get('/api/v1/charge-order/1')
+        .set('Authorization', `Bearer ${tokenFor('admin')}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        method: 'qr',
+        qrPayload: 'qr-payload-data',
+      });
     });
 
     it('reports newEndDate from the resulting subscription once paid', async () => {

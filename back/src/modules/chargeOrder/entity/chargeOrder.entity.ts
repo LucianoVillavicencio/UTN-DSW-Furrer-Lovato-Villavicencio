@@ -47,6 +47,17 @@ export class ChargeOrder {
   @Column({ type: 'varchar', length: 64, nullable: true })
   mpOrderId!: string | null;
 
+  // The QR payload MP returns for a 'qr' order (MpOrderResult.qrData) — what
+  // the front-desk panel renders as a scannable code. 'text', not 'varchar',
+  // since it's a data string with no fixed bound, same convention as
+  // Contact.message. Always null for 'point' orders, and null for 'qr'
+  // orders too until the controller's createOrder call succeeds. Persisted
+  // (not just returned once from the POST response) so a panel reload or a
+  // re-poll of GET /:id can still render the code for the rest of the
+  // order's 5-minute window — see ChargeOrderController.getCharge.
+  @Column({ type: 'text', nullable: true })
+  qrPayload!: string | null;
+
   // The terminal id for 'point', the external_pos_id for 'qr'. The busy-point
   // check in createCharge queries on this column, not on subscriptionId —
   // that's what makes a shared printed QR safe: two different members must
