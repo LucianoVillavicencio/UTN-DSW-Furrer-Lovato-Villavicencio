@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { MercadoPagoClient } from './mercadopago.client';
+import { MercadoPagoClient, MpPaymentResult } from './mercadopago.client';
 import { PaymentService } from '../payment/payment.service';
 import { subscriptionService } from '../subscription/subscription.service';
 import { MailService } from '../../common/mail/mail.service';
@@ -74,8 +74,52 @@ export class WebhookService {
     private readonly mailService: MailService,
   ) {}
 
-  async handleNotification(dataId: string): Promise<void> {
-    const payment = await this.client.getPayment(dataId);
+  /**
+   * A `payment`-topic notification's `data.id` is a legacy Payments API id
+   * (`GET /v1/payments/{id}`, via `getPayment`). An `order`-topic
+   * notification's `data.id` is instead an Orders API order id — the id
+   * Point/QR front-desk charges actually create (`MercadoPagoClient.createOrder`)
+   * — which must be re-fetched via `getOrder` and mapped onto the same
+   * payment-shaped result the rest of this service already knows how to
+   * process. Passing an order id to `getPayment` (or vice versa) 404s: the
+   * two are different resource namespaces, not two names for the same id.
+   * Any other topic (e.g. `merchant_order`, `chargebacks`) is a no-op —
+   * nothing this service knows how to record.
+   */
+  private async fetchPaymentLike(
+    dataId: string,
+    type: string,
+  ): Promise<MpPaymentResult | null> {
+    if (type === 'order') {
+      const order = await this.client.getOrder(dataId);
+      if (!order.paymentId) {
+        return null;
+      }
+      return {
+        id: order.paymentId,
+        status: order.status === 'processed' ? 'approved' : order.status,
+        statusDetail: order.statusDetail,
+        transactionAmount: order.totalPaidAmount,
+        externalReference: order.externalReference,
+      };
+    }
+    if (type === 'payment') {
+      return this.client.getPayment(dataId);
+    }
+    this.logger.warn(
+      `Ignoring webhook notification of unhandled type "${type}".`,
+    );
+    return null;
+  }
+
+  async handleNotification(
+    dataId: string,
+    type: string = 'payment',
+  ): Promise<void> {
+    const payment = await this.fetchPaymentLike(dataId, type);
+    if (!payment) {
+      return;
+    }
 
     // Only an approved payment is ever money the app should record. A
     // decline, a still-pending in_process, a cancellation — none of those

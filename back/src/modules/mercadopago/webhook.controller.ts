@@ -31,6 +31,52 @@ import type { WebhookNotificationDto } from './dto/webhook-notification-dto';
  * `WEBHOOK_THROTTLE` (100/min) is this route's only other defense, since it
  * carries no `@Auth()` at all — see auth.throttle.ts.
  */
+/**
+ * Verifies a notification's signature and, if valid, dispatches it to
+ * `WebhookService`. Shared by every controller that can receive a Mercado
+ * Pago notification — see `WebhookRootController` for why more than one
+ * exists — so the signature check (the entire authentication story for
+ * this traffic) lives in exactly one place regardless of how many routes
+ * front it.
+ */
+export async function verifyAndDispatchWebhook(
+  config: MercadoPagoConfig,
+  webhookService: WebhookService,
+  input: {
+    signatureHeader: string | undefined;
+    requestId: string | undefined;
+    dataId: string | undefined;
+    type: string | undefined;
+  },
+): Promise<{ received: true }> {
+  const secret = config.webhookSecret;
+  const verified =
+    !!secret &&
+    verifyWebhookSignature(
+      {
+        signatureHeader: input.signatureHeader ?? '',
+        requestId: input.requestId ?? '',
+        dataId: input.dataId ?? '',
+      },
+      secret,
+      new Date(),
+    );
+
+  if (!verified) {
+    throw new UnauthorizedException(
+      'Firma de webhook de Mercado Pago inválida.',
+    );
+  }
+
+  // dataId is guaranteed non-empty here: an empty dataId could only have
+  // produced a verified signature if the secret itself were compromised,
+  // in which case the whole scheme is already broken — this is not a
+  // realistic branch to defend against separately.
+  await webhookService.handleNotification(input.dataId as string, input.type);
+
+  return { received: true };
+}
+
 @Controller('api/v1/mercadopago')
 @ApiTags('Mercado Pago')
 export class WebhookController {
@@ -51,34 +97,14 @@ export class WebhookController {
     @Headers('x-signature') signatureHeader: string | undefined,
     @Headers('x-request-id') requestId: string | undefined,
     @Query('data.id') dataId: string | undefined,
-    @Query('type') _type: string | undefined,
+    @Query('type') type: string | undefined,
     @Body() _body: WebhookNotificationDto,
   ): Promise<{ received: true }> {
-    const secret = this.config.webhookSecret;
-    const verified =
-      !!secret &&
-      verifyWebhookSignature(
-        {
-          signatureHeader: signatureHeader ?? '',
-          requestId: requestId ?? '',
-          dataId: dataId ?? '',
-        },
-        secret,
-        new Date(),
-      );
-
-    if (!verified) {
-      throw new UnauthorizedException(
-        'Firma de webhook de Mercado Pago inválida.',
-      );
-    }
-
-    // dataId is guaranteed non-empty here: an empty dataId could only have
-    // produced a verified signature if the secret itself were compromised,
-    // in which case the whole scheme is already broken — this is not a
-    // realistic branch to defend against separately.
-    await this.webhookService.handleNotification(dataId as string);
-
-    return { received: true };
+    return verifyAndDispatchWebhook(this.config, this.webhookService, {
+      signatureHeader,
+      requestId,
+      dataId,
+      type,
+    });
   }
 }

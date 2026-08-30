@@ -81,7 +81,10 @@ describe('POST /api/v1/mercadopago/webhook', () => {
       .expect(200);
 
     expect(response.body).toEqual({ received: true });
-    expect(webhookService.handleNotification).toHaveBeenCalledWith('123456');
+    expect(webhookService.handleNotification).toHaveBeenCalledWith(
+      '123456',
+      'payment',
+    );
   });
 
   it('rejects with 401 when the webhook secret is not configured', async () => {

@@ -142,4 +142,41 @@ describe('verifyWebhookSignature', () => {
       ),
     ).toBe(true);
   });
+
+  // Confirmed by capturing live Point `order`-topic deliveries: Mercado
+  // Pago sends `ts` as Unix SECONDS on some notifications (and retries of
+  // the very same event), not the milliseconds their docs describe. A
+  // seconds-based `ts` compared directly against `now.getTime()`
+  // (milliseconds) reads as ~1970 and was silently rejecting every one of
+  // these — this is the regression test for that bug, not a hypothetical.
+  it('accepts a fresh notification whose ts is in seconds, not milliseconds', () => {
+    const nowMs = Date.now();
+    const tsSeconds = String(Math.floor(nowMs / 1000));
+    const secondsManifest = `id:123456;request-id:req-1;ts:${tsSeconds};`;
+    expect(
+      verifyWebhookSignature(
+        {
+          ...valid,
+          signatureHeader: `ts=${tsSeconds},v1=${sign(secondsManifest)}`,
+        },
+        SECRET,
+        new Date(nowMs),
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects a replay older than five minutes when ts is in seconds', () => {
+    const oldSeconds = String(Math.floor((Date.now() - 6 * 60 * 1000) / 1000));
+    const oldManifest = `id:123456;request-id:req-1;ts:${oldSeconds};`;
+    expect(
+      verifyWebhookSignature(
+        {
+          ...valid,
+          signatureHeader: `ts=${oldSeconds},v1=${sign(oldManifest)}`,
+        },
+        SECRET,
+        new Date(),
+      ),
+    ).toBe(false);
+  });
 });
