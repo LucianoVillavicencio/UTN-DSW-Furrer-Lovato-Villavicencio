@@ -10,5 +10,7 @@ export interface Subscription {
   startDate: string;
   endDate: string;
   state?: string;
+  autoRenew?: boolean;
+  pausedAt?: string | null;
   deleted?: boolean;
 }

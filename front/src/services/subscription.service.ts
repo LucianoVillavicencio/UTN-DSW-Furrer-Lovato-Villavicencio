@@ -33,16 +33,41 @@ export const getMySubscription = async (): Promise<Subscription | null> => {
   }
 };
 
-export const changePlan = async (planId: number): Promise<Subscription> => {
+// planTermId is optional: omitting it keeps today's behavior, defaulting to
+// the plan's 1-month term server-side.
+export const changePlan = async (
+  planId: number,
+  planTermId?: number,
+): Promise<Subscription> => {
   try {
     const { data } = await api.post<Subscription>('/subscription/change-plan', {
       planId,
+      ...(planTermId !== undefined ? { planTermId } : {}),
     });
     return data;
   } catch (error: unknown) {
     throw new Error(getErrorMessage(error, 'No se pudo cambiar de plan.'), {
       cause: error,
     });
+  }
+};
+
+// Self-service: turning it off always succeeds; turning it on without an
+// active, chargeable saved card 409s (see subscription.controller.ts).
+export const setAutoRenew = async (
+  autoRenew: boolean,
+): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(
+      '/subscription/me/auto-renew',
+      { autoRenew },
+    );
+    return data;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo actualizar la renovación automática.'),
+      { cause: error },
+    );
   }
 };
 
