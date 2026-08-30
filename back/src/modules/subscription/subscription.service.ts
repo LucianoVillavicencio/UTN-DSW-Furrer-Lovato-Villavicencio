@@ -336,6 +336,17 @@ export class subscriptionService {
     return await this.subscriptionRepository.save(newSubscription);
   }
 
+  // Thin passthrough so pause.service.ts — which lives in PauseModule, not
+  // this one, to avoid a circular import with classRegistrationModule (see
+  // pause.module.ts) — can persist the state it composes from
+  // findSubscription's result (state/pausedAt/pausedById/endDate) without
+  // this module reaching into ClassRegistrationService itself. No business
+  // logic here on purpose: the ACTIVE/PAUSED checks and the date arithmetic
+  // both live in pause.service.ts, next to the pure functions they compose.
+  async save(subscription: Subscription) {
+    return this.subscriptionRepository.save(subscription);
+  }
+
   async findSubscription(id: number) {
     return await this.subscriptionRepository.findOne({
       where: { id },

@@ -15,6 +15,7 @@ import { TypeClassModule } from './modules/typeClass/typeClass.module';
 import { classRegistrationModule } from './modules/classRegistration/classRegistration.module';
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { PauseModule } from './modules/subscription/pause.module';
 import { RenewalModule } from './modules/renewal/renewal.module';
 import { MercadoPagoWebhookModule } from './modules/mercadopago/mercadopago-webhook.module';
 import { ContactModule } from './modules/contact/contact.module';
@@ -42,6 +43,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     ClassModule,
     ClassSessionModule,
     SubscriptionModule,
+    PauseModule,
     PaymentModule,
     RenewalModule,
     MercadoPagoWebhookModule,
