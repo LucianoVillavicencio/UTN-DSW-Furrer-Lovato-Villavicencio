@@ -76,18 +76,10 @@ export class ChargeOrderService {
     }
 
     // Expire stale orders before checking whether the point is busy, so an
-    // abandoned charge from a few minutes ago never blocks the counter.
+    // abandoned charge from a few minutes ago never blocks the counter. Bulk
+    // cleanup, not part of the atomicity concern below, so it runs on its
+    // own outside the transaction.
     await this.expireStale();
-
-    const pendingState: string = ChargeOrderStatus.PENDING;
-    const busyOrder = await this.chargeOrderRepository.findOne({
-      where: { collectionPointId, status: pendingState },
-    });
-    if (busyOrder) {
-      throw new ConflictException(
-        'Ya hay un cobro en curso en este punto de cobro.',
-      );
-    }
 
     const now = new Date();
     const externalReference = buildExternalReference(
@@ -95,25 +87,52 @@ export class ChargeOrderService {
       randomUUID().slice(0, 8),
     );
 
-    const newOrder = this.chargeOrderRepository.create({
-      subscriptionId,
-      planTermId,
-      method,
-      externalReference,
-      mpOrderId: null,
-      collectionPointId,
-      // Snapshot the term's price, not the plan's — see the entity comment
-      // on `amount`.
-      amount: term.price,
-      status: ChargeOrderStatus.PENDING,
-      expiresAt: new Date(now.getTime() + ORDER_EXPIRATION_MS),
-      paymentId: null,
-      createdById: adminId,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // The busy check and the insert MUST run as one atomic unit: two
+    // near-simultaneous createCharge calls for the same collectionPointId (a
+    // double-tap at the counter, two admin sessions) could otherwise both
+    // pass the check before either saves, arming two live orders on one
+    // physical point — exactly the failure this table exists to prevent.
+    // setLock('pessimistic_write') takes a row lock on any matching order,
+    // so a concurrent second transaction blocks on this SELECT until the
+    // first one commits or rolls back, rather than racing past the check.
+    // Same manager.transaction(...) pattern as
+    // SavedCardService.saveForUser's deactivate-then-insert pair.
+    return this.chargeOrderRepository.manager.transaction(async (manager) => {
+      const pendingState: string = ChargeOrderStatus.PENDING;
+      const busyOrder = await manager
+        .createQueryBuilder(ChargeOrder, 'chargeOrder')
+        .setLock('pessimistic_write')
+        .where('chargeOrder.collectionPointId = :collectionPointId', {
+          collectionPointId,
+        })
+        .andWhere('chargeOrder.status = :status', { status: pendingState })
+        .getOne();
+      if (busyOrder) {
+        throw new ConflictException(
+          'Ya hay un cobro en curso en este punto de cobro.',
+        );
+      }
 
-    return this.chargeOrderRepository.save(newOrder);
+      const newOrder = manager.create(ChargeOrder, {
+        subscriptionId,
+        planTermId,
+        method,
+        externalReference,
+        mpOrderId: null,
+        collectionPointId,
+        // Snapshot the term's price, not the plan's — see the entity
+        // comment on `amount`.
+        amount: term.price,
+        status: ChargeOrderStatus.PENDING,
+        expiresAt: new Date(now.getTime() + ORDER_EXPIRATION_MS),
+        paymentId: null,
+        createdById: adminId,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return manager.save(newOrder);
+    });
   }
 
   async findByExternalReference(externalReference: string) {

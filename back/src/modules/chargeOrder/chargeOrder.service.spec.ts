@@ -12,13 +12,25 @@ import { ORDER_EXPIRATION_MS } from './chargeOrder.rules';
 describe('ChargeOrderService.createCharge', () => {
   let service: ChargeOrderService;
   let repository: {
-    create: jest.Mock;
-    save: jest.Mock;
-    findOne: jest.Mock;
+    manager: { transaction: jest.Mock };
     update: jest.Mock;
   };
   let subscriptions: { findSubscription: jest.Mock };
   let planTerms: { findTerm: jest.Mock };
+  // The transaction's EntityManager, and the pessimistic-locked query
+  // builder it hands back from createQueryBuilder — chainable, same shape
+  // TypeORM's real one exposes for setLock/where/andWhere/getOne.
+  let manager: {
+    createQueryBuilder: jest.Mock;
+    create: jest.Mock;
+    save: jest.Mock;
+  };
+  let queryBuilder: {
+    setLock: jest.Mock;
+    where: jest.Mock;
+    andWhere: jest.Mock;
+    getOne: jest.Mock;
+  };
 
   const subscription = {
     id: 7,
@@ -45,11 +57,25 @@ describe('ChargeOrderService.createCharge', () => {
     adminId: 30111222,
   };
 
-  const buildService = async () => {
-    repository = {
-      create: jest.fn((entity: object) => entity),
+  // busyOrder: what the pessimistic-locked check finds, if anything.
+  const buildService = async (busyOrder: unknown = null) => {
+    queryBuilder = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(busyOrder),
+    };
+    manager = {
+      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      create: jest.fn((_entity: unknown, data: object) => data),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
-      findOne: jest.fn().mockResolvedValue(null),
+    };
+    repository = {
+      manager: {
+        transaction: jest.fn((cb: (manager: unknown) => unknown) =>
+          cb(manager),
+        ),
+      },
       update: jest.fn().mockResolvedValue({ affected: 0 }),
     };
 
@@ -77,14 +103,13 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    expect(repository.save).toHaveBeenCalledWith(
+    expect(manager.save).toHaveBeenCalledWith(
       expect.objectContaining({ amount: term.price }),
     );
   });
 
   it('refuses a second order on a collection point that is busy', async () => {
-    await buildService();
-    repository.findOne.mockResolvedValue({
+    await buildService({
       id: 1,
       collectionPointId: 'terminal-1',
       status: ChargeOrderStatus.PENDING,
@@ -93,19 +118,83 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toThrow(
       new ConflictException('Ya hay un cobro en curso en este punto de cobro.'),
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('runs the busy check and the insert inside one transaction, with a pessimistic write lock', async () => {
+    // Guards against the race this table exists to prevent: two
+    // near-simultaneous createCharge calls for the same collectionPointId
+    // must not both pass the check before either saves. The lock forces a
+    // concurrent transaction to block on the check rather than race past it.
+    await buildService();
+
+    await service.createCharge(params);
+
+    expect(repository.manager.transaction).toHaveBeenCalled();
+    expect(manager.createQueryBuilder).toHaveBeenCalledWith(
+      ChargeOrder,
+      expect.any(String),
+    );
+    expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+    // The check and the insert both go through the SAME manager passed into
+    // the transaction callback, not the outer repository.
+    expect(manager.create).toHaveBeenCalled();
+    expect(manager.save).toHaveBeenCalled();
+  });
+
+  it('scopes the busy check by collectionPointId, not by subscriptionId', async () => {
+    // A future regression that scoped this check by subscriptionId instead
+    // of collectionPointId would let two different members hold live orders
+    // on the same physical point at once — exactly what this table exists
+    // to prevent. Asserting the actual query args (not just the outcome)
+    // catches that even though every other test in this file happens to
+    // reuse the same subscriptionId/collectionPointId pair.
+    await buildService();
+
+    await service.createCharge(params);
+
+    expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(String), {
+      collectionPointId: params.collectionPointId,
+    });
+    const [whereClause, whereParams] = queryBuilder.where.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    const [andWhereClause, andWhereParams] = queryBuilder.andWhere.mock
+      .calls[0] as [string, Record<string, unknown>];
+    expect(whereClause).not.toMatch(/subscriptionId/);
+    expect(andWhereClause).not.toMatch(/subscriptionId/);
+    expect(whereParams).not.toHaveProperty('subscriptionId');
+    expect(andWhereParams).not.toHaveProperty('subscriptionId');
+  });
+
+  it('refuses a busy collection point even when the existing order belongs to a different subscription', async () => {
+    // Same rule from the other direction: a busy order for a DIFFERENT
+    // member on the SAME collectionPointId must still block — the code must
+    // not, say, additionally filter the found row by subscriptionId
+    // client-side before deciding whether to throw.
+    await buildService({
+      id: 1,
+      subscriptionId: 999,
+      collectionPointId: params.collectionPointId,
+      status: ChargeOrderStatus.PENDING,
+    });
+
+    await expect(service.createCharge(params)).rejects.toThrow(
+      new ConflictException('Ya hay un cobro en curso en este punto de cobro.'),
+    );
   });
 
   it('allows a new order once the previous one expired', async () => {
-    await buildService();
     // expireStale() has already flipped the stale order to EXPIRED by the
-    // time the busy check runs, so the busy-point lookup finds nothing.
-    repository.findOne.mockResolvedValue(null);
+    // time the busy check runs, so the pessimistic-locked lookup finds
+    // nothing.
+    await buildService(null);
 
     await service.createCharge(params);
 
     expect(repository.update).toHaveBeenCalled();
-    expect(repository.save).toHaveBeenCalled();
+    expect(manager.save).toHaveBeenCalled();
   });
 
   it('refuses a charge against a PAUSED subscription', async () => {
@@ -120,7 +209,7 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toThrow(
       new ConflictException('No se puede cobrar una membresía pausada.'),
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('sets expiresAt from ORDER_EXPIRATION_MS', async () => {
@@ -129,7 +218,7 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    const savedArg = repository.save.mock.calls[0][0] as { expiresAt: Date };
+    const savedArg = manager.save.mock.calls[0][0] as { expiresAt: Date };
     const after = Date.now();
     expect(savedArg.expiresAt.getTime()).toBeGreaterThanOrEqual(
       before + ORDER_EXPIRATION_MS,
@@ -148,18 +237,18 @@ describe('ChargeOrderService.createCharge', () => {
       collectionPointId: 'caja-5',
     });
 
-    expect(repository.save).toHaveBeenCalledWith(
+    expect(manager.save).toHaveBeenCalledWith(
       expect.objectContaining({ method: 'qr', collectionPointId: 'caja-5' }),
     );
 
-    repository.save.mockClear();
+    manager.save.mockClear();
     await service.createCharge({
       ...params,
       method: 'point',
       collectionPointId: 'terminal-9',
     });
 
-    expect(repository.save).toHaveBeenCalledWith(
+    expect(manager.save).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'point',
         collectionPointId: 'terminal-9',
@@ -174,7 +263,7 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a charge when the subscription is soft-deleted', async () => {
@@ -188,7 +277,7 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a term that does not exist', async () => {
@@ -198,7 +287,7 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a term that belongs to a different plan', async () => {
@@ -210,7 +299,7 @@ describe('ChargeOrderService.createCharge', () => {
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('builds the external reference from the subscription id', async () => {
@@ -218,7 +307,7 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    const savedArg = repository.save.mock.calls[0][0] as {
+    const savedArg = manager.save.mock.calls[0][0] as {
       externalReference: string;
     };
     expect(savedArg.externalReference).toMatch(/^flg-sub-7-/);
@@ -229,7 +318,7 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    expect(repository.save).toHaveBeenCalledWith(
+    expect(manager.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: ChargeOrderStatus.PENDING }),
     );
   });
