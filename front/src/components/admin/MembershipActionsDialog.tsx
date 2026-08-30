@@ -4,7 +4,6 @@ import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import { getRefundQuote, issueRefund } from '../../services/refund.service';
 import { pauseSubscription } from '../../services/subscription.service';
-import { getApiErrorMessage } from '../../services/api-error';
 import { refundSummary, zeroRefundReason } from './membership-actions';
 import type { RefundQuote } from '../../types/refund';
 
@@ -52,8 +51,15 @@ const MembershipActionsDialog = ({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        // getRefundQuote already turned the axios failure into a plain
+        // Error whose .message IS the backend's real text (or a fallback it
+        // picked itself) — see refund.service.ts. Reading err.message here,
+        // not calling getApiErrorMessage again, matches
+        // UserDetailPanel.tsx's handleDangerConfirm catch: a second call
+        // would always fall through to getApiErrorMessage's own hardcoded
+        // fallback, since a plain Error is never an AxiosError.
         setLoadError(
-          getApiErrorMessage(err, 'No se pudo calcular el reembolso.'),
+          err instanceof Error ? err.message : 'No se pudo calcular el reembolso.',
         );
       })
       .finally(() => {
@@ -75,7 +81,11 @@ const MembershipActionsDialog = ({
       onChanged();
       onClose();
     } catch (err) {
-      setActionError(getApiErrorMessage(err, 'No se pudo emitir el reembolso.'));
+      // Same reasoning as the quote-load catch above: issueRefund's own
+      // catch already ran the axios error through getApiErrorMessage once.
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo emitir el reembolso.',
+      );
     } finally {
       setIsRefunding(false);
     }
@@ -89,7 +99,12 @@ const MembershipActionsDialog = ({
       onChanged();
       onClose();
     } catch (err) {
-      setActionError(getApiErrorMessage(err, 'No se pudo pausar la suscripción.'));
+      // Same reasoning as the quote-load catch above: pauseSubscription's
+      // own catch already ran the axios error through getApiErrorMessage
+      // once.
+      setActionError(
+        err instanceof Error ? err.message : 'No se pudo pausar la suscripción.',
+      );
     } finally {
       setIsPausing(false);
     }
@@ -103,7 +118,14 @@ const MembershipActionsDialog = ({
       aria-modal="true"
       aria-label="Reembolsar suscripción"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
+      // Guarded the same way the explicit "Cerrar"/action buttons already
+      // are: dismissing via backdrop click while issueRefund/pauseSubscription
+      // is in flight would unmount the dialog mid-request, letting the admin
+      // reopen it immediately and fire a second, concurrent refund/pause
+      // before the first has resolved.
+      onClick={() => {
+        if (!isBusy) onClose();
+      }}
     >
       <Card
         className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg"
