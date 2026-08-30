@@ -229,6 +229,50 @@ describe('RefundService', () => {
       expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
     });
 
+    // The subscription is saved BEFORE the payment is marked REFUNDED —
+    // deliberately the less "obvious" order. If subscriptionService.save
+    // fails (a transient DB error, say) after a successful MP call, this
+    // ordering means the payment is never left reading "refunded, all
+    // good" while the subscription is still ACTIVE with autoRenew
+    // possibly still true, which would otherwise risk the renewal cron
+    // charging an already-refunded member again.
+    it('never marks the payment REFUNDED when cancelling the subscription fails', async () => {
+      subscriptionService.findSubscription.mockResolvedValue(
+        buildSubscription(),
+      );
+      paymentService.findCurrentTermPayment.mockResolvedValue(
+        buildPayment({ mpPaymentId: 'mp-pay-1' }),
+      );
+      subscriptionService.save.mockRejectedValue(new Error('DB is down'));
+
+      await expect(service.issue(7, 900)).rejects.toThrow('DB is down');
+
+      // The MP call still happened (money already moved at MP) — only the
+      // local write is left unresolved, which is the safer half of the
+      // partial-failure to have unresolved.
+      expect(mercadoPagoClient.refundPayment).toHaveBeenCalled();
+      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
+    });
+
+    // Same ordering guarantee, but for the cash/skipped-MP-call path: even
+    // with no MP call to fail, the subscription save must still land before
+    // the payment save.
+    it('never marks the payment REFUNDED when cancelling the subscription fails, even for cash', async () => {
+      subscriptionService.findSubscription.mockResolvedValue(
+        buildSubscription(),
+      );
+      paymentService.findCurrentTermPayment.mockResolvedValue(
+        buildPayment({ mpPaymentId: null }),
+      );
+      subscriptionService.save.mockRejectedValue(new Error('DB is down'));
+
+      await expect(service.issue(7, 900)).rejects.toThrow('DB is down');
+
+      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
+    });
+
     it('cancels the subscription and turns autoRenew off on success', async () => {
       subscriptionService.findSubscription.mockResolvedValue(
         buildSubscription({ state: SubscriptionState.ACTIVE, autoRenew: true }),
@@ -243,6 +287,22 @@ describe('RefundService', () => {
           autoRenew: false,
         }),
       );
+    });
+
+    it('saves the subscription cancellation before marking the payment REFUNDED', async () => {
+      subscriptionService.findSubscription.mockResolvedValue(
+        buildSubscription(),
+      );
+      paymentService.findCurrentTermPayment.mockResolvedValue(buildPayment());
+
+      await service.issue(7, 900);
+
+      expect(subscriptionService.save).toHaveBeenCalled();
+      expect(paymentService.save).toHaveBeenCalled();
+      const subscriptionSaveOrder =
+        subscriptionService.save.mock.invocationCallOrder[0];
+      const paymentSaveOrder = paymentService.save.mock.invocationCallOrder[0];
+      expect(subscriptionSaveOrder).toBeLessThan(paymentSaveOrder);
     });
 
     it('refuses to refund a payment that was already refunded', async () => {

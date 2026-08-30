@@ -35,15 +35,20 @@ export class RefundService {
     return this.computeQuote(subscription, payment);
   }
 
-  // The money-moving path. ORDER MATTERS: when the payment being refunded
-  // came from Mercado Pago, the refund call happens FIRST — and if it
-  // throws, execution stops right there. Nothing below that call runs: no
-  // Payment or Subscription row is touched, and no email is sent. A member
-  // whose membership was cancelled but whose money never actually moved is
-  // the worst possible outcome this method could produce, so there is no
-  // code path that writes REFUNDED/CANCELLED before the Mercado Pago call
-  // has resolved successfully (or wasn't needed at all — cash, or a $0
-  // refund skip the call entirely, both below).
+  // The money-moving path. ORDER MATTERS, in two layers:
+  //  1. When the payment being refunded came from Mercado Pago, the refund
+  //     call happens FIRST — and if it throws, execution stops right there.
+  //     Nothing below that call runs: no Payment or Subscription row is
+  //     touched, and no email is sent. A member whose membership was
+  //     cancelled but whose money never actually moved is the worst
+  //     possible outcome this method could produce, so there is no code
+  //     path that writes REFUNDED/CANCELLED before the Mercado Pago call
+  //     has resolved successfully (or wasn't needed at all — cash, or a $0
+  //     refund skip the call entirely, both below).
+  //  2. Of the two local writes that follow, the subscription is saved
+  //     BEFORE the payment. See the comment at that line for why that
+  //     order — not the more "obvious" payment-first one — is the safer
+  //     partial-failure mode.
   async issue(subscriptionId: number, adminId: number): Promise<Payment> {
     const { subscription, payment } = await this.lookup(subscriptionId);
 
@@ -75,22 +80,36 @@ export class RefundService {
     }
 
     // Only reached once the money has actually moved (or didn't need to).
-    payment.refundedAmount = amount;
-    payment.refundedAt = new Date();
-    payment.refundedById = adminId;
-    payment.state = PaymentState.REFUNDED;
-    const savedPayment = await this.paymentService.save(payment);
-
+    // Subscription cancellation is written FIRST, payment-refunded second —
+    // deliberately the opposite of "obvious" read order, because it's the
+    // safer of the two possible partial-failure orderings. If
+    // subscriptionService.save throws here, nothing local has changed yet:
+    // the worst case is "money moved at MP but no local state reflects it",
+    // recoverable by retrying (refundPayment's idempotency key means a
+    // retry doesn't double-refund at MP). The other order — payment marked
+    // REFUNDED first — has a strictly worse failure mode: if the
+    // subscription save then failed, the payment would read "refunded, all
+    // good" while the subscription stayed ACTIVE with autoRenew possibly
+    // still true, risking the renewal cron charging an already-refunded
+    // member again. See task-18-report.md's fix entry for the full
+    // reasoning.
+    const refundedAt = new Date();
     subscription.state = SubscriptionState.CANCELLED;
     subscription.autoRenew = false;
     await this.subscriptionService.save(subscription);
+
+    payment.refundedAmount = amount;
+    payment.refundedAt = refundedAt;
+    payment.refundedById = adminId;
+    payment.state = PaymentState.REFUNDED;
+    const savedPayment = await this.paymentService.save(payment);
 
     await this.mailService.sendRefundConfirmation({
       to: subscription.user.email,
       name: subscription.user.name,
       refundedAmount: amount,
       monthsCharged: months,
-      cancelledOn: payment.refundedAt,
+      cancelledOn: refundedAt,
     });
 
     return savedPayment;
