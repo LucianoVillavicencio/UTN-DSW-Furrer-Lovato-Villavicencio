@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   WebhookService,
   OrderResolver,
@@ -69,6 +70,9 @@ describe('WebhookService.handleNotification', () => {
       externalReference: 'order-1',
     });
     paymentService.findByMpPaymentId.mockResolvedValue({ id: 999 });
+    // The order was already closed by the delivery that recorded the payment,
+    // so resolve() reports nothing left to do (its own status check).
+    orderResolver.resolve.mockResolvedValue(null);
 
     await expect(
       service.handleNotification('mp-already'),
@@ -76,9 +80,66 @@ describe('WebhookService.handleNotification', () => {
 
     expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
     expect(mailService.sendPaymentReceipt).not.toHaveBeenCalled();
-    // Short-circuits before even trying to resolve an order for it.
-    expect(orderResolver.resolve).not.toHaveBeenCalled();
+    // resolve() IS consulted — it is the idempotent probe for "does this
+    // order still need closing" — but with the order already closed there is
+    // nothing to close a second time.
     expect(orderResolver.close).not.toHaveBeenCalled();
+  });
+
+  // The stuck-order recovery path. If a prior delivery wrote the Payment and
+  // then failed inside close(), every later retry would short-circuit on the
+  // idempotency check and never close the order — it would sit 'pendiente',
+  // blocking its collection point, until expireStale timed it out.
+  describe('retry after a Payment was recorded but the order never closed', () => {
+    beforeEach(() => {
+      client.getPayment.mockResolvedValue({
+        id: 'mp-stuck',
+        status: 'approved',
+        transactionAmount: 15000,
+        externalReference: 'order-1',
+      });
+      paymentService.findByMpPaymentId.mockResolvedValue({ id: 999 });
+    });
+
+    it('closes the order using the already-recorded payment id', async () => {
+      // resolve() returns non-null only while the order is still 'pendiente'.
+      orderResolver.resolve.mockResolvedValue(resolvedOrder);
+
+      await service.handleNotification('mp-stuck');
+
+      expect(orderResolver.resolve).toHaveBeenCalledWith('order-1');
+      expect(orderResolver.close).toHaveBeenCalledWith('order-1', 999);
+      // Still no second Payment row and no second receipt.
+      expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
+      expect(mailService.sendPaymentReceipt).not.toHaveBeenCalled();
+    });
+
+    it('does not close an order that is already closed', async () => {
+      orderResolver.resolve.mockResolvedValue(null);
+
+      await service.handleNotification('mp-stuck');
+
+      expect(orderResolver.close).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when close() fails again on the retry', async () => {
+      // Throwing here would only earn another MP retry that lands right back
+      // on this branch — the Payment is already durably recorded either way.
+      orderResolver.resolve.mockResolvedValue(resolvedOrder);
+      orderResolver.close.mockRejectedValue(new Error('connection lost'));
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      await expect(
+        service.handleNotification('mp-stuck'),
+      ).resolves.toBeUndefined();
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Retry could not close the order'),
+      );
+      warn.mockRestore();
+    });
   });
 
   // handleNotification's only parameter is the already-verified dataId —

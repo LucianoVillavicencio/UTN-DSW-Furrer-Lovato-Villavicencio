@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Body,
+  ConflictException,
   Controller,
   Get,
   Logger,
@@ -26,6 +27,7 @@ import {
   QR_MODE_HYBRID,
   type MpOrderResult,
 } from '../mercadopago/mercadopago.client';
+import { MercadoPagoConfig } from '../mercadopago/mercadopago.config';
 import { PaymentService } from '../payment/payment.service';
 
 // Front-desk card-terminal ("point") and QR charges — admin-only, same
@@ -41,6 +43,7 @@ export class ChargeOrderController {
   constructor(
     private readonly chargeOrderService: ChargeOrderService,
     private readonly mercadoPagoClient: MercadoPagoClient,
+    private readonly mercadoPagoConfig: MercadoPagoConfig,
     private readonly paymentService: PaymentService,
   ) {}
 
@@ -54,11 +57,34 @@ export class ChargeOrderController {
     @ActiveUser() admin: UserActiveInterface,
     @Body() dto: CreateChargeOrderDto,
   ) {
+    // Which physical terminal / QR caja this charge is armed against comes
+    // from the SERVER's own config, never from the request body. It is what
+    // ChargeOrderService.createCharge's busy-collection-point check is keyed
+    // on — the one safety property the shared-printed-QR design rests on
+    // (two admins must never arm two live orders on the same physical point),
+    // so two browsers configured slightly differently must not be able to
+    // disagree about what that check even means.
+    //
+    // dto.collectionPointId is deliberately left on the DTO and simply
+    // ignored: main.ts's ValidationPipe runs with forbidNonWhitelisted, so
+    // dropping the field would 400 every request the front desk sends today.
+    const collectionPointId =
+      dto.method === ChargeOrderMethod.POINT
+        ? this.mercadoPagoConfig.pointTerminalId
+        : this.mercadoPagoConfig.qrExternalPosId;
+    if (!collectionPointId) {
+      throw new ConflictException(
+        dto.method === ChargeOrderMethod.POINT
+          ? 'La terminal Point no está configurada en el servidor.'
+          : 'La caja QR no está configurada en el servidor.',
+      );
+    }
+
     const chargeOrder = await this.chargeOrderService.createCharge({
       subscriptionId: dto.subscriptionId,
       planTermId: dto.planTermId,
       method: dto.method,
-      collectionPointId: dto.collectionPointId,
+      collectionPointId,
       adminId: admin.sub,
     });
 
@@ -83,7 +109,7 @@ export class ChargeOrderController {
               // This shape is an educated guess by symmetry with the
               // verified `qr` body below, not confirmed against live docs —
               // see MercadoPagoClient.createOrder's own comment.
-              point: { terminal_id: dto.collectionPointId },
+              point: { terminal_id: collectionPointId },
             })
           : await this.mercadoPagoClient.createOrder({
               type: 'qr',
@@ -95,7 +121,7 @@ export class ChargeOrderController {
               // external_pos_id — see the entity's comment on
               // collectionPointId. This shape IS verified against live docs.
               qr: {
-                external_pos_id: dto.collectionPointId,
+                external_pos_id: collectionPointId,
                 mode: QR_MODE_HYBRID,
               },
             });

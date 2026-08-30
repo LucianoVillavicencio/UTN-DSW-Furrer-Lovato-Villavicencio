@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Plan } from '../../plan/entity/plan.entity';
+import { decimalTransformer } from '../../../common/decimal.transformer';
 
 // A discounted multi-month purchase option for an existing Plan (e.g. "3
 // months at a discount"). changePlan defaults to the plan's 1-month term when
@@ -33,7 +34,13 @@ export class PlanTerm {
   // term at a discount might be priced 2700 here, not 900. plan.price stays
   // the undiscounted monthly reference; this column is where the discount
   // actually lives.
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalTransformer,
+  })
   price!: number;
 
   @Column({ type: Boolean, nullable: false, default: false })

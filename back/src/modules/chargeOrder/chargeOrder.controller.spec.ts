@@ -4,6 +4,7 @@ import type { App } from 'supertest/types';
 import { ChargeOrderController } from './chargeOrder.controller';
 import { ChargeOrderService } from './chargeOrder.service';
 import { MercadoPagoClient } from '../mercadopago/mercadopago.client';
+import { MercadoPagoConfig } from '../mercadopago/mercadopago.config';
 import { PaymentService } from '../payment/payment.service';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
 import { ORDER_EXPIRATION } from './chargeOrder.rules';
@@ -23,6 +24,18 @@ describe('ChargeOrderController', () => {
     cancelOrder: jest.Mock;
   };
   let paymentService: { findPayment: jest.Mock };
+  // Mutable stand-in for MercadoPagoConfig's getters — the controller reads
+  // the real terminal/caja ids from here, never from the request body.
+  let mercadoPagoConfig: {
+    pointTerminalId: string | undefined;
+    qrExternalPosId: string | undefined;
+  };
+
+  // What the SERVER is configured with, deliberately different from the
+  // 'terminal-1'/'caja-5' the request body below claims — that difference is
+  // what proves the body is ignored.
+  const CONFIGURED_TERMINAL = 'server-terminal-9';
+  const CONFIGURED_POS = 'server-caja-9';
 
   const pendingOrder = {
     id: 1,
@@ -54,10 +67,21 @@ describe('ChargeOrderController', () => {
       cancelOrder: jest.fn(),
     };
     paymentService = { findPayment: jest.fn() };
+    mercadoPagoConfig = {
+      pointTerminalId: CONFIGURED_TERMINAL,
+      qrExternalPosId: CONFIGURED_POS,
+    };
 
     app = await buildAuthzApp(ChargeOrderController, [
       { provide: ChargeOrderService, useValue: chargeOrderService },
       { provide: MercadoPagoClient, useValue: mercadoPagoClient },
+      {
+        // Plain values, not jest.Mocks: the controller reads these as
+        // properties (MercadoPagoConfig exposes them as getters), so the
+        // harness's Record<string, jest.Mock> shape has to be widened here.
+        provide: MercadoPagoConfig,
+        useValue: mercadoPagoConfig as unknown as Record<string, jest.Mock>,
+      },
       { provide: PaymentService, useValue: paymentService },
     ]);
   });
@@ -68,6 +92,9 @@ describe('ChargeOrderController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Restored per test, since the "not configured" cases below blank them.
+    mercadoPagoConfig.pointTerminalId = CONFIGURED_TERMINAL;
+    mercadoPagoConfig.qrExternalPosId = CONFIGURED_POS;
   });
 
   describe('POST /api/v1/charge-order', () => {
@@ -93,11 +120,14 @@ describe('ChargeOrderController', () => {
         })
         .expect(201);
 
+      // The body said 'terminal-1'; the server's own config says
+      // 'server-terminal-9', and that is what must reach both the busy-point
+      // check and Mercado Pago.
       expect(chargeOrderService.createCharge).toHaveBeenCalledWith({
         subscriptionId: 7,
         planTermId: 55,
         method: 'point',
-        collectionPointId: 'terminal-1',
+        collectionPointId: CONFIGURED_TERMINAL,
         adminId: 40000001,
       });
       expect(mercadoPagoClient.createOrder).toHaveBeenCalledWith(
@@ -106,7 +136,7 @@ describe('ChargeOrderController', () => {
           externalReference: 'flg-sub-7-abcd1234',
           totalAmount: 15000,
           expirationTime: ORDER_EXPIRATION,
-          point: { terminal_id: 'terminal-1' },
+          point: { terminal_id: CONFIGURED_TERMINAL },
         }),
       );
       // A 'point' order has no QR payload — persisted as null, same as it
@@ -147,10 +177,15 @@ describe('ChargeOrderController', () => {
         })
         .expect(201);
 
+      // Same rule on the qr side: the body's 'caja-5' is ignored in favour of
+      // the server-configured external_pos_id.
+      expect(chargeOrderService.createCharge).toHaveBeenCalledWith(
+        expect.objectContaining({ collectionPointId: CONFIGURED_POS }),
+      );
       expect(mercadoPagoClient.createOrder).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'qr',
-          qr: { external_pos_id: 'caja-5', mode: 'hibrid' },
+          qr: { external_pos_id: CONFIGURED_POS, mode: 'hibrid' },
         }),
       );
       // The QR payload must be PERSISTED (not just returned once in this
@@ -189,6 +224,53 @@ describe('ChargeOrderController', () => {
       expect(response.body).toMatchObject({
         statusCode: 502,
       });
+    });
+
+    it('refuses a point charge with 409 when the server has no terminal configured', async () => {
+      // Without a real terminal id there is nothing to key the busy-point
+      // check on — arming the order anyway would silently defeat the one
+      // safety property the shared-terminal design rests on.
+      mercadoPagoConfig.pointTerminalId = undefined;
+
+      const response = await request(app.getHttpServer() as App)
+        .post('/api/v1/charge-order')
+        .set('Authorization', `Bearer ${tokenFor('admin')}`)
+        .send({
+          subscriptionId: 7,
+          planTermId: 55,
+          method: 'point',
+          // A body that supplies one anyway must NOT be able to stand in for
+          // the missing server config.
+          collectionPointId: 'terminal-from-the-browser',
+        })
+        .expect(409);
+
+      expect(response.body).toMatchObject({
+        message: 'La terminal Point no está configurada en el servidor.',
+      });
+      expect(chargeOrderService.createCharge).not.toHaveBeenCalled();
+      expect(mercadoPagoClient.createOrder).not.toHaveBeenCalled();
+    });
+
+    it('refuses a qr charge with 409 when the server has no caja configured', async () => {
+      mercadoPagoConfig.qrExternalPosId = undefined;
+
+      const response = await request(app.getHttpServer() as App)
+        .post('/api/v1/charge-order')
+        .set('Authorization', `Bearer ${tokenFor('admin')}`)
+        .send({
+          subscriptionId: 7,
+          planTermId: 55,
+          method: 'qr',
+          collectionPointId: 'caja-from-the-browser',
+        })
+        .expect(409);
+
+      expect(response.body).toMatchObject({
+        message: 'La caja QR no está configurada en el servidor.',
+      });
+      expect(chargeOrderService.createCharge).not.toHaveBeenCalled();
+      expect(mercadoPagoClient.createOrder).not.toHaveBeenCalled();
     });
 
     it('refuses a non-admin caller', async () => {

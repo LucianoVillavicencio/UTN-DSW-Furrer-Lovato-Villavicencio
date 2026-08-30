@@ -77,7 +77,12 @@ describe('PaymentService.createManualPayment', () => {
 
 describe('createManualPayment — advance payment', () => {
   let service: PaymentService;
-  let repository: { create: jest.Mock; save: jest.Mock; find: jest.Mock };
+  let repository: {
+    create: jest.Mock;
+    save: jest.Mock;
+    find: jest.Mock;
+    findOne: jest.Mock;
+  };
   let subscriptions: {
     findSubscription: jest.Mock;
     activate: jest.Mock;
@@ -88,11 +93,17 @@ describe('createManualPayment — advance payment', () => {
   const dto = { subscriptionId: 7, amount: 15000, payMethod: 'efectivo' };
   const plan = { numDays: 30, price: 15000 };
 
-  const buildService = async () => {
+  // findOne backs findCurrentTermPayment, which the ACTIVE branch now asks
+  // "has this subscription ever actually been paid for?". Defaulting to a
+  // real row keeps every pre-existing ACTIVE case in this block on the
+  // advance-payment (renew) path it was written for; the two new tests below
+  // override it.
+  const buildService = async (currentTermPayment: unknown = { id: 42 }) => {
     repository = {
       create: jest.fn((entity: object) => entity),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(currentTermPayment),
     };
     users = { findUser: jest.fn().mockResolvedValue(null) };
 
@@ -130,6 +141,60 @@ describe('createManualPayment — advance payment', () => {
     await service.createManualPayment(dto, 30111222);
 
     expect(subscriptions.renew).toHaveBeenCalledWith(7, 30);
+    expect(subscriptions.activate).not.toHaveBeenCalled();
+    expect(repository.save).toHaveBeenCalled();
+  });
+
+  // The front-desk new-member wizard: assignPlanToMember opens the
+  // subscription ACTIVE with the full period already granted but with zero
+  // payments recorded, and the wizard's last step records the cash payment.
+  // Renewing here would extend on top of a period nobody has paid for yet —
+  // 2x the days for 1x the money.
+  it('activates (does not extend) the first payment against an admin-assigned ACTIVE subscription', async () => {
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    // No completed, non-refunded payment exists for this subscription yet.
+    await buildService(null);
+
+    await service.createManualPayment({ ...dto, termMonths: 3 }, 30111222);
+
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 90);
+    expect(subscriptions.renew).not.toHaveBeenCalled();
+    expect(repository.save).toHaveBeenCalled();
+  });
+
+  // The regression guard for the case above: a subscription that HAS been
+  // paid for is a genuine advance payment and must still extend, exactly as
+  // it did before.
+  it('still extends an ACTIVE subscription that already has a completed payment', async () => {
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService({
+      id: 42,
+      subscriptionId: 7,
+      state: PaymentState.COMPLETED,
+      refundedAt: null,
+    });
+
+    await service.createManualPayment({ ...dto, termMonths: 3 }, 30111222);
+
+    expect(subscriptions.renew).toHaveBeenCalledWith(7, 90);
     expect(subscriptions.activate).not.toHaveBeenCalled();
     expect(repository.save).toHaveBeenCalled();
   });
@@ -327,6 +392,14 @@ describe('createFromMercadoPago', () => {
       renew: jest.fn().mockResolvedValue(undefined),
     };
     await buildService(null);
+    // findOne is asked twice on an ACTIVE subscription: first as
+    // findByMpPaymentId (nothing recorded yet for this MP payment), then as
+    // findCurrentTermPayment — a real row there means this subscription has
+    // already been paid for, so this is a genuine advance payment and must
+    // extend rather than re-activate.
+    repository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 42 });
 
     await service.createFromMercadoPago({
       mpPaymentId: 'mp-124',
@@ -353,6 +426,11 @@ describe('createFromMercadoPago', () => {
       renew: jest.fn().mockResolvedValue(undefined),
     };
     await buildService(null);
+    // As above: nothing recorded for this MP payment, but the subscription
+    // already has a completed payment, so this extends.
+    repository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 42 });
 
     await service.createFromMercadoPago({
       mpPaymentId: 'mp-125',

@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Subscription } from '../../subscription/entity/subscription.entity';
 import { PlanTerm } from '../../planTerm/entity/planTerm.entity';
+import { decimalTransformer } from '../../../common/decimal.transformer';
 
 // A front-desk collection in progress: a card-terminal ("point") or QR charge
 // armed against one physical collection point. The amount is a snapshot of
@@ -68,7 +69,13 @@ export class ChargeOrder {
   // Snapshotted from PlanTerm.price at creation time. Never recompute this
   // from the term later — a price change after the order was armed must not
   // change what the member already agreed to pay.
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalTransformer,
+  })
   amount!: number;
 
   // See ChargeOrderStatus for the possible values.

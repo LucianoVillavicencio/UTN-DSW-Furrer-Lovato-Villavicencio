@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { decimalTransformer } from '../../../common/decimal.transformer';
 
 export interface PlanFeature {
   label: string;
@@ -19,7 +20,13 @@ export class Plan {
   // The regular monthly price — the reference the refund pro-rata formula
   // charges consumed months at, regardless of any multi-month discount the
   // member originally paid.
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalTransformer,
+  })
   price!: number;
 
   @Column({ type: Number, nullable: false })

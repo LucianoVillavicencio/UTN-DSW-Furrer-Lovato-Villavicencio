@@ -92,6 +92,34 @@ export class WebhookService {
     // retry short-circuits without even attempting the write.
     const existing = await this.paymentService.findByMpPaymentId(payment.id);
     if (existing) {
+      // A prior delivery could have written the Payment and then failed inside
+      // orderResolver.close() — every later retry would otherwise short-circuit
+      // right here forever, leaving the ChargeOrder stuck 'pendiente' (and its
+      // collection point blocked) until expireStale times it out. resolve()
+      // returns non-null only while the order genuinely still needs closing
+      // (see its own status check), so this recovers that case without risking
+      // a double-close: once close() has actually succeeded, resolve() returns
+      // null and this becomes a no-op.
+      if (payment.externalReference) {
+        const stillPending = await this.orderResolver.resolve(
+          payment.externalReference,
+        );
+        if (stillPending) {
+          try {
+            await this.orderResolver.close(
+              payment.externalReference,
+              existing.id,
+            );
+          } catch (err) {
+            // Swallowed on purpose: the Payment is already durably recorded,
+            // so throwing here would only earn another MP retry that lands
+            // back on this same branch. The next retry gets another chance.
+            this.logger.warn(
+              `Retry could not close the order for already-recorded payment ${payment.id}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
+        }
+      }
       return;
     }
 
@@ -115,7 +143,15 @@ export class WebhookService {
     // The order snapshot's amount, not the webhook body's — refuses a
     // payment that was somehow approved for a different amount than what the
     // order was created for, instead of crediting whatever MP says was paid.
-    if (payment.transactionAmount !== resolved.amount) {
+    //
+    // Both sides are coerced with Number() rather than compared directly:
+    // resolved.amount traces back to a MySQL DECIMAL column, which the mysql2
+    // driver hands back as a STRING unless the column opts into
+    // decimalTransformer (ChargeOrder.amount does). This costs nothing while
+    // that transformer is in place, and stops a future decimal column that
+    // forgets it from silently turning every approved payment into a
+    // "mismatch" that is logged and thrown away.
+    if (Number(payment.transactionAmount) !== Number(resolved.amount)) {
       this.logger.warn(
         `Payment ${payment.id} amount ${String(payment.transactionAmount)} does not match order snapshot ${resolved.amount} for external reference ${payment.externalReference}.`,
       );

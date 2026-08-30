@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Subscription } from '../../subscription/entity/subscription.entity';
+import { decimalTransformer } from '../../../common/decimal.transformer';
 
 @Entity('payments')
 export class Payment {
@@ -19,7 +20,13 @@ export class Payment {
   @JoinColumn({ name: 'subscriptionId' })
   subscription!: Subscription;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalTransformer,
+  })
   amount!: number;
 
   @Column({ type: 'datetime', nullable: false })
@@ -50,12 +57,24 @@ export class Payment {
   @Column({ type: Number, nullable: false, default: 1 })
   termMonths!: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalTransformer,
+  })
   monthlyPriceAtPurchase!: number;
 
   // Set when an admin refunds this payment. The amount is stored rather than
   // inferred, because a pro-rata refund is deliberately not the full amount.
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
   refundedAmount?: number | null;
 
   @Column({ type: 'datetime', nullable: true })

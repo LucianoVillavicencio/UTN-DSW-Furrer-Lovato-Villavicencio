@@ -209,10 +209,30 @@ export class PaymentService {
         termMonths * subscription.plan.numDays,
       );
     } else if (subscription.state === activeState) {
-      await this.subscriptionService.renew(
-        subscription.id,
-        termMonths * subscription.plan.numDays,
-      );
+      // assignPlanToMember (byAdmin=true) opens a subscription ACTIVE with the
+      // correct period already set, but with zero payments recorded — the first
+      // payment against it must activate (recompute from today), exactly like
+      // the self-service PENDING path, not extend on top of a period nobody
+      // paid for yet. Only a subscription that already has a completed payment
+      // is a genuine advance payment, which extends.
+      //
+      // Checked BEFORE the new payment row is written (same as the rest of
+      // this method), so it answers "has this subscription EVER been paid for"
+      // at decision time. Safe against activate()'s "cancel the user's other
+      // ACTIVE subscription" side effect: changePlan already cancelled any
+      // prior ACTIVE row at assignment time, so there is none left to find.
+      const currentPayment = await this.findCurrentTermPayment(subscription.id);
+      if (currentPayment) {
+        await this.subscriptionService.renew(
+          subscription.id,
+          termMonths * subscription.plan.numDays,
+        );
+      } else {
+        await this.subscriptionService.activate(
+          subscription.id,
+          termMonths * subscription.plan.numDays,
+        );
+      }
     } else if (subscription.state === pausedState) {
       throw new ConflictException(
         'Reanudá la membresía antes de registrar un pago.',

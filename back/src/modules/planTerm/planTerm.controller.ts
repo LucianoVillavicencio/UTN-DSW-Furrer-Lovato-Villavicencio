@@ -17,8 +17,13 @@ import { PlanTermDto } from './dto/planTerm-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { Role } from '../../common/enum/role.enum';
 
+// Admin-only by default, same deny-by-default pattern as every sibling
+// controller: a route added here later without its own @Auth is still
+// guarded. The one member-facing route (GET by-plan/:planId) widens to
+// Role.USER with a method-level override.
 @Controller('api/v1/plan-term')
 @ApiTags('Plazos de plan')
+@Auth(Role.ADMIN)
 // Not rate limited — see auth.throttle.ts.
 @SkipThrottle(SKIP_ALL_THROTTLERS)
 export class PlanTermController {
