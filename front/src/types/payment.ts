@@ -25,4 +25,7 @@ export interface ManualPaymentPayload {
   subscriptionId: number;
   amount: number;
   payMethod: 'efectivo' | 'debito' | 'credito' | 'transferencia';
+  // Only meaningful for an advance payment against an already-ACTIVE
+  // subscription; the backend defaults to 1 when omitted.
+  termMonths?: number;
 }
