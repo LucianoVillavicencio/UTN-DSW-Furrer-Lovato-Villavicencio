@@ -2,6 +2,7 @@ import { SavedCard } from './entity/savedCard.entity';
 
 /** The only shape of a saved card ever allowed to leave the server. */
 export interface PublicSavedCard {
+  id: number;
   lastFourDigits: string;
   paymentMethodId: string;
   expirationMonth: number;
@@ -15,6 +16,7 @@ export interface PublicSavedCard {
 // cannot happen without the shared mapper (and its test) catching it too.
 export function toPublicCard(card: SavedCard): PublicSavedCard {
   return {
+    id: card.id,
     lastFourDigits: card.lastFourDigits,
     paymentMethodId: card.paymentMethodId,
     expirationMonth: card.expirationMonth,

@@ -58,6 +58,7 @@ describe('SavedCardController response shape', () => {
       .expect(201);
 
     expect(response.body).toEqual({
+      id: 1,
       lastFourDigits: '4242',
       paymentMethodId: 'visa',
       expirationMonth: 12,
@@ -65,7 +66,6 @@ describe('SavedCardController response shape', () => {
     });
     expect(response.body).not.toHaveProperty('mpCardId');
     expect(response.body).not.toHaveProperty('mpCustomerId');
-    expect(response.body).not.toHaveProperty('id');
     expect(response.body).not.toHaveProperty('userId');
   });
 
@@ -78,6 +78,7 @@ describe('SavedCardController response shape', () => {
       .expect(200);
 
     expect(response.body).toEqual({
+      id: 1,
       lastFourDigits: '4242',
       paymentMethodId: 'visa',
       expirationMonth: 12,
