@@ -17,6 +17,7 @@ import {
 import {
   POLL_INTERVAL_MS,
   hasAutoRenewedToday,
+  needsChargeOrder,
   shouldKeepPolling,
   statusLabel,
 } from './charge-panel';
@@ -269,6 +270,11 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
   const isOrderPending = orderView?.status === 'pendiente';
 
   const handleCreateOrder = async () => {
+    // The `method === 'efectivo'` form (not needsChargeOrder(method)) is
+    // required here: TypeScript narrows `method` to 'point' | 'qr' for the
+    // rest of this function from a literal comparison, which
+    // createChargeOrder's payload type below depends on; a plain boolean
+    // function call wouldn't narrow it.
     if (method === 'efectivo' || !selectedSubId || !selectedTermId) return;
     if (!collectionPointId) return;
 
@@ -318,9 +324,15 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
           const disabledByConfig =
             (m.value === 'point' && !isPointConfigured) ||
             (m.value === 'qr' && !isQrConfigured);
-          // While a point/qr order is pendiente, switching methods would
-          // orphan the poll — force the admin to cancel first.
-          const disabledByPending = isOrderPending && m.value !== method;
+          // While a point/qr order is pendiente, ANY tab click — including
+          // reclicking the active one — must not silently abandon it: the
+          // Point terminal and QR caja are each a single shared physical
+          // resource, so a client-side-only reset would leave the backend's
+          // order stuck 'pendiente' (and the collection point 409-blocked)
+          // until it expires on its own. Disabling every tab forces the
+          // admin through "Cancelar cobro", the one path that actually calls
+          // cancelChargeOrder.
+          const disabledByPending = isOrderPending;
           const disabled = disabledByConfig || disabledByPending;
           const Icon = m.icon;
           return (
@@ -332,7 +344,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
                 disabledByConfig
                   ? `${m.label} no está configurado (falta la variable de entorno del panel).`
                   : disabledByPending
-                    ? 'Cancelá el cobro en curso para cambiar de método.'
+                    ? 'Hay un cobro en curso. Cancelalo con "Cancelar cobro" antes de tocar los métodos.'
                     : undefined
               }
               onClick={() => selectMethod(m.value)}
@@ -359,7 +371,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
         </p>
       )}
 
-      {method === 'efectivo' ? (
+      {!needsChargeOrder(method) ? (
         <RegisterPaymentForm onRegistered={() => onCharged?.()} />
       ) : (
         <div className="space-y-4">
