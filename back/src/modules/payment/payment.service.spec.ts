@@ -50,7 +50,7 @@ describe('PaymentService.createManualPayment', () => {
 
     await service.createManualPayment(dto, 30111222);
 
-    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 30);
     expect(repository.save).toHaveBeenCalled();
   });
 
@@ -150,7 +150,7 @@ describe('createManualPayment — advance payment', () => {
 
     await service.createManualPayment(dto, 30111222);
 
-    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 30);
     expect(subscriptions.renew).not.toHaveBeenCalled();
     expect(repository.save).toHaveBeenCalled();
   });
@@ -218,7 +218,7 @@ describe('createManualPayment — advance payment', () => {
 
     await service.createManualPayment(dto, 30111222);
 
-    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 30);
     expect(subscriptions.renew).not.toHaveBeenCalled();
     expect(repository.save).toHaveBeenCalled();
   });
@@ -307,7 +307,7 @@ describe('createFromMercadoPago', () => {
       payMethod: 'mercadopago',
     });
 
-    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 30);
     expect(subscriptions.renew).not.toHaveBeenCalled();
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({ registeredById: null, mpPaymentId: 'mp-123' }),
@@ -363,6 +363,34 @@ describe('createFromMercadoPago', () => {
     });
 
     expect(subscriptions.renew).toHaveBeenCalledWith(7, 360);
+  });
+
+  it('activates a PENDING subscription with the full multi-month term, not one month', async () => {
+    // Mirrors the ACTIVE-side 'extends by the full multi-month term' test
+    // above: a 3-month term on a 30-day plan must activate with 90 days,
+    // not silently collapse to plan.numDays (30).
+    subscriptions = {
+      findSubscription: jest.fn().mockResolvedValue({
+        id: 7,
+        state: SubscriptionState.PENDING,
+        deleted: false,
+        plan,
+      }),
+      activate: jest.fn().mockResolvedValue(undefined),
+      renew: jest.fn().mockResolvedValue(undefined),
+    };
+    await buildService(null);
+
+    await service.createFromMercadoPago({
+      mpPaymentId: 'mp-131',
+      subscriptionId: 7,
+      amount: 45000,
+      termMonths: 3,
+      payMethod: 'mercadopago',
+    });
+
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 90);
+    expect(subscriptions.renew).not.toHaveBeenCalled();
   });
 
   it('returns the existing payment when mpPaymentId was already recorded', async () => {
@@ -440,7 +468,7 @@ describe('createFromMercadoPago', () => {
       payMethod: 'mercadopago',
     });
 
-    expect(subscriptions.activate).toHaveBeenCalledWith(7);
+    expect(subscriptions.activate).toHaveBeenCalledWith(7, 30);
     expect(subscriptions.renew).not.toHaveBeenCalled();
   });
 

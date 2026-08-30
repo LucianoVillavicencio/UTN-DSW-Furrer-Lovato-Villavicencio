@@ -181,7 +181,12 @@ export class subscriptionService {
   // This is also where the member's previous plan actually loses access: a
   // self-service changePlan leaves the old ACTIVE subscription untouched, so
   // it has to be cancelled here, once the replacement is paid for.
-  async activate(id: number) {
+  //
+  // The caller supplies the paid period length in `days` (e.g. termMonths *
+  // plan.numDays for a multi-month term) — same convention as `renew` below —
+  // since a subscription's day count can no longer be derived from the plan
+  // alone once multi-month PlanTerms are in play.
+  async activate(id: number, days: number) {
     const subscription = await this.findSubscription(id);
     if (!subscription) {
       throw new NotFoundException(`La suscripción con ID: ${id} no existe.`);
@@ -210,7 +215,7 @@ export class subscriptionService {
         `El plan con ID: ${subscription.planId} no existe.`,
       );
     }
-    const period = subscriptionPeriod(plan.numDays);
+    const period = subscriptionPeriod(days);
     subscription.startDate = period.startDate;
     subscription.endDate = period.endDate;
 

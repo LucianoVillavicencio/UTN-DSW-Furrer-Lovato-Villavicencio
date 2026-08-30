@@ -204,7 +204,10 @@ export class PaymentService {
       subscription.state === pendingState ||
       subscription.state === inactiveState
     ) {
-      await this.subscriptionService.activate(subscription.id);
+      await this.subscriptionService.activate(
+        subscription.id,
+        termMonths * subscription.plan.numDays,
+      );
     } else if (subscription.state === activeState) {
       await this.subscriptionService.renew(
         subscription.id,

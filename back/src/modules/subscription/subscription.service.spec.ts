@@ -251,7 +251,7 @@ describe('subscriptionService', () => {
         deleted: false,
       });
 
-      await service.activate(7);
+      await service.activate(7, 30);
 
       expect(repository.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: 7, state: SubscriptionState.ACTIVE }),
@@ -259,7 +259,7 @@ describe('subscriptionService', () => {
     });
 
     it('rejects an id that does not exist', async () => {
-      await expect(service.activate(404)).rejects.toThrow(
+      await expect(service.activate(404, 30)).rejects.toThrow(
         'La suscripción con ID: 404 no existe.',
       );
       expect(repository.save).not.toHaveBeenCalled();
@@ -280,7 +280,7 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(target) // findSubscription(id) inside activate
         .mockResolvedValueOnce(previousActive); // the lookup for the old ACTIVE row
 
-      await service.activate(2);
+      await service.activate(2, 30);
 
       expect(previousActive.state).toBe(SubscriptionState.CANCELLED);
       expect(target.state).toBe(SubscriptionState.ACTIVE);
@@ -300,7 +300,7 @@ describe('subscriptionService', () => {
         .mockResolvedValueOnce(stale) // findSubscription(id) inside activate
         .mockResolvedValueOnce(null); // no previously active row
 
-      await service.activate(7);
+      await service.activate(7, 30);
 
       const today = new Date();
       const in30Days = new Date(today);
@@ -314,6 +314,39 @@ describe('subscriptionService', () => {
           state: SubscriptionState.ACTIVE,
           startDate: localDate(today),
           endDate: localDate(in30Days),
+        }),
+      );
+    });
+
+    it('honors a multi-month term (90 days), not just the plan\'s 1-month numDays', async () => {
+      const stale = {
+        id: 7,
+        userId: 30111222,
+        planId: 1,
+        state: SubscriptionState.PENDING,
+        startDate: '2025-01-10',
+        endDate: '2025-02-09',
+        deleted: false,
+      };
+      repository.findOne
+        .mockResolvedValueOnce(stale) // findSubscription(id) inside activate
+        .mockResolvedValueOnce(null); // no previously active row
+
+      // Represents a 3-month term at plan.numDays: 30 (termMonths * plan.numDays).
+      await service.activate(7, 90);
+
+      const today = new Date();
+      const in90Days = new Date(today);
+      in90Days.setDate(in90Days.getDate() + 90);
+
+      expect(stale.startDate).toBe(localDate(today));
+      expect(stale.endDate).toBe(localDate(in90Days));
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 7,
+          state: SubscriptionState.ACTIVE,
+          startDate: localDate(today),
+          endDate: localDate(in90Days),
         }),
       );
     });
