@@ -16,7 +16,7 @@ export class ClassRegistrationDto {
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  userDni!: number;
+  userId!: number;
 
   @IsNumber()
   @IsPositive()

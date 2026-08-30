@@ -47,15 +47,15 @@ export const changePlan = async (planId: number): Promise<Subscription> => {
 };
 
 // Admin-side counterpart of changePlan: closes the member's active
-// subscription, if any, and opens one on the chosen plan. The DNI travels in
+// subscription, if any, and opens one on the chosen plan. The id travels in
 // the path because the JWT here belongs to the admin, not to the member.
 export const assignPlanToMember = async (
-  dni: number,
+  userId: number,
   planId: number,
 ): Promise<Subscription> => {
   try {
     const { data } = await api.post<Subscription>(
-      `/subscription/admin/${dni}`,
+      `/subscription/admin/${userId}`,
       { planId },
     );
     return data;
@@ -81,11 +81,11 @@ export const getSubscriptions = async (): Promise<Subscription[]> => {
 };
 
 export const getSubscriptionsByUser = async (
-  dni: number,
+  userId: number,
 ): Promise<Subscription[]> => {
   try {
     const { data } = await api.get<Subscription[]>(
-      `/subscription/by-user/${dni}`,
+      `/subscription/by-user/${userId}`,
     );
     return data;
   } catch (error) {
@@ -136,7 +136,7 @@ export const cancelSubscription = async (
 ): Promise<Subscription> => {
   return updateSubscription({
     id: subscription.id,
-    userDni: subscription.userDni,
+    userId: subscription.userId,
     planId: subscription.planId,
     startDate: subscription.startDate,
     endDate: subscription.endDate,

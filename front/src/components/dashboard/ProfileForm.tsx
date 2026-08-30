@@ -129,7 +129,9 @@ const ProfileForm = () => {
           <p className="font-display text-lg font-semibold text-text">
             {name} {surname}
           </p>
-          <p className="font-body text-sm text-text-muted">DNI {user.dni}</p>
+          <p className="font-body text-sm text-text-muted">
+            DNI {user.dni ?? 'Sin DNI'}
+          </p>
         </div>
       </div>
 
@@ -137,7 +139,12 @@ const ProfileForm = () => {
         <FormAlert type="error" message={error} />
         <FormAlert type="success" message={success} />
 
-        <InputField label="DNI" value={user.dni} disabled readOnly />
+        <InputField
+          label="DNI"
+          value={user.dni ?? 'Sin DNI'}
+          disabled
+          readOnly
+        />
         <p className="-mt-3 text-xs text-text-muted">
           El DNI no puede modificarse.
         </p>

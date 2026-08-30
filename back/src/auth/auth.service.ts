@@ -13,6 +13,8 @@ import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { GoogleLoginDto } from './dto/google-login-dto';
+import { CompleteProfileDto } from './dto/complete-profile-dto';
+import { isProfileComplete } from '../modules/user/user.rules';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +26,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const userByDni = await this.userService.findUser(registerDto.dni);
+    const userByDni = await this.userService.findUserByDni(registerDto.dni);
     if (userByDni) {
       throw new ConflictException(
         `El usuario con el DNI: ${registerDto.dni} ya existe.`,
@@ -131,33 +133,53 @@ export class AuthService {
     }
   }
 
+  // Returns a freshly signed token. This is what releases the gate: without a
+  // new token the member keeps a claim that says profileComplete: false and
+  // stays locked out until the old one expires.
+  async completeProfile(id: number, dto: CompleteProfileDto) {
+    const user = await this.userService.completeProfile(id, dto);
+    return this.buildAuthResponse(user);
+  }
+
   async profile({ email }: { email: string; role: string }) {
-    return await this.userService.findUserByEmail(email);
+    const user = await this.userService.findUserByEmail(email);
+    if (!user) {
+      return null;
+    }
+    return { ...user, profileComplete: isProfileComplete(user) };
   }
 
   // Signs the JWT and builds the { token, user } shape shared by login(),
-  // register() and googleLogin().
-
+  // register(), googleLogin() and completeProfile().
   private async buildAuthResponse(user: {
-    dni: number;
+    id: number;
+    dni?: number | null;
     email: string;
     name: string;
     surname?: string | null;
     phone?: string | null;
     role: string;
   }) {
-    const payload = { sub: user.dni, email: user.email, role: user.role };
+    const profileComplete = isProfileComplete(user);
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      profileComplete,
+    };
     const token = await this.jwtService.signAsync(payload);
 
     return {
       token,
       user: {
-        dni: user.dni,
+        id: user.id,
+        dni: user.dni ?? null,
         email: user.email,
         name: user.name,
         surname: user.surname,
         phone: user.phone,
         role: user.role,
+        profileComplete,
       },
     };
   }

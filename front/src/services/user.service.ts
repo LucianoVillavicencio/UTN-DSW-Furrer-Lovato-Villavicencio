@@ -55,15 +55,20 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 export interface UserSearchQuery {
+  id?: number;
   dni?: number;
   email?: string;
   name?: string;
   surname?: string;
 }
 
+// Searching by dni survives this deliberately — it is how the front desk
+// finds a member by the number on their document. Only *addressing* a row
+// (the functions below) moved to the id.
 export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
   try {
     const params: Record<string, string> = {};
+    if (query.id) params.id = String(query.id);
     if (query.dni) params.dni = String(query.dni);
     if (query.email) params.email = query.email;
     if (query.name) params.name = query.name;
@@ -78,19 +83,23 @@ export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
   }
 };
 
-export const getUserByDni = async (dni: number): Promise<User> => {
+export const getUserById = async (id: number): Promise<User> => {
   try {
-    const { data } = await api.get<User>(`/user/${dni}`);
+    const { data } = await api.get<User>(`/user/${id}`);
     return data;
   } catch (error) {
     throw new Error(
-      getErrorMessage(error, `Error al obtener usuario con DNI ${dni}`),
+      getErrorMessage(error, `Error al obtener usuario con ID ${id}`),
       { cause: error },
     );
   }
 };
 
 export interface AdminUpdateUserPayload {
+  // Correcting a typo in a member's document number is an admin action. A
+  // member cannot do this to themselves — updateMyProfile's payload has no
+  // such field.
+  dni?: number;
   name?: string;
   surname?: string;
   email?: string;
@@ -101,12 +110,12 @@ export interface AdminUpdateUserPayload {
 // Admin-side edit (profile + role). It never touches password — see
 // AdminUpdateUserDto on the backend for why.
 export const adminUpdateUser = async (
-  dni: number,
+  id: number,
   payload: AdminUpdateUserPayload,
 ): Promise<Omit<User, 'password'>> => {
   try {
     const { data } = await api.patch<Omit<User, 'password'>>(
-      `/user/${dni}`,
+      `/user/${id}`,
       payload,
     );
     return data;
@@ -118,25 +127,25 @@ export const adminUpdateUser = async (
   }
 };
 
-export const deleteUser = async (dni: number): Promise<boolean> => {
+export const deleteUser = async (id: number): Promise<boolean> => {
   try {
-    const { data } = await api.delete(`/user/${dni}`);
+    const { data } = await api.delete(`/user/${id}`);
     return data;
   } catch (error) {
     throw new Error(
-      getErrorMessage(error, `Error al eliminar usuario con DNI ${dni}`),
+      getErrorMessage(error, `Error al eliminar usuario con ID ${id}`),
       { cause: error },
     );
   }
 };
 
-export const restoreUser = async (dni: number): Promise<boolean> => {
+export const restoreUser = async (id: number): Promise<boolean> => {
   try {
-    const { data } = await api.patch(`/user/restore/${dni}`);
+    const { data } = await api.patch(`/user/restore/${id}`);
     return data;
   } catch (error) {
     throw new Error(
-      getErrorMessage(error, `Error al restaurar usuario con DNI ${dni}`),
+      getErrorMessage(error, `Error al restaurar usuario con ID ${id}`),
       { cause: error },
     );
   }

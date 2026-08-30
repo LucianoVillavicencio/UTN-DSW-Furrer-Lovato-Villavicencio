@@ -6,7 +6,7 @@ import { classOptionKey, useClassOptions } from './useClassOptions';
 import { changeMemberClass } from '../../services/classRegistration.service';
 
 interface MemberClassStepProps {
-  userDni: number;
+  userId: number;
   // 0 = the plan includes no classes, N = up to N, null/undefined = unlimited
   // or no plan assigned yet.
   maxClasses: number | null | undefined;
@@ -14,7 +14,7 @@ interface MemberClassStepProps {
 }
 
 const MemberClassStep = ({
-  userDni,
+  userId,
   maxClasses,
   onAssigned,
 }: MemberClassStepProps) => {
@@ -41,7 +41,7 @@ const MemberClassStep = ({
     }
     setIsSaving(true);
     try {
-      await changeMemberClass(userDni, option.classId, option.startTime);
+      await changeMemberClass(userId, option.classId, option.startTime);
       onAssigned();
     } catch (err) {
       setActionError(

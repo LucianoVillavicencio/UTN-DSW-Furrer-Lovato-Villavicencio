@@ -10,7 +10,7 @@ import { TIME_PATTERN } from '../../classSession/dto/classSession-dto';
 
 // What a member picks: a class and an hour. The weekly turnos behind it — one
 // per weekday the class runs at that hour — are resolved by the backend, and
-// the member's DNI comes from the JWT, never from the body.
+// the member's id comes from the JWT, never from the body.
 export class EnrollClassDto {
   @IsNumber()
   @IsPositive()

@@ -5,9 +5,11 @@
 import type { Role } from '../types/user';
 
 export interface JwtPayload {
+  // The user's id — it carried the dni before the id became the primary key.
   sub: number;
   email: string;
   role: Role;
+  profileComplete: boolean;
   iat: number;
   exp: number;
 }

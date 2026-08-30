@@ -33,7 +33,7 @@ export class subscriptionService {
   // self-service change opens the new subscription PENDING and an admin
   // recording the payment is what activates it: otherwise anyone could register
   // and grant themselves an active plan for free.
-  async changePlan(userDni: number, planId: number, byAdmin = false) {
+  async changePlan(userId: number, planId: number, byAdmin = false) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
       throw new NotFoundException(`El plan con ID: ${planId} no existe.`);
@@ -41,7 +41,7 @@ export class subscriptionService {
 
     const currentActive = await this.subscriptionRepository.findOne({
       where: {
-        userDni,
+        userId,
         state: SubscriptionState.ACTIVE,
         deleted: false,
       },
@@ -55,7 +55,7 @@ export class subscriptionService {
     // it rather than opening another.
     const pendingSamePlan = await this.subscriptionRepository.findOne({
       where: {
-        userDni,
+        userId,
         planId,
         state: SubscriptionState.PENDING,
         deleted: false,
@@ -92,7 +92,7 @@ export class subscriptionService {
     const period = subscriptionPeriod(plan.numDays);
 
     const newSubscription = this.subscriptionRepository.create({
-      userDni,
+      userId,
       planId,
       ...period,
       // A self-service change opens PENDING: it only becomes ACTIVE once an
@@ -109,21 +109,21 @@ export class subscriptionService {
   }
 
   // Same move as changePlan, made by an admin on behalf of a member who is
-  // standing at the counter. The DNI comes from the route instead of the JWT,
+  // standing at the counter. The id comes from the route instead of the JWT,
   // so unlike the self-service path it has to be checked.
-  async assignPlanToMember(userDni: number, planId: number) {
-    const member = await this.userService.findUser(userDni);
+  async assignPlanToMember(userId: number, planId: number) {
+    const member = await this.userService.findUser(userId);
     if (!member || member.deleted) {
-      throw new NotFoundException(`El socio con DNI: ${userDni} no existe.`);
+      throw new NotFoundException(`El socio con ID: ${userId} no existe.`);
     }
-    return this.changePlan(userDni, planId, true);
+    return this.changePlan(userId, planId, true);
   }
 
   // Full subscription history of one specific user (admin Users panel), most
   // recent first.
-  async findByUser(userDni: number) {
+  async findByUser(userId: number) {
     return this.subscriptionRepository.find({
-      where: { userDni, deleted: false },
+      where: { userId, deleted: false },
       relations: { plan: true },
       order: { id: 'DESC' },
     });
@@ -142,7 +142,7 @@ export class subscriptionService {
 
     const previousActive = await this.subscriptionRepository.findOne({
       where: {
-        userDni: subscription.userDni,
+        userId: subscription.userId,
         state: SubscriptionState.ACTIVE,
         deleted: false,
       },
@@ -184,9 +184,9 @@ export class subscriptionService {
   // All four callers are covered by putting it here: enroll,
   // createClassRegistration and findMyEnrollments in classRegistration, plus
   // the member's own read in subscription.controller.
-  async findActiveForUser(userDni: number) {
+  async findActiveForUser(userId: number) {
     const subscription = await this.subscriptionRepository.findOne({
-      where: { userDni, state: SubscriptionState.ACTIVE, deleted: false },
+      where: { userId, state: SubscriptionState.ACTIVE, deleted: false },
       relations: { plan: true },
     });
 

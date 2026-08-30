@@ -17,6 +17,7 @@ import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
+import { AllowIncompleteProfile } from '../../auth/decorators/allow-incomplete-profile.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
 import { Role } from '../../common/enum/role.enum';
@@ -42,9 +43,12 @@ export class UserController {
   // Self-service: any authenticated user edits their own profile. A
   // method-level @Auth(Role.USER) replaces the class-level @Auth(Role.ADMIN)
   // because RolesGuard uses getAllAndOverride and the handler wins — a login
-  // is still required, the admin role no longer is.
+  // is still required, the admin role no longer is. @AllowIncompleteProfile
+  // because a member whose Google profile came through wrong must still be
+  // able to fix their name or email without being trapped by the gate.
   @Patch('me')
   @Auth(Role.USER)
+  @AllowIncompleteProfile()
   updateMyProfile(
     @ActiveUser() activeUser: UserActiveInterface,
     @Body() dto: UpdateProfileDto,
@@ -57,17 +61,19 @@ export class UserController {
     return this.userService.findAll();
   }
 
-  // User search by DNI, email or name/surname (admin). It has to be declared
-  // BEFORE '/:dni' or Nest/Express reads "search" as a :dni value and this
-  // route is never reached.
+  // User search by id, DNI, email or name/surname (admin). It has to be
+  // declared BEFORE '/:id' or Nest/Express reads "search" as an :id value and
+  // this route is never reached.
   @Get('search')
   searchUsers(
+    @Query('id') id?: string,
     @Query('dni') dni?: string,
     @Query('email') email?: string,
     @Query('name') name?: string,
     @Query('surname') surname?: string,
   ) {
     return this.userService.searchUsers({
+      id: id ? Number(id) : undefined,
       dni: dni ? Number(dni) : undefined,
       email,
       name,
@@ -80,29 +86,29 @@ export class UserController {
     return this.userService.findAllDeleted();
   }
 
-  @Get('/:dni')
-  getUserById(@Param('dni') dni: number) {
-    return this.userService.findUser(dni);
+  @Get('/:id')
+  getUserById(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.findUser(id);
   }
 
   // Admin-side edit — see AdminUpdateUserDto for why this did not reuse the
   // since-deleted PUT /user, whose UsersDto demanded a password on every
   // update.
-  @Patch('/:dni')
+  @Patch('/:id')
   adminUpdateUser(
-    @Param('dni', ParseIntPipe) dni: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: AdminUpdateUserDto,
   ) {
-    return this.userService.adminUpdateUser(dni, dto);
+    return this.userService.adminUpdateUser(id, dto);
   }
 
-  @Delete('/:dni')
-  deleteUsers(@Param('dni') dni: number) {
-    return this.userService.deleteUsers(dni);
+  @Delete('/:id')
+  deleteUsers(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.deleteUsers(id);
   }
 
-  @Patch('/restore/:dni')
-  restoreUsers(@Param('dni') dni: number) {
-    return this.userService.restoreUsers(dni);
+  @Patch('/restore/:id')
+  restoreUsers(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.restoreUsers(id);
   }
 }

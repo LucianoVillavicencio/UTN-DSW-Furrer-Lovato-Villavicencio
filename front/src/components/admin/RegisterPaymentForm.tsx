@@ -40,12 +40,14 @@ const RegisterPaymentForm = ({
   // spinner and the reset on member change are derived from the selection
   // instead of an effect writing state during render.
   const [loadedSubs, setLoadedSubs] = useState<{
-    dni: number;
+    userId: number;
     items: Subscription[];
   } | null>(null);
   const subscriptions =
-    loadedSubs && loadedSubs.dni === selectedUser?.dni ? loadedSubs.items : [];
-  const isLoadingSubs = !!selectedUser && loadedSubs?.dni !== selectedUser.dni;
+    loadedSubs && loadedSubs.userId === selectedUser?.id
+      ? loadedSubs.items
+      : [];
+  const isLoadingSubs = !!selectedUser && loadedSubs?.userId !== selectedUser.id;
   const [selectedSubId, setSelectedSubId] = useState<number | ''>('');
 
   const [amount, setAmount] = useState('');
@@ -56,10 +58,10 @@ const RegisterPaymentForm = ({
 
   useEffect(() => {
     if (!selectedUser) return;
-    const dni = selectedUser.dni;
-    void getSubscriptionsByUser(dni)
+    const userId = selectedUser.id;
+    void getSubscriptionsByUser(userId)
       .then((subs) => {
-        setLoadedSubs({ dni, items: subs });
+        setLoadedSubs({ userId, items: subs });
         const active = subs.find(
           (s) => s.state?.toLowerCase() === 'activa' && !s.deleted,
         );
@@ -69,7 +71,7 @@ const RegisterPaymentForm = ({
         }
       })
       .catch((err: unknown) => {
-        setLoadedSubs({ dni, items: [] });
+        setLoadedSubs({ userId, items: [] });
         setSearchError(
           err instanceof Error
             ? err.message
@@ -189,7 +191,7 @@ const RegisterPaymentForm = ({
           {results.length > 0 && (
             <ul className="divide-y divide-border rounded-xl border border-border">
               {results.map((u) => (
-                <li key={u.dni}>
+                <li key={u.id}>
                   <button
                     type="button"
                     onClick={() => {
@@ -202,7 +204,9 @@ const RegisterPaymentForm = ({
                     <span>
                       {u.name} {u.surname} — {u.email}
                     </span>
-                    <span className="text-text-muted">DNI {u.dni}</span>
+                    <span className="text-text-muted">
+                      DNI {u.dni ?? 'Sin DNI'}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -219,7 +223,7 @@ const RegisterPaymentForm = ({
                 {selectedUser.name} {selectedUser.surname}
               </p>
               <p className="text-xs text-text-muted">
-                DNI {selectedUser.dni} · {selectedUser.email}
+                DNI {selectedUser.dni ?? 'Sin DNI'} · {selectedUser.email}
               </p>
             </div>
             {!presetUser && (

@@ -8,6 +8,8 @@ import { Auth } from './decorators/auth.decorator';
 import { ActiveUser } from '../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../common/interfaces/user-active.interface';
 import { GoogleLoginDto } from './dto/google-login-dto';
+import { CompleteProfileDto } from './dto/complete-profile-dto';
+import { AllowIncompleteProfile } from './decorators/allow-incomplete-profile.decorator';
 import {
   AUTH_THROTTLE,
   SKIP_ALL_THROTTLERS,
@@ -45,8 +47,22 @@ export class AuthController {
 
   @Get('profile')
   @Auth(Role.USER)
+  @AllowIncompleteProfile()
   @SkipThrottle(SKIP_ALL_THROTTLERS)
   profile(@ActiveUser() user: UserActiveInterface) {
     return this.authService.profile(user);
+  }
+
+  // Reachable by an account that is not yet complete: the way out of the
+  // gate cannot be behind the gate.
+  @Post('complete-profile')
+  @Auth(Role.USER)
+  @AllowIncompleteProfile()
+  @SkipThrottle(SKIP_ALL_THROTTLERS)
+  completeProfile(
+    @ActiveUser() user: UserActiveInterface,
+    @Body() dto: CompleteProfileDto,
+  ) {
+    return this.authService.completeProfile(user.sub, dto);
   }
 }

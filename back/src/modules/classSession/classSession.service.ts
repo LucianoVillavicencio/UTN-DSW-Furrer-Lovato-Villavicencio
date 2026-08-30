@@ -112,8 +112,8 @@ export class ClassSessionService implements OnModuleInit {
     // One row per member: an enrollment already has a row per weekday.
     const byMember = new Map<number, ClassRegistration>();
     for (const registration of held) {
-      if (!byMember.has(registration.userDni)) {
-        byMember.set(registration.userDni, registration);
+      if (!byMember.has(registration.userId)) {
+        byMember.set(registration.userId, registration);
       }
     }
 
@@ -126,7 +126,7 @@ export class ClassSessionService implements OnModuleInit {
       }
       await this.classRegistrationRepository.save(
         this.classRegistrationRepository.create({
-          userDni: registration.userDni,
+          userId: registration.userId,
           classSessionId: slot.id,
           // Same enrollment, one more day: not a new one, and not a change.
           enrollmentGroup: registration.enrollmentGroup,

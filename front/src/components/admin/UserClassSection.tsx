@@ -12,21 +12,21 @@ import ClassHourSelect from './ClassHourSelect';
 import { classOptionKey, useClassOptions } from './useClassOptions';
 
 interface UserClassSectionProps {
-  userDni: number;
+  userId: number;
 }
 
 // Lets an admin change a member's class in person, bypassing the monthly
 // change cap the self-service classes page enforces — the plan's class-count
 // allowance still applies, only the change limit is skipped.
-const UserClassSection = ({ userDni }: UserClassSectionProps) => {
+const UserClassSection = ({ userId }: UserClassSectionProps) => {
   const {
     options,
     isLoading: isLoadingOptions,
     error: optionsError,
   } = useClassOptions();
   const [enrollments, setEnrollments] = useState<MyEnrollments | null>(null);
-  const [loadedForDni, setLoadedForDni] = useState<number | null>(null);
-  const isLoading = loadedForDni !== userDni || isLoadingOptions;
+  const [loadedForId, setLoadedForId] = useState<number | null>(null);
+  const isLoading = loadedForId !== userId || isLoadingOptions;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState('');
   const [replacingGroup, setReplacingGroup] = useState('');
@@ -34,7 +34,7 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const load = () =>
-    getMemberEnrollments(userDni)
+    getMemberEnrollments(userId)
       .then((myEnrollments) => {
         setEnrollments(myEnrollments);
         setLoadError(null);
@@ -46,13 +46,13 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
             : 'No se pudieron cargar las clases.',
         );
       })
-      .finally(() => setLoadedForDni(userDni));
+      .finally(() => setLoadedForId(userId));
 
   // Every setState lives in an async callback, so the effect below only
   // starts the requests instead of updating state while React renders.
   useEffect(() => {
     void load();
-  }, [userDni]);
+  }, [userId]);
 
   const activeEnrollments = enrollments?.enrollments ?? [];
 
@@ -66,7 +66,7 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
     setIsSaving(true);
     try {
       const result = await changeMemberClass(
-        userDni,
+        userId,
         option.classId,
         option.startTime,
         replacingGroup || undefined,
@@ -87,7 +87,7 @@ const UserClassSection = ({ userDni }: UserClassSectionProps) => {
     setActionError(null);
     setIsSaving(true);
     try {
-      const result = await cancelMemberEnrollment(userDni, group);
+      const result = await cancelMemberEnrollment(userId, group);
       setEnrollments(result);
     } catch (err) {
       setActionError(

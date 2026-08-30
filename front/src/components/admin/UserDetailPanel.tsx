@@ -27,21 +27,21 @@ import type { Subscription } from '../../types/subscription';
 import type { Payment } from '../../types/payment';
 
 interface UserHistory {
-  dni: number;
+  id: number;
   subscriptions: Subscription[];
   payments: Payment[];
 }
 
 interface UserDetailPanelProps {
   user: User;
-  currentAdminDni: number;
+  currentAdminId: number;
   onClose: () => void;
   onChanged: () => void;
 }
 
 const UserDetailPanel = ({
   user,
-  currentAdminDni,
+  currentAdminId,
   onClose,
   onChanged,
 }: UserDetailPanelProps) => {
@@ -53,6 +53,14 @@ const UserDetailPanel = ({
     phone: user.phone,
     role: user.role,
   });
+  // DNI is a string here, same reasoning as new-member-wizard.ts: an empty
+  // number input reads back as NaN, which can't be told apart from a typo.
+  // Correcting it is an admin-only action — a member's own profile form has
+  // no such field, since the value is write-once for them.
+  const [dniInput, setDniInput] = useState(
+    user.dni != null ? String(user.dni) : '',
+  );
+  const [dniError, setDniError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -61,7 +69,7 @@ const UserDetailPanel = ({
   // derived from the props instead of an effect resetting a flag on every
   // change of user.
   const [history, setHistory] = useState<UserHistory | null>(null);
-  const isLoadingHistory = history?.dni !== user.dni;
+  const isLoadingHistory = history?.id !== user.id;
   const subscriptions = history?.subscriptions ?? [];
   const payments = history?.payments ?? [];
 
@@ -74,25 +82,25 @@ const UserDetailPanel = ({
 
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
-  const fetchHistory = (dni: number) =>
-    Promise.all([getSubscriptionsByUser(dni), getPaymentsByUser(dni)])
+  const fetchHistory = (id: number) =>
+    Promise.all([getSubscriptionsByUser(id), getPaymentsByUser(id)])
       .then(([subs, pays]) => {
-        setHistory({ dni, subscriptions: subs, payments: pays });
+        setHistory({ id, subscriptions: subs, payments: pays });
       })
       .catch((err: unknown) => {
-        setHistory({ dni, subscriptions: [], payments: [] });
+        setHistory({ id, subscriptions: [], payments: [] });
         setActionError(
           err instanceof Error ? err.message : 'No se pudo cargar el historial.',
         );
       });
 
   useEffect(() => {
-    void fetchHistory(user.dni);
-  }, [user.dni]);
+    void fetchHistory(user.id);
+  }, [user.id]);
 
   const reloadHistory = () => {
     setHistory(null);
-    return fetchHistory(user.dni);
+    return fetchHistory(user.id);
   };
 
   const isDirty =
@@ -100,16 +108,29 @@ const UserDetailPanel = ({
     form.surname !== user.surname ||
     form.email !== (hasPlaceholderEmail ? '' : user.email) ||
     form.phone !== user.phone ||
-    form.role !== user.role;
+    form.role !== user.role ||
+    dniInput !== (user.dni != null ? String(user.dni) : '');
 
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(null);
+    setDniError(null);
+
+    const trimmedDni = dniInput.trim();
+    if (!trimmedDni) {
+      setDniError('El DNI es obligatorio.');
+      return;
+    }
+    if (!/^\d+$/.test(trimmedDni) || Number(trimmedDni) <= 0) {
+      setDniError('El DNI tiene que ser un número entero.');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const payload: AdminUpdateUserPayload = { ...form };
+      const payload: AdminUpdateUserPayload = { ...form, dni: Number(trimmedDni) };
       if (!payload.email?.trim()) delete payload.email;
-      await adminUpdateUser(user.dni, payload);
+      await adminUpdateUser(user.id, payload);
       setSaveSuccess('Cambios guardados.');
       onChanged();
     } catch (err) {
@@ -124,11 +145,11 @@ const UserDetailPanel = ({
     setActionError(null);
     try {
       if (confirmDangerAction === 'delete') {
-        await deleteUser(user.dni);
+        await deleteUser(user.id);
         onChanged();
         onClose();
       } else if (confirmDangerAction === 'restore') {
-        await restoreUser(user.dni);
+        await restoreUser(user.id);
         onChanged();
         onClose();
       } else if (confirmDangerAction === 'cancelSub' && pendingSubId) {
@@ -160,7 +181,18 @@ const UserDetailPanel = ({
           <div className="mt-3 space-y-3">
             <FormAlert type="error" message={saveError} />
             <FormAlert type="success" message={saveSuccess} />
-            <InputField label="DNI" value={user.dni} disabled readOnly />
+            <InputField
+              label="DNI"
+              type="text"
+              inputMode="numeric"
+              value={dniInput}
+              onChange={(e) => {
+                setDniInput(e.target.value);
+                if (dniError) setDniError(null);
+              }}
+              error={dniError}
+              placeholder="40123456"
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <InputField
                 label="Nombre"
@@ -196,13 +228,13 @@ const UserDetailPanel = ({
                 onChange={(e) =>
                   setForm({ ...form, role: e.target.value as 'user' | 'admin' })
                 }
-                disabled={user.dni === currentAdminDni}
+                disabled={user.id === currentAdminId}
                 className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
               >
                 <option value="user">Usuario</option>
                 <option value="admin">Admin</option>
               </select>
-              {user.dni === currentAdminDni && (
+              {user.id === currentAdminId && (
                 <p className="mt-1 text-xs text-text-muted">
                   No podés cambiar tu propio rol.
                 </p>
@@ -263,11 +295,11 @@ const UserDetailPanel = ({
             <p className="mb-2 text-xs font-semibold text-text-muted">
               Asignar plan
             </p>
-            <AssignPlanForm userDni={user.dni} onAssigned={reloadHistory} />
+            <AssignPlanForm userId={user.id} onAssigned={reloadHistory} />
           </div>
         </section>
 
-        <UserClassSection userDni={user.dni} />
+        <UserClassSection userId={user.id} />
 
         {/* Payments */}
         <section className="border-t border-border pt-4">
