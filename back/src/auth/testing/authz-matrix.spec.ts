@@ -415,6 +415,7 @@ describe('PaymentController authorization', () => {
         useValue: {
           findMineForUser: jest.fn().mockResolvedValue([]),
           createManualPayment: jest.fn().mockResolvedValue({}),
+          registerPlanPayment: jest.fn().mockResolvedValue({}),
           createPayment: jest.fn().mockResolvedValue({}),
           findAll: jest.fn().mockResolvedValue([]),
           findAllDeleted: jest.fn().mockResolvedValue([]),
@@ -438,6 +439,10 @@ describe('PaymentController authorization', () => {
 
   it('restricts POST /Payment/manual to an admin', async () => {
     await adminOnly(app, 'post', '/api/v1/Payment/manual');
+  });
+
+  it('restricts POST /Payment/checkout to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/Payment/checkout');
   });
 
   it('restricts POST /Payment to an admin', async () => {

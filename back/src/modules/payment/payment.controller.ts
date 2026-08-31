@@ -15,6 +15,7 @@ import { SKIP_ALL_THROTTLERS } from '../../auth/auth.throttle';
 import { PaymentService } from './payment.service';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
+import { PlanCheckoutDto } from './dto/plan-checkout-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
@@ -45,6 +46,18 @@ export class PaymentController {
     @Body() dto: ManualPaymentDto,
   ) {
     return this.paymentService.createManualPayment(dto, admin.sub);
+  }
+
+  // One in-person sale: plan + duration + amount + method in a single atomic
+  // request. No method-level @Auth — the class-level @Auth(Role.ADMIN)
+  // already covers it, and a bare @Auth() here would REPLACE it and widen
+  // the route to any logged-in member.
+  @Post('checkout')
+  registerPlanPayment(
+    @ActiveUser() admin: UserActiveInterface,
+    @Body() dto: PlanCheckoutDto,
+  ) {
+    return this.paymentService.registerPlanPayment(dto, admin.sub);
   }
 
   @Post()
