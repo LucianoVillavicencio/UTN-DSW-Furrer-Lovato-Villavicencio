@@ -4,6 +4,9 @@ import { App } from 'supertest/types';
 
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
+import { AnalyticsController } from '../../modules/analytics/analytics.controller';
+import { AnalyticsService } from '../../modules/analytics/analytics.service';
+import { OwnerPasswordGuard } from '../../modules/analytics/analytics.guard';
 import { ClassController } from '../../modules/class/class.controller';
 import { ClassService } from '../../modules/class/class.service';
 import { ClassRegistrationController } from '../../modules/classRegistration/classRegistration.controller';
@@ -111,6 +114,41 @@ const adminOnly = async (
   await call(app, method, path, tokenFor('member'), body).expect(403);
   await call(app, method, path, tokenFor('admin'), body).expect(okFor(method));
 };
+
+describe('AnalyticsController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(
+      AnalyticsController,
+      [
+        {
+          provide: AnalyticsService,
+          useValue: {
+            buildOverview: jest.fn().mockResolvedValue({}),
+          },
+        },
+      ],
+      [
+        // This suite asserts *role* reachability, not the password boundary —
+        // that is Task 18's OwnerPasswordGuard suite — so the guard is
+        // overridden to always allow.
+        {
+          provide: OwnerPasswordGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
+      ],
+    );
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /analytics/overview to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/analytics/overview');
+  });
+});
 
 describe('AuthController authorization', () => {
   let app: INestApplication;

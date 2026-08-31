@@ -15,6 +15,7 @@ import { classRegistrationModule } from './modules/classRegistration/classRegist
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
 import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
@@ -41,6 +42,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     PaymentModule,
     classRegistrationModule,
     ContactModule,
+    AnalyticsModule,
     AuthModule,
   ],
   controllers: [],
