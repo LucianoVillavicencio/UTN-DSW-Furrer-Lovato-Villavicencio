@@ -288,7 +288,10 @@ export class UserService {
 
     if (dto.name) user.name = dto.name;
     if (dto.surname) user.surname = dto.surname;
-    if (dto.phone) user.phone = dto.phone;
+    // `!== undefined`, not truthiness: an empty string is a deliberate clear, and
+    // the old test made one indistinguishable from an absent field — the admin
+    // saw "Cambios guardados." and the old number stayed on the record.
+    if (dto.phone !== undefined) user.phone = dto.phone.trim() || null;
     if (dto.role) user.role = dto.role;
 
     const saved = await this.usersRepository.save(user);

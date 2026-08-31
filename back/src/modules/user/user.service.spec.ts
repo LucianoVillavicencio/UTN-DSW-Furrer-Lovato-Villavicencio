@@ -94,3 +94,46 @@ describe('searchUsers', () => {
     ).rejects.toThrow(BadRequestException);
   });
 });
+
+describe('adminUpdateUser', () => {
+  const buildService = () => {
+    const user: Partial<Users> = {
+      id: 1,
+      name: 'Test',
+      surname: 'User',
+      email: 'test@example.com',
+      phone: '341 555-1234',
+      role: 'member',
+      dni: null,
+      password: 'hashed',
+      googleId: null,
+      picture: null,
+      deleted: false,
+    };
+    const findOne = jest.fn().mockResolvedValue(user);
+    const save = jest.fn((row: Users) =>
+      Promise.resolve({ ...row, password: 'hashed' }),
+    );
+    const repository = { findOne, save };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service, findOne, save, user };
+  };
+
+  it('clears a phone when the admin sends an empty string', async () => {
+    const { service } = buildService();
+
+    const saved = await service.adminUpdateUser(1, { phone: '' });
+
+    expect(saved.phone).toBeNull();
+  });
+
+  it('leaves the phone alone when the field is absent', async () => {
+    const { service } = buildService();
+
+    const saved = await service.adminUpdateUser(1, { name: 'Nuevo' });
+
+    expect(saved.phone).toBe('341 555-1234');
+  });
+});
