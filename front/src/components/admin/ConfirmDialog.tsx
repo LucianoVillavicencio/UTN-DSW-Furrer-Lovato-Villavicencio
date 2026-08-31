@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 
@@ -20,18 +21,37 @@ const ConfirmDialog = ({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
+  const pressStartedOnBackdrop = useRef(false);
+
+  // Registered after any parent Modal's listener and stopping propagation, so
+  // Escape here dismisses the confirmation and not the panel behind it.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || isLoading) return;
+      e.stopImmediatePropagation();
+      onCancel();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isLoading, onCancel]);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onCancel}
+      onMouseDown={(e) => {
+        pressStartedOnBackdrop.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && pressStartedOnBackdrop.current) {
+          onCancel();
+        }
+        pressStartedOnBackdrop.current = false;
+      }}
     >
-      <Card
-        className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <Card className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg">
         <h4 className="font-display text-lg font-semibold text-text">
           {title}
         </h4>
