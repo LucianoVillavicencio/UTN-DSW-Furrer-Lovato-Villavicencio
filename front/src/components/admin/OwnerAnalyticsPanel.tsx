@@ -2,6 +2,7 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import OwnerPasswordPrompt from './OwnerPasswordPrompt';
+import StatCard from './StatCard';
 import { useOwnerAnalytics } from './useOwnerAnalytics';
 import { RevenueChart, BreakdownList } from './analytics-charts';
 import { formatPriceDisplay } from '../../lib/currency';
@@ -57,22 +58,15 @@ const OwnerAnalyticsPanel = () => {
       {overview && (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-background p-4">
-              <p className="text-sm text-text-muted">Suscripciones activas</p>
-              <p className="mt-1 font-display text-2xl font-bold text-text">
-                {overview.activeSubscriptions}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border bg-background p-4">
-              <p className="text-sm text-text-muted">MRR estimado</p>
-              <p className="mt-1 font-display text-2xl font-bold text-text">
-                ${formatPriceDisplay(overview.estimatedMrr)}
-              </p>
-              <p className="mt-1 text-xs text-text-muted">
-                Proyección a partir de las suscripciones activas — no es
-                ingreso ya facturado.
-              </p>
-            </div>
+            <StatCard
+              label="Suscripciones activas"
+              value={overview.activeSubscriptions}
+            />
+            <StatCard
+              label="MRR estimado"
+              value={`$${formatPriceDisplay(overview.estimatedMrr)}`}
+              caption="Proyección a partir de las suscripciones activas — no es ingreso ya facturado."
+            />
           </div>
 
           <div>

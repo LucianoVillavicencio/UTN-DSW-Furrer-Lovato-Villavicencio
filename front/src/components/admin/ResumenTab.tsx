@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import Card from '../common/Card';
 import { getPlans } from '../../services/plan.service';
 import { getClass } from '../../services/class.service';
 import { getTrainers } from '../../services/trainer.service';
 import { getUsers } from '../../services/user.service';
 import OwnerAnalyticsPanel from './OwnerAnalyticsPanel';
+import StatCard from './StatCard';
 
 interface Stats {
   plans: number | null;
@@ -12,23 +12,6 @@ interface Stats {
   trainers: number | null;
   members: number | null;
 }
-
-interface StatCardProps {
-  label: string;
-  value: number | null;
-  isLoading: boolean;
-}
-
-// Shows `…` while loading, `—` for a failed count and the number otherwise —
-// a failed fetch must never read the same as a genuine zero.
-const StatCard = ({ label, value, isLoading }: StatCardProps) => (
-  <Card className="hover:translate-y-0 hover:shadow-lg">
-    <p className="font-body text-sm text-text-muted">{label}</p>
-    <p className="mt-2 font-display text-3xl font-bold text-text">
-      {isLoading ? '…' : (value ?? '—')}
-    </p>
-  </Card>
-);
 
 const ResumenTab = () => {
   const [stats, setStats] = useState<Stats>({
