@@ -16,6 +16,7 @@ import { PaymentController } from '../../modules/payment/payment.controller';
 import { PaymentService } from '../../modules/payment/payment.service';
 import { PlanController } from '../../modules/plan/plan.controller';
 import { PlanService } from '../../modules/plan/plan.service';
+import { PlanDurationService } from '../../modules/plan/plan-duration.service';
 import { subscriptionController } from '../../modules/subscription/subscription.controller';
 import { subscriptionService } from '../../modules/subscription/subscription.service';
 import { TrainerController } from '../../modules/trainer/trainer.controller';
@@ -496,6 +497,15 @@ describe('PlanController authorization', () => {
           restorePlan: jest.fn().mockResolvedValue({}),
         },
       },
+      {
+        provide: PlanDurationService,
+        useValue: {
+          findByPlan: jest.fn().mockResolvedValue([]),
+          create: jest.fn().mockResolvedValue({}),
+          update: jest.fn().mockResolvedValue({}),
+          remove: jest.fn().mockResolvedValue({}),
+        },
+      },
     ]);
   });
 
@@ -529,6 +539,22 @@ describe('PlanController authorization', () => {
 
   it('restricts PATCH /plan/restore/:id to an admin', async () => {
     await adminOnly(app, 'patch', '/api/v1/plan/restore/1');
+  });
+
+  it('restricts GET /plan/:id/duration to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/plan/1/duration');
+  });
+
+  it('restricts POST /plan/:id/duration to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/plan/1/duration');
+  });
+
+  it('restricts PUT /plan/:id/duration/:durationId to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/plan/1/duration/1');
+  });
+
+  it('restricts DELETE /plan/:id/duration/:durationId to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/plan/1/duration/1');
   });
 });
 
@@ -872,10 +898,16 @@ describe('completion gate', () => {
   it('lets an incomplete member complete their profile', async () => {
     app = await buildAuthzApp(AuthController, [authServiceMock]);
 
-    await call(app, 'post', '/api/v1/auth/complete-profile', incompleteToken(), {
-      dni: 40123456,
-      phone: '3411234567',
-    }).expect(201);
+    await call(
+      app,
+      'post',
+      '/api/v1/auth/complete-profile',
+      incompleteToken(),
+      {
+        dni: 40123456,
+        phone: '3411234567',
+      },
+    ).expect(201);
   });
 
   it('lets an incomplete member edit their own profile', async () => {
@@ -915,7 +947,10 @@ describe('completion gate', () => {
     // An admin is not exempt: the account that repairs member data must not be
     // the account allowed to hold bad data.
     app = await buildAuthzApp(UserController, [
-      { provide: UserService, useValue: { findAll: jest.fn().mockResolvedValue([]) } },
+      {
+        provide: UserService,
+        useValue: { findAll: jest.fn().mockResolvedValue([]) },
+      },
     ]);
 
     await call(
