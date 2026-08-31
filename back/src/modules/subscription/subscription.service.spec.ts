@@ -1,6 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import { subscriptionService } from './subscription.service';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
@@ -18,21 +18,63 @@ function localDate(date: Date): string {
   ].join('-');
 }
 
+// `today`/`tomorrow`/`yesterday` in replaceActiveSubscription's tests are
+// computed relative to the real clock so the suite is not tied to a
+// hardcoded date.
+const toDateOnly = (d: Date) => d.toISOString().slice(0, 10);
+const addDays = (base: Date, days: number) => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+
+// The shape manager.create is invoked with in replaceActiveSubscription,
+// spelled out so `.mock.calls[0][1]` reads back as something other than
+// `any`.
+interface CreatedSubscriptionPayload {
+  startDate: string;
+  endDate: string;
+  planDurationId?: number | null;
+  state?: string;
+}
+
 describe('subscriptionService', () => {
   let service: subscriptionService;
-  let repository: { create: jest.Mock; save: jest.Mock; findOne: jest.Mock };
+  let subscriptionRepository: {
+    create: jest.Mock;
+    save: jest.Mock;
+    findOne: jest.Mock;
+  };
+  let manager: {
+    find: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock<
+      CreatedSubscriptionPayload,
+      [unknown, CreatedSubscriptionPayload]
+    >;
+  };
 
   beforeEach(async () => {
-    repository = {
+    subscriptionRepository = {
       create: jest.fn((entity: object) => entity),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
+    };
+    manager = {
+      find: jest.fn().mockResolvedValue([]),
+      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+      create: jest.fn(
+        (_entity: unknown, data: CreatedSubscriptionPayload) => data,
+      ),
     };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         subscriptionService,
-        { provide: getRepositoryToken(Subscription), useValue: repository },
+        {
+          provide: getRepositoryToken(Subscription),
+          useValue: subscriptionRepository,
+        },
         {
           provide: PlanService,
           useValue: {
@@ -42,6 +84,14 @@ describe('subscriptionService', () => {
           },
         },
         { provide: UserService, useValue: {} },
+        {
+          provide: getDataSourceToken(),
+          useValue: {
+            transaction: jest.fn((cb: (manager: unknown) => unknown) =>
+              cb(manager),
+            ),
+          },
+        },
       ],
     }).compile();
 
@@ -51,14 +101,16 @@ describe('subscriptionService', () => {
   describe('changePlan', () => {
     it('opens a self-service plan change as PENDING, not ACTIVE', async () => {
       await service.changePlan(30111222, 1, false);
-      expect(repository.create).toHaveBeenCalledWith(
+      expect(manager.create).toHaveBeenCalledWith(
+        Subscription,
         expect.objectContaining({ state: SubscriptionState.PENDING }),
       );
     });
 
     it('still opens an admin-assigned plan as ACTIVE', async () => {
       await service.changePlan(30111222, 1, true);
-      expect(repository.create).toHaveBeenCalledWith(
+      expect(manager.create).toHaveBeenCalledWith(
+        Subscription,
         expect.objectContaining({ state: SubscriptionState.ACTIVE }),
       );
     });
@@ -70,14 +122,14 @@ describe('subscriptionService', () => {
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(currentActive) // the current ACTIVE row
         .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
       await service.changePlan(30111222, 9, false);
 
       expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
-      expect(repository.save).not.toHaveBeenCalledWith(
+      expect(subscriptionRepository.save).not.toHaveBeenCalledWith(
         expect.objectContaining({ id: 1, state: SubscriptionState.CANCELLED }),
       );
     });
@@ -89,7 +141,7 @@ describe('subscriptionService', () => {
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(currentActive) // the current ACTIVE row
         .mockResolvedValueOnce(null); // no PENDING row on the target plan
 
@@ -105,15 +157,15 @@ describe('subscriptionService', () => {
         planId: 9,
         state: SubscriptionState.PENDING,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(null) // no ACTIVE row
         .mockResolvedValueOnce(pendingSamePlan); // one already pending
 
       await expect(service.changePlan(30111222, 9, false)).rejects.toThrow(
         ConflictException,
       );
-      expect(repository.create).not.toHaveBeenCalled();
-      expect(repository.save).not.toHaveBeenCalled();
+      expect(subscriptionRepository.create).not.toHaveBeenCalled();
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
     });
 
     it('does not cancel the current plan when the change is refused', async () => {
@@ -123,7 +175,7 @@ describe('subscriptionService', () => {
         planId: 5,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(currentActive)
         .mockResolvedValueOnce({
           id: 4,
@@ -136,13 +188,13 @@ describe('subscriptionService', () => {
         ConflictException,
       );
       expect(currentActive.state).toBe(SubscriptionState.ACTIVE);
-      expect(repository.save).not.toHaveBeenCalled();
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
     });
   });
 
   describe('activate', () => {
     it('promotes a PENDING subscription to ACTIVE', async () => {
-      repository.findOne.mockResolvedValue({
+      subscriptionRepository.findOne.mockResolvedValue({
         id: 7,
         state: SubscriptionState.PENDING,
         deleted: false,
@@ -150,7 +202,7 @@ describe('subscriptionService', () => {
 
       await service.activate(7);
 
-      expect(repository.save).toHaveBeenCalledWith(
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: 7, state: SubscriptionState.ACTIVE }),
       );
     });
@@ -159,7 +211,7 @@ describe('subscriptionService', () => {
       await expect(service.activate(404)).rejects.toThrow(
         'La suscripción con ID: 404 no existe.',
       );
-      expect(repository.save).not.toHaveBeenCalled();
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
     });
 
     it('cancels the previously active subscription when activating a new one', async () => {
@@ -173,7 +225,7 @@ describe('subscriptionService', () => {
         userId: 30111222,
         state: SubscriptionState.ACTIVE,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(target) // findSubscription(id) inside activate
         .mockResolvedValueOnce(previousActive); // the lookup for the old ACTIVE row
 
@@ -193,7 +245,7 @@ describe('subscriptionService', () => {
         endDate: '2025-02-09',
         deleted: false,
       };
-      repository.findOne
+      subscriptionRepository.findOne
         .mockResolvedValueOnce(stale) // findSubscription(id) inside activate
         .mockResolvedValueOnce(null); // no previously active row
 
@@ -205,7 +257,7 @@ describe('subscriptionService', () => {
 
       expect(stale.startDate).toBe(localDate(today));
       expect(stale.endDate).toBe(localDate(in30Days));
-      expect(repository.save).toHaveBeenCalledWith(
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 7,
           state: SubscriptionState.ACTIVE,
@@ -213,6 +265,126 @@ describe('subscriptionService', () => {
           endDate: localDate(in30Days),
         }),
       );
+    });
+  });
+
+  describe('replaceActiveSubscription', () => {
+    const term = { months: 6, numDays: 180, price: 300, planDurationId: 7 };
+    const today = new Date();
+
+    it('cancels every live subscription, ACTIVE and PENDING alike', async () => {
+      manager.find.mockResolvedValue([
+        {
+          id: 1,
+          userId: 5,
+          planId: 2,
+          state: 'activa',
+          endDate: toDateOnly(today),
+        },
+        { id: 2, userId: 5, planId: 3, state: 'pendiente' },
+      ]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      expect(manager.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, state: 'cancelada' }),
+      );
+      expect(manager.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 2, state: 'cancelada' }),
+      );
+    });
+
+    it('allows renewing the same plan, which changePlan refuses', async () => {
+      manager.find.mockResolvedValue([
+        {
+          id: 1,
+          userId: 5,
+          planId: 2,
+          state: 'activa',
+          endDate: toDateOnly(today),
+        },
+      ]);
+      await expect(
+        service.replaceActiveSubscription(manager, {
+          userId: 5,
+          planId: 2,
+          term,
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('takes the period length from the resolved term, not from the plan', async () => {
+      manager.find.mockResolvedValue([]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      expect(manager.create).toHaveBeenCalledWith(
+        Subscription,
+        expect.objectContaining({ planDurationId: 7, state: 'activa' }),
+      );
+      const created = manager.create.mock.calls[0][1];
+      const days =
+        (new Date(created.endDate).getTime() -
+          new Date(created.startDate).getTime()) /
+        86_400_000;
+      expect(days).toBe(180);
+    });
+
+    it('extends from the day after the current ACTIVE endDate when it has not passed', async () => {
+      const endDate = toDateOnly(addDays(today, 3)); // still current
+      manager.find.mockResolvedValue([
+        { id: 1, userId: 5, planId: 2, state: 'activa', endDate },
+      ]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      const created = manager.create.mock.calls[0][1];
+      expect(toDateOnly(new Date(created.startDate))).toBe(
+        toDateOnly(addDays(today, 4)),
+      );
+    });
+
+    it('starts today when the ACTIVE subscription already lapsed', async () => {
+      const endDate = toDateOnly(addDays(today, -2)); // already expired
+      manager.find.mockResolvedValue([
+        { id: 1, userId: 5, planId: 2, state: 'activa', endDate },
+      ]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      const created = manager.create.mock.calls[0][1];
+      expect(toDateOnly(new Date(created.startDate))).toBe(toDateOnly(today));
+    });
+
+    it('starts today when there is no ACTIVE subscription to extend from', async () => {
+      manager.find.mockResolvedValue([
+        { id: 2, userId: 5, planId: 3, state: 'pendiente' },
+      ]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      const created = manager.create.mock.calls[0][1];
+      expect(toDateOnly(new Date(created.startDate))).toBe(toDateOnly(today));
+    });
+
+    it('uses the passed manager and never its own repository', async () => {
+      manager.find.mockResolvedValue([]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
     });
   });
 });

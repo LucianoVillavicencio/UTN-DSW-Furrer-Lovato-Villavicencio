@@ -1,4 +1,5 @@
 import {
+  dayAfter,
   isCurrentOn,
   subscriptionPeriod,
   toDateOnly,
@@ -66,5 +67,15 @@ describe('isCurrentOn', () => {
 
   it('ignores a time component on an ISO timestamp', () => {
     expect(isCurrentOn('2026-08-25T00:00:00.000Z', '2026-08-25')).toBe(true);
+  });
+});
+
+describe('dayAfter', () => {
+  it('returns the calendar day after the given date-only string', () => {
+    expect(toDateOnly(dayAfter('2026-08-30'))).toBe('2026-08-31');
+  });
+
+  it('crosses a month boundary correctly', () => {
+    expect(toDateOnly(dayAfter('2026-08-31'))).toBe('2026-09-01');
   });
 });

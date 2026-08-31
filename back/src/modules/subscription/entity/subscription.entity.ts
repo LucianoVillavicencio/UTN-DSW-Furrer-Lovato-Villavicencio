@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Users } from '../../user/entity/users.entity';
 import { Plan } from '../../plan/entity/plan.entity';
+import { PlanDuration } from '../../plan/entity/plan-duration.entity';
 
 @Entity('subscriptions')
 export class Subscription {
@@ -38,4 +39,18 @@ export class Subscription {
 
   @Column({ type: Boolean, nullable: false, default: false })
   deleted!: boolean;
+
+  // Which PlanDuration this subscription was sold at. Null means the plan's own
+  // one-month price, which is every subscription written before this column
+  // existed. Needed to compute MRR — a 12-month price divided by 12 — and to
+  // label a subscription as "Premium — 6 meses" in the admin panel.
+  //
+  // Deliberately NOT eager, unlike `user` and `plan` above: a third eager
+  // relation makes every joined payment row heavier still.
+  @Column({ type: Number, nullable: true })
+  planDurationId?: number | null;
+
+  @ManyToOne(() => PlanDuration, { nullable: true })
+  @JoinColumn({ name: 'planDurationId' })
+  planDuration?: PlanDuration | null;
 }
