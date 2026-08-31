@@ -21,3 +21,28 @@ export interface ManualPaymentPayload {
   amount: number;
   payMethod: 'efectivo' | 'debito' | 'credito' | 'transferencia';
 }
+
+// What GET /Payment returns. Distinct from Payment because a persisted row
+// always has an id — the optional one on Payment describes a create payload —
+// and because registeredByName exists only on this projection. Without the
+// distinction, the table needed `p.id ?? Math.random()` as a React key, which
+// would have remounted every row on every render had it ever been reached.
+export interface AdminPayment extends Omit<Payment, 'id' | 'amount'> {
+  id: number;
+  // DECIMAL arrives from the API as a string; see lib/currency.ts.
+  amount: number | string;
+}
+
+export interface PaymentPage {
+  items: AdminPayment[];
+  total: number;
+}
+
+// Body of POST /Payment/checkout: one in-person sale.
+export interface PlanCheckoutPayload {
+  userId: number;
+  planId: number;
+  months: 1 | 3 | 6 | 12;
+  amount: number;
+  payMethod: 'efectivo' | 'debito' | 'credito' | 'transferencia';
+}

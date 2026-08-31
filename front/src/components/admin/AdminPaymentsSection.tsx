@@ -1,23 +1,47 @@
 import { useEffect, useState } from 'react';
+import Button from '../common/Button';
 import Card from '../common/Card';
 import DataTable, { type DataTableColumn } from './DataTable';
-import RegisterPaymentForm from './RegisterPaymentForm';
+import PlanChargeForm from './PlanChargeForm';
+import MemberSearchField from './MemberSearchField';
 import { getPayments } from '../../services/payment.service';
 import { formatPaymentDate } from '../../lib/payment-date';
 import { formatPriceDisplay } from '../../lib/currency';
-import type { Payment } from '../../types/payment';
+import type { AdminPayment, PaymentPage } from '../../types/payment';
+import type { User } from '../../types/user';
+
+const PAGE_SIZE = 25;
+
+const columns: DataTableColumn<AdminPayment>[] = [
+  { header: 'Fecha', cell: (p) => formatPaymentDate(p.date) },
+  {
+    header: 'Socio',
+    cell: (p) =>
+      p.subscription?.user
+        ? `${p.subscription.user.name} ${p.subscription.user.surname}`
+        : '—',
+  },
+  { header: 'Monto', cell: (p) => `$${formatPriceDisplay(p.amount)}` },
+  { header: 'Método', cell: (p) => p.payMethod },
+  {
+    header: 'Registrado por',
+    cell: (p) => p.registeredByName ?? '—',
+  },
+];
 
 const AdminPaymentsSection = () => {
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [page, setPage] = useState<PaymentPage>({ items: [], total: 0 });
+  const [offset, setOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Every setState lives in an async callback, so the effect below only starts
   // the request instead of updating state while React renders.
-  const fetchPayments = () =>
-    getPayments()
+  const fetchPayments = (nextOffset: number) =>
+    getPayments({ limit: PAGE_SIZE, offset: nextOffset })
       .then((data) => {
-        setPayments(data.sort((a, b) => (a.date < b.date ? 1 : -1)));
+        setPage(data);
         setLoadError(null);
       })
       .catch((err: unknown) => {
@@ -28,40 +52,36 @@ const AdminPaymentsSection = () => {
       .finally(() => setIsLoading(false));
 
   useEffect(() => {
-    void fetchPayments();
-  }, []);
+    void fetchPayments(offset);
+  }, [offset]);
 
   const reload = () => {
     setIsLoading(true);
-    setLoadError(null);
-    void fetchPayments();
+    setOffset(0);
+    return fetchPayments(0);
   };
 
-  const columns: DataTableColumn<Payment>[] = [
-    { header: 'Fecha', cell: (p) => formatPaymentDate(p.date) },
-    {
-      header: 'Socio',
-      cell: (p) =>
-        p.subscription?.user
-          ? `${p.subscription.user.name} ${p.subscription.user.surname}`
-          : '—',
-    },
-    { header: 'Monto', cell: (p) => `$${formatPriceDisplay(p.amount)}` },
-    { header: 'Método', cell: (p) => p.payMethod },
-    {
-      header: 'Registrado por',
-      cell: (p) => p.registeredByName ?? '—',
-    },
-  ];
+  const from = page.total === 0 ? 0 : offset + 1;
+  const to = Math.min(offset + page.items.length, page.total);
+  const hasPrevious = offset > 0;
+  const hasNext = offset + PAGE_SIZE < page.total;
 
   return (
     <div className="space-y-8">
       <div>
         <h3 className="font-display text-lg font-semibold text-text">
-          Registrar pago presencial
+          Cobrar un plan
         </h3>
         <Card className="mt-4 hover:translate-y-0 hover:shadow-lg">
-          <RegisterPaymentForm onRegistered={reload} />
+          {selectedUser ? (
+            <PlanChargeForm
+              selectedUser={selectedUser}
+              onRegistered={reload}
+              onChangeMember={() => setSelectedUser(null)}
+            />
+          ) : (
+            <MemberSearchField onSelect={setSelectedUser} />
+          )}
         </Card>
       </div>
 
@@ -75,11 +95,34 @@ const AdminPaymentsSection = () => {
           )}
           <DataTable
             columns={columns}
-            rows={payments.slice(0, 25)}
-            rowKey={(p) => p.id ?? Math.random()}
+            rows={page.items}
+            rowKey={(p) => p.id}
             isLoading={isLoading}
             emptyMessage="Todavía no hay pagos registrados."
           />
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-text-muted">
+              Mostrando {from}-{to} de {page.total}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!hasPrevious}
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!hasNext}
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
