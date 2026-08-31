@@ -57,6 +57,11 @@ describe('subscriptionService', () => {
       [unknown, CreatedSubscriptionPayload]
     >;
   };
+  let planService: {
+    findPlan: jest.Mock;
+    findPlanIncludingDeleted: jest.Mock;
+  };
+
   beforeEach(async () => {
     subscriptionRepository = {
       create: jest.fn((entity: object) => entity),
@@ -70,6 +75,15 @@ describe('subscriptionService', () => {
         (_entity: unknown, data: CreatedSubscriptionPayload) => data,
       ),
     };
+    planService = {
+      findPlan: jest
+        .fn()
+        .mockResolvedValue({ id: 1, numDays: 30, deleted: false }),
+      findPlanIncludingDeleted: jest
+        .fn()
+        .mockResolvedValue({ id: 1, numDays: 30, deleted: false }),
+    };
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         subscriptionService,
@@ -79,11 +93,7 @@ describe('subscriptionService', () => {
         },
         {
           provide: PlanService,
-          useValue: {
-            findPlan: jest
-              .fn()
-              .mockResolvedValue({ id: 1, numDays: 30, deleted: false }),
-          },
+          useValue: planService,
         },
         { provide: UserService, useValue: {} },
         {
@@ -266,6 +276,28 @@ describe('subscriptionService', () => {
           startDate: localDate(today),
           endDate: localDate(in30Days),
         }),
+      );
+    });
+
+    it('activates a payment against a plan the admin has since retired', async () => {
+      subscriptionRepository.findOne
+        .mockResolvedValueOnce({
+          id: 7,
+          planId: 1,
+          state: SubscriptionState.PENDING,
+          deleted: false,
+        })
+        .mockResolvedValueOnce(null); // no previously active row
+      planService.findPlanIncludingDeleted.mockResolvedValue({
+        id: 1,
+        numDays: 30,
+        deleted: true,
+      });
+
+      await expect(service.activate(7)).resolves.toBeDefined();
+      expect(planService.findPlanIncludingDeleted).toHaveBeenCalledWith(1);
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, state: SubscriptionState.ACTIVE }),
       );
     });
   });

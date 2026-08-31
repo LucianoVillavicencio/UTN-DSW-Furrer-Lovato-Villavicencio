@@ -244,7 +244,9 @@ export class subscriptionService {
     // go ACTIVE with an endDate already in the past, and since nothing expires
     // a subscription yet (FLG-SEC-24) that reads as permanent access. The paid
     // period starts when the payment lands, not when it was requested.
-    const plan = await this.planService.findPlan(subscription.planId);
+    const plan = await this.planService.findPlanIncludingDeleted(
+      subscription.planId,
+    );
     if (!plan) {
       throw new NotFoundException(
         `El plan con ID: ${subscription.planId} no existe.`,
