@@ -246,6 +246,14 @@ describe('PaymentService.registerPlanPayment', () => {
   it('writes the subscription and the payment together', async () => {
     const payment = await service.registerPlanPayment(dto, 1);
     expect(subscriptions.replaceActiveSubscription).toHaveBeenCalled();
+    // Not just "called" — called with the SAME manager instance the
+    // transaction callback received, so the subscription write is genuinely
+    // inside dataSource.transaction(...) rather than issued against some
+    // other (non-transactional) manager that merely looks equivalent.
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.anything(),
+    );
     expect(payment).toMatchObject({
       subscriptionId: 42,
       amount: 300,
@@ -268,6 +276,18 @@ describe('PaymentService.registerPlanPayment', () => {
     expect(dataSource.transaction).toHaveBeenCalled();
     // dataSource.transaction rethrows after rolling back; the mock asserts
     // the callback threw rather than swallowing.
+    //
+    // And critically: the subscription write went through the SAME manager
+    // instance the transaction callback received. Without this, a future
+    // regression that calls replaceActiveSubscription OUTSIDE
+    // dataSource.transaction(...) — breaking the atomicity this task exists
+    // to add — would still make every test in this file pass, since
+    // manager.save's mock throws purely on `entity instanceof Payment`,
+    // independent of which manager instance issued the subscription write.
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.anything(),
+    );
   });
 
   it('refuses a deleted member', async () => {
