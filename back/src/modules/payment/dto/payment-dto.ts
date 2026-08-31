@@ -1,12 +1,14 @@
 import {
   IsBoolean,
   IsDateString,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
+import { PaymentState } from '../enum/payment-state.enum';
 
 export class PaymentDto {
   @IsNumber()
@@ -32,6 +34,7 @@ export class PaymentDto {
   payMethod!: string;
 
   @IsString()
+  @IsIn(Object.values(PaymentState))
   @IsOptional()
   state?: string;
 
