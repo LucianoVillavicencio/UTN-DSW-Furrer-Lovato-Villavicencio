@@ -34,11 +34,12 @@ export const useOwnerAnalytics = () => {
 
   const reload = async (next: 'day' | 'month') => {
     if (password === null) return;
-    setGranularity(next);
     setIsLoading(true);
     setError(null);
     try {
-      setOverview(await getAnalyticsOverview(password, { granularity: next }));
+      const data = await getAnalyticsOverview(password, { granularity: next });
+      setOverview(data);
+      setGranularity(next);
     } catch (err) {
       // The panel keeps showing the previous data with the error above it
       // rather than blanking: a transient failure must not read as "the gym

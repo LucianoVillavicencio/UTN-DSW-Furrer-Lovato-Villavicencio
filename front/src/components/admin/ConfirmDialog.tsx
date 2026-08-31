@@ -27,8 +27,13 @@ const ConfirmDialog = ({
   // Escape here dismisses the confirmation and not the panel behind it.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || isLoading) return;
+      if (e.key !== 'Escape') return;
+      // Always captured while this dialog is mounted, even mid-save, so it
+      // never leaks to a parent Modal's own Escape listener and dismisses
+      // the panel behind it. The cancel action itself still only fires when
+      // not busy, same as the Button's own disabled={isLoading}.
       e.stopImmediatePropagation();
+      if (isLoading) return;
       onCancel();
     };
     document.addEventListener('keydown', onKeyDown, true);
