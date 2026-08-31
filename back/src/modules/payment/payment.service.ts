@@ -9,6 +9,7 @@ import { Payment } from './entity/payment.entity';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { PlanCheckoutDto } from './dto/plan-checkout-dto';
+import { PaymentQueryDto } from './dto/payment-query-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
@@ -150,12 +151,21 @@ export class PaymentService {
   // done by hand rather than through `relations`. One findUser() call per
   // distinct admin, not per payment: a front desk records many payments a
   // day under a handful of admins.
-  async findAll() {
-    const payments = await this.paymentRepository.find({
+  //
+  // Before this, every non-deleted payment came back with its member and
+  // plan joined and the client threw away everything past the 25th.
+  // Subscription's user and plan relations are eager, so each row carried a
+  // full user and a full plan including its features JSON — about a
+  // kilobyte a row, growing by one row per member per month, forever.
+  async findAll(query: PaymentQueryDto) {
+    const [payments, total] = await this.paymentRepository.findAndCount({
       where: { deleted: false },
       // Explicit relations down to 'user'/'plan': eager:true on the
       // Subscription entity cannot be assumed to cascade here.
       relations: { subscription: { user: true, plan: true } },
+      order: { date: 'DESC' },
+      take: query.limit,
+      skip: query.offset,
     });
 
     const adminIds = [
@@ -174,13 +184,16 @@ export class PaymentService {
       }
     }
 
-    return payments.map((p) => ({
-      ...p,
-      registeredByName:
-        p.registeredById != null
-          ? (adminNames.get(p.registeredById) ?? null)
-          : null,
-    }));
+    return {
+      items: payments.map((p) => ({
+        ...p,
+        registeredByName:
+          p.registeredById != null
+            ? (adminNames.get(p.registeredById) ?? null)
+            : null,
+      })),
+      total,
+    };
   }
 
   async findAllDeleted() {

@@ -90,14 +90,17 @@ describe('PaymentService.createManualPayment', () => {
 
 describe('PaymentService.findAll', () => {
   let service: PaymentService;
-  let repository: { find: jest.Mock };
+  let paymentRepository: { findAndCount: jest.Mock };
   let users: { findUser: jest.Mock };
 
   const buildService = async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PaymentService,
-        { provide: getRepositoryToken(Payment), useValue: repository },
+        {
+          provide: getRepositoryToken(Payment),
+          useValue: paymentRepository,
+        },
         { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: {} },
         { provide: PlanService, useValue: {} },
@@ -110,8 +113,10 @@ describe('PaymentService.findAll', () => {
   };
 
   it('attaches the recording admin name to a payment with registeredById', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([{ id: 1, registeredById: 30111222 }]),
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: 30111222 }], 1]),
     };
     users = {
       findUser: jest
@@ -120,30 +125,35 @@ describe('PaymentService.findAll', () => {
     };
     await buildService();
 
-    const result = await service.findAll();
+    const result = await service.findAll({ limit: 25, offset: 0 });
 
-    expect(result[0].registeredByName).toBe('Ana Pérez');
+    expect(result.items[0].registeredByName).toBe('Ana Pérez');
     expect(users.findUser).toHaveBeenCalledWith(30111222);
   });
 
   it('leaves registeredByName null for a payment with no recording admin', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([{ id: 1, registeredById: null }]),
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: null }], 1]),
     };
     users = { findUser: jest.fn() };
     await buildService();
 
-    const result = await service.findAll();
+    const result = await service.findAll({ limit: 25, offset: 0 });
 
-    expect(result[0].registeredByName).toBeNull();
+    expect(result.items[0].registeredByName).toBeNull();
     expect(users.findUser).not.toHaveBeenCalled();
   });
 
   it('looks up each distinct admin only once', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([
-        { id: 1, registeredById: 30111222 },
-        { id: 2, registeredById: 30111222 },
+    paymentRepository = {
+      findAndCount: jest.fn().mockResolvedValue([
+        [
+          { id: 1, registeredById: 30111222 },
+          { id: 2, registeredById: 30111222 },
+        ],
+        2,
       ]),
     };
     users = {
@@ -153,9 +163,41 @@ describe('PaymentService.findAll', () => {
     };
     await buildService();
 
-    await service.findAll();
+    await service.findAll({ limit: 25, offset: 0 });
 
     expect(users.findUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('orders by date descending in SQL and applies the window', async () => {
+    paymentRepository = {
+      findAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
+    users = { findUser: jest.fn() };
+    await buildService();
+
+    await service.findAll({ limit: 25, offset: 50 });
+    expect(paymentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { deleted: false },
+        order: { date: 'DESC' },
+        take: 25,
+        skip: 50,
+      }),
+    );
+  });
+
+  it('returns the total alongside the page', async () => {
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: null }], 137]),
+    };
+    users = { findUser: jest.fn() };
+    await buildService();
+
+    const result = await service.findAll({ limit: 25, offset: 0 });
+    expect(result.total).toBe(137);
+    expect(result.items).toHaveLength(1);
   });
 });
 

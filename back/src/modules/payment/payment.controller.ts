@@ -8,6 +8,7 @@ import {
   Delete,
   Patch,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -16,6 +17,7 @@ import { PaymentService } from './payment.service';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { PlanCheckoutDto } from './dto/plan-checkout-dto';
+import { PaymentQueryDto } from './dto/payment-query-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
@@ -66,8 +68,8 @@ export class PaymentController {
   }
 
   @Get()
-  getPayments() {
-    return this.paymentService.findAll();
+  getPayments(@Query() query: PaymentQueryDto) {
+    return this.paymentService.findAll(query);
   }
 
   @Get('filter/deleted')
