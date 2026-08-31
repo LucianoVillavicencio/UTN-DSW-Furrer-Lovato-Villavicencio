@@ -6,6 +6,7 @@ import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
+import { toDateOnly } from './subscription.rules';
 
 // Local date parts, matching the 'YYYY-MM-DD' the service writes. Spelled out
 // here rather than imported so the assertions do not check the helper against
@@ -20,8 +21,10 @@ function localDate(date: Date): string {
 
 // `today`/`tomorrow`/`yesterday` in replaceActiveSubscription's tests are
 // computed relative to the real clock so the suite is not tied to a
-// hardcoded date.
-const toDateOnly = (d: Date) => d.toISOString().slice(0, 10);
+// hardcoded date. toDateOnly is imported from production rather than
+// redefined here (it used to be a UTC-based local helper) so the fixtures
+// agree with the local-time logic under test by construction, not by
+// coincidence of timezone/time-of-day.
 const addDays = (base: Date, days: number) => {
   const d = new Date(base);
   d.setDate(d.getDate() + days);
@@ -345,9 +348,13 @@ describe('subscriptionService', () => {
         term,
       });
       const created = manager.create.mock.calls[0][1];
-      expect(toDateOnly(new Date(created.startDate))).toBe(
-        toDateOnly(addDays(today, 4)),
-      );
+      // created.startDate is already a 'YYYY-MM-DD' string (subscriptionPeriod's
+      // output, cast to Date only for TypeORM's benefit) — compared directly
+      // rather than round-tripped through `new Date(created.startDate)`, which
+      // parses a date-only string as UTC midnight and would shift it back a
+      // day once reformatted with the local-time toDateOnly, the exact trap
+      // dayAfter exists to avoid.
+      expect(created.startDate).toBe(toDateOnly(addDays(today, 4)));
     });
 
     it('starts today when the ACTIVE subscription already lapsed', async () => {
@@ -361,7 +368,8 @@ describe('subscriptionService', () => {
         term,
       });
       const created = manager.create.mock.calls[0][1];
-      expect(toDateOnly(new Date(created.startDate))).toBe(toDateOnly(today));
+      // Compared directly as a string — see the comment above.
+      expect(created.startDate).toBe(toDateOnly(today));
     });
 
     it('starts today when there is no ACTIVE subscription to extend from', async () => {
@@ -374,7 +382,8 @@ describe('subscriptionService', () => {
         term,
       });
       const created = manager.create.mock.calls[0][1];
-      expect(toDateOnly(new Date(created.startDate))).toBe(toDateOnly(today));
+      // Compared directly as a string — see the comment above.
+      expect(created.startDate).toBe(toDateOnly(today));
     });
 
     it('uses the passed manager and never its own repository', async () => {
