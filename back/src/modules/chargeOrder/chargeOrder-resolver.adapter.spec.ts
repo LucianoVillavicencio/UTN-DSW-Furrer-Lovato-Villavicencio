@@ -11,8 +11,8 @@ describe('ChargeOrderResolverAdapter.resolve', () => {
   const pendingOrder = {
     id: 1,
     subscriptionId: 7,
-    planTermId: 55,
-    planTerm: { id: 55, months: 3 },
+    planDurationId: 55,
+    planDuration: { id: 55, months: 3 },
     method: 'qr' as const,
     externalReference: 'flg-sub-7-abcd1234',
     amount: 15000,

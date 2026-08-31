@@ -40,7 +40,7 @@ describe('ChargeOrderController', () => {
   const pendingOrder = {
     id: 1,
     subscriptionId: 7,
-    planTermId: 55,
+    planDurationId: 55,
     method: 'point' as const,
     externalReference: 'flg-sub-7-abcd1234',
     mpOrderId: null,
@@ -114,7 +114,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('admin', 40000001)}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'point',
           collectionPointId: 'terminal-1',
         })
@@ -125,7 +125,7 @@ describe('ChargeOrderController', () => {
       // check and Mercado Pago.
       expect(chargeOrderService.createCharge).toHaveBeenCalledWith({
         subscriptionId: 7,
-        planTermId: 55,
+        months: 3,
         method: 'point',
         collectionPointId: CONFIGURED_TERMINAL,
         adminId: 40000001,
@@ -171,7 +171,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'qr',
           collectionPointId: 'caja-5',
         })
@@ -210,7 +210,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'point',
           collectionPointId: 'terminal-1',
         })
@@ -237,7 +237,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'point',
           // A body that supplies one anyway must NOT be able to stand in for
           // the missing server config.
@@ -260,7 +260,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'qr',
           collectionPointId: 'caja-from-the-browser',
         })
@@ -279,7 +279,7 @@ describe('ChargeOrderController', () => {
         .set('Authorization', `Bearer ${tokenFor('member')}`)
         .send({
           subscriptionId: 7,
-          planTermId: 55,
+          months: 3,
           method: 'point',
           collectionPointId: 'terminal-1',
         })

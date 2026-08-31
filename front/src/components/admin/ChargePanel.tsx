@@ -7,7 +7,7 @@ import RegisterPaymentForm from './RegisterPaymentForm';
 import { searchUsers } from '../../services/user.service';
 import { getSubscriptionsByUser } from '../../services/subscription.service';
 import { getPaymentsByUser } from '../../services/payment.service';
-import { getPlanTermsForPlan } from '../../services/planTerm.service';
+import { getPlanDurations } from '../../services/plan.service';
 import {
   createChargeOrder,
   getChargeOrder,
@@ -25,10 +25,17 @@ import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
 import type { User } from '../../types/user';
 import type { Subscription } from '../../types/subscription';
-import type { PlanTerm } from '../../types/planTerm';
 import type { Payment } from '../../types/payment';
 
 type ChargeMethod = 'efectivo' | 'point' | 'qr';
+
+// The plan's own 1-month price (no PlanDuration row) alongside its optional
+// 3/6/12-month rows — see getPlanDurations and resolveTerm's convention on
+// the backend.
+interface ChargeTerm {
+  months: number;
+  price: number | string;
+}
 
 // The order's live status/amount/qrPayload/expiresAt/newEndDate, kept in one
 // place so creation and every poll tick write to the same shape. See
@@ -83,8 +90,8 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
   const isLoadingSubs = !!selectedUser && loadedSubs?.userId !== selectedUser.id;
   const [selectedSubId, setSelectedSubId] = useState<number | ''>('');
 
-  const [terms, setTerms] = useState<PlanTerm[]>([]);
-  const [selectedTermId, setSelectedTermId] = useState<number | null>(null);
+  const [terms, setTerms] = useState<ChargeTerm[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number | null>(null);
 
   // The advance-payment warning's data source — see charge-panel.ts's
   // hasAutoRenewedToday and the Ruling in the task brief.
@@ -187,16 +194,20 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
     if (!sub?.planId) return;
 
     let cancelled = false;
-    getPlanTermsForPlan(sub.planId)
-      .then((fetched) => {
+    getPlanDurations(sub.planId)
+      .then((durations) => {
         if (cancelled) return;
-        setTerms(fetched);
-        setSelectedTermId(fetched.length > 0 ? fetched[0].id : null);
+        // The plan's own 1-month price is never a PlanDuration row — see
+        // resolveTerm's convention on the backend.
+        const oneMonth: ChargeTerm = { months: 1, price: sub.plan?.price ?? 0 };
+        const options: ChargeTerm[] = [oneMonth, ...durations];
+        setTerms(options);
+        setSelectedMonths(options[0].months);
       })
       .catch(() => {
         if (cancelled) return;
         setTerms([]);
-        setSelectedTermId(null);
+        setSelectedMonths(null);
       });
 
     return () => {
@@ -220,7 +231,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
     setLoadedSubs(null);
     setSelectedSubId('');
     setTerms([]);
-    setSelectedTermId(null);
+    setSelectedMonths(null);
     setPayments([]);
     resetOrderState();
   };
@@ -228,7 +239,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
   const handleSelectSub = (subId: number) => {
     setSelectedSubId(subId);
     setTerms([]);
-    setSelectedTermId(null);
+    setSelectedMonths(null);
     resetOrderState();
   };
 
@@ -275,7 +286,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
     // rest of this function from a literal comparison, which
     // createChargeOrder's payload type below depends on; a plain boolean
     // function call wouldn't narrow it.
-    if (method === 'efectivo' || !selectedSubId || !selectedTermId) return;
+    if (method === 'efectivo' || !selectedSubId || !selectedMonths) return;
     if (!collectionPointId) return;
 
     setOrderError(null);
@@ -283,7 +294,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
     try {
       const created = await createChargeOrder({
         subscriptionId: Number(selectedSubId),
-        planTermId: selectedTermId,
+        months: selectedMonths,
         method,
         collectionPointId,
       });
@@ -504,12 +515,12 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
                       </p>
                       {terms.map((term) => (
                         <button
-                          key={term.id}
+                          key={term.months}
                           type="button"
                           disabled={isOrderPending}
-                          onClick={() => setSelectedTermId(term.id)}
+                          onClick={() => setSelectedMonths(term.months)}
                           className={`w-full rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                            selectedTermId === term.id
+                            selectedMonths === term.months
                               ? 'border-primary bg-primary/10'
                               : 'border-border hover:border-primary/40'
                           }`}
@@ -535,7 +546,7 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
                       disabled={
                         isCreatingOrder ||
                         !selectedSubId ||
-                        !selectedTermId ||
+                        !selectedMonths ||
                         !collectionPointId
                       }
                       className="w-full"

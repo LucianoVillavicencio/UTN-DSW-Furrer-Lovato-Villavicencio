@@ -11,7 +11,8 @@ import { ChargeOrder } from './entity/chargeOrder.entity';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
-import { PlanTermService } from '../planTerm/planTerm.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
+import { resolveTerm } from '../plan/plan-duration.rules';
 import {
   buildExternalReference,
   ORDER_EXPIRATION_MS,
@@ -19,7 +20,7 @@ import {
 
 export interface CreateChargeParams {
   subscriptionId: number;
-  planTermId: number;
+  months: number;
   method: 'point' | 'qr';
   collectionPointId: string;
   adminId: number;
@@ -38,7 +39,7 @@ export class ChargeOrderService {
     @InjectRepository(ChargeOrder)
     private chargeOrderRepository: Repository<ChargeOrder>,
     private readonly subscriptionService: subscriptionService,
-    private readonly planTermService: PlanTermService,
+    private readonly planDurationService: PlanDurationService,
   ) {}
 
   // Arms a new charge order at the counter. The busy-collection-point check
@@ -48,7 +49,7 @@ export class ChargeOrderService {
   // amounts. It is deliberately keyed on collectionPointId, not
   // subscriptionId.
   async createCharge(params: CreateChargeParams) {
-    const { subscriptionId, planTermId, method, collectionPointId, adminId } =
+    const { subscriptionId, months, method, collectionPointId, adminId } =
       params;
 
     const subscription =
@@ -66,14 +67,12 @@ export class ChargeOrderService {
       throw new ConflictException('No se puede cobrar una membresía pausada.');
     }
 
-    const term = await this.planTermService.findTerm(planTermId);
-    // A term from another plan must not silently apply here — same
-    // cross-check as subscriptionService.resolvePlanTerm.
-    if (!term || term.deleted || term.planId !== subscription.planId) {
-      throw new NotFoundException(
-        `El plazo con ID: ${planTermId} no existe para este plan.`,
-      );
-    }
+    // resolveTerm throws NotFoundException itself when `months` has no
+    // matching (non-deleted) PlanDuration for this plan.
+    const durations = await this.planDurationService.findByPlan(
+      subscription.planId,
+    );
+    const term = resolveTerm(subscription.plan, months, durations);
 
     // Expire stale orders before checking whether the point is busy, so an
     // abandoned charge from a few minutes ago never blocks the counter. Bulk
@@ -115,7 +114,7 @@ export class ChargeOrderService {
 
       const newOrder = manager.create(ChargeOrder, {
         subscriptionId,
-        planTermId,
+        planDurationId: term.planDurationId,
         method,
         externalReference,
         mpOrderId: null,

@@ -1,4 +1,4 @@
-import type { Plan } from '../types/plan';
+import type { Plan, PlanDuration } from '../types/plan';
 import { AxiosError } from 'axios';
 import api from './api';
 
@@ -97,5 +97,71 @@ export const getDeletedPlans = async (): Promise<Plan[]> => {
       getErrorMessage(error, 'Error al obtener planes eliminados'),
       { cause: error },
     );
+  }
+};
+
+// Admin-only. Durations are deliberately not part of GET /plan: the public
+// plans page must keep showing only the monthly price.
+export const getPlanDurations = async (
+  planId: number,
+): Promise<PlanDuration[]> => {
+  try {
+    const { data } = await api.get<PlanDuration[]>(`/plan/${planId}/duration`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, 'Error al obtener las duraciones del plan'),
+      { cause: error },
+    );
+  }
+};
+
+export const createPlanDuration = async (
+  planId: number,
+  payload: { months: number; numDays: number; price: number },
+): Promise<PlanDuration> => {
+  try {
+    const { data } = await api.post<PlanDuration>(
+      `/plan/${planId}/duration`,
+      payload,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'No se pudo crear la duración.'), {
+      cause: error,
+    });
+  }
+};
+
+export const updatePlanDuration = async (
+  planId: number,
+  durationId: number,
+  payload: { months: number; numDays: number; price: number },
+): Promise<PlanDuration> => {
+  try {
+    const { data } = await api.put<PlanDuration>(
+      `/plan/${planId}/duration/${durationId}`,
+      payload,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo actualizar la duración.'),
+      { cause: error },
+    );
+  }
+};
+
+export const deletePlanDuration = async (
+  planId: number,
+  durationId: number,
+): Promise<boolean> => {
+  try {
+    const { data } = await api.delete(`/plan/${planId}/duration/${durationId}`);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'No se pudo eliminar la duración.'), {
+      cause: error,
+    });
   }
 };

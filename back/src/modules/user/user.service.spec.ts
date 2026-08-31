@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Users } from './entity/users.entity';
 
@@ -54,5 +55,85 @@ describe('findOrCreateGoogleUser', () => {
 
     const [row] = create.mock.calls[0] as [Record<string, unknown>];
     expect(row).not.toHaveProperty('id');
+  });
+});
+
+describe('searchUsers', () => {
+  // The guard is expected to throw before the query builder is ever touched,
+  // but the chain is mocked out fully anyway so a regression that removes the
+  // guard fails with "resolves instead of rejecting" rather than an unrelated
+  // TypeError from an incomplete mock.
+  const buildService = () => {
+    const queryBuilder = {
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    };
+    const createQueryBuilder = jest.fn().mockReturnValue(queryBuilder);
+    const repository = { createQueryBuilder };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service };
+  };
+
+  it('refuses a search with no usable criterion instead of returning everyone', async () => {
+    const { service } = buildService();
+
+    await expect(service.searchUsers({})).rejects.toThrow(BadRequestException);
+  });
+
+  it('refuses a NaN dni rather than silently dropping the filter', async () => {
+    const { service } = buildService();
+
+    await expect(
+      service.searchUsers({ dni: Number('40.123.456') }),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('adminUpdateUser', () => {
+  const buildService = () => {
+    const user: Partial<Users> = {
+      id: 1,
+      name: 'Test',
+      surname: 'User',
+      email: 'test@example.com',
+      phone: '341 555-1234',
+      role: 'member',
+      dni: null,
+      password: 'hashed',
+      googleId: null,
+      picture: null,
+      deleted: false,
+    };
+    const findOne = jest.fn().mockResolvedValue(user);
+    const save = jest.fn((row: Users) =>
+      Promise.resolve({ ...row, password: 'hashed' }),
+    );
+    const repository = { findOne, save };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service, findOne, save, user };
+  };
+
+  it('clears a phone when the admin sends an empty string', async () => {
+    const { service } = buildService();
+
+    const saved = await service.adminUpdateUser(1, { phone: '' });
+
+    expect(saved.phone).toBeNull();
+  });
+
+  it('leaves the phone alone when the field is absent', async () => {
+    const { service } = buildService();
+
+    const saved = await service.adminUpdateUser(1, { name: 'Nuevo' });
+
+    expect(saved.phone).toBe('341 555-1234');
   });
 });

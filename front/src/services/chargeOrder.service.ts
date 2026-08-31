@@ -7,7 +7,7 @@ import api from './api';
 
 export interface CreateChargeOrderPayload {
   subscriptionId: number;
-  planTermId: number;
+  months: number;
   method: 'point' | 'qr';
   collectionPointId: string;
 }

@@ -82,7 +82,7 @@ export class ChargeOrderController {
 
     const chargeOrder = await this.chargeOrderService.createCharge({
       subscriptionId: dto.subscriptionId,
-      planTermId: dto.planTermId,
+      months: dto.months,
       method: dto.method,
       collectionPointId,
       adminId: admin.sub,

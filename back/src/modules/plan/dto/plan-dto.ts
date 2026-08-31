@@ -44,7 +44,10 @@ export class PlanDto {
   @IsNotEmpty()
   price!: number;
 
-  @IsNumber()
+  // @IsInt, not @IsNumber: a fractional numDays reaches
+  // subscriptionPeriod's setDate(), which truncates it, so the stored plan and
+  // the period it grants disagree.
+  @IsInt()
   @IsPositive()
   @IsNotEmpty()
   numDays!: number;

@@ -3,26 +3,77 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository, UpdateResult } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository, UpdateResult } from 'typeorm';
 import { Payment } from './entity/payment.entity';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { MercadoPagoPaymentDto } from './dto/mercadopago-payment-dto';
+import { PlanCheckoutDto } from './dto/plan-checkout-dto';
+import { PaymentQueryDto } from './dto/payment-query-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { UserService } from '../user/user.service';
+import { PlanService } from '../plan/plan.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
+import { resolveTerm } from '../plan/plan-duration.rules';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly subscriptionService: subscriptionService,
+    private readonly planService: PlanService,
+    private readonly planDurationService: PlanDurationService,
     private readonly userService: UserService,
   ) {}
+
+  // One in-person sale, written atomically. The old path — assignPlanToMember,
+  // then POST /Payment/manual — was two independent requests with no unit of
+  // work between them: a failure after the first left the member with an
+  // active plan and no payment on record.
+  async registerPlanPayment(dto: PlanCheckoutDto, adminId: number) {
+    // Validation happens outside the transaction: it takes no locks, and a
+    // rejected sale should not have opened one.
+    const member = await this.userService.findUser(dto.userId);
+    if (!member || member.deleted) {
+      throw new NotFoundException(`El socio con ID: ${dto.userId} no existe.`);
+    }
+
+    const plan = await this.planService.findPlan(dto.planId);
+    if (!plan) {
+      throw new NotFoundException(`El plan con ID: ${dto.planId} no existe.`);
+    }
+
+    const durations = await this.planDurationService.findByPlan(dto.planId);
+    const term = resolveTerm(plan, dto.months, durations);
+
+    return this.dataSource.transaction(async (manager) => {
+      const subscription =
+        await this.subscriptionService.replaceActiveSubscription(manager, {
+          userId: dto.userId,
+          planId: dto.planId,
+          term,
+        });
+
+      const payment = manager.create(Payment, {
+        subscriptionId: subscription.id,
+        amount: dto.amount,
+        payMethod: dto.payMethod,
+        date: new Date(),
+        state: PaymentState.COMPLETED,
+        registeredById: adminId,
+        deleted: false,
+      });
+
+      return manager.save(payment);
+    });
+  }
 
   // In-person payment recorded by an admin (see specs.md §3.5). Still the
   // only way a payment gets written until Mercado Pago exists.
@@ -333,12 +384,21 @@ export class PaymentService {
   // done by hand rather than through `relations`. One findUser() call per
   // distinct admin, not per payment: a front desk records many payments a
   // day under a handful of admins.
-  async findAll() {
-    const payments = await this.paymentRepository.find({
+  //
+  // Before this, every non-deleted payment came back with its member and
+  // plan joined and the client threw away everything past the 25th.
+  // Subscription's user and plan relations are eager, so each row carried a
+  // full user and a full plan including its features JSON — about a
+  // kilobyte a row, growing by one row per member per month, forever.
+  async findAll(query: PaymentQueryDto) {
+    const [payments, total] = await this.paymentRepository.findAndCount({
       where: { deleted: false },
       // Explicit relations down to 'user'/'plan': eager:true on the
       // Subscription entity cannot be assumed to cascade here.
       relations: { subscription: { user: true, plan: true } },
+      order: { date: 'DESC' },
+      take: query.limit,
+      skip: query.offset,
     });
 
     const adminIds = [
@@ -357,13 +417,16 @@ export class PaymentService {
       }
     }
 
-    return payments.map((p) => ({
-      ...p,
-      registeredByName:
-        p.registeredById != null
-          ? (adminNames.get(p.registeredById) ?? null)
-          : null,
-    }));
+    return {
+      items: payments.map((p) => ({
+        ...p,
+        registeredByName:
+          p.registeredById != null
+            ? (adminNames.get(p.registeredById) ?? null)
+            : null,
+      })),
+      total,
+    };
   }
 
   async findAllDeleted() {

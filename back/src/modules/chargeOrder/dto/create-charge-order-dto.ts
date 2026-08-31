@@ -16,10 +16,12 @@ export class CreateChargeOrderDto {
   @IsNotEmpty()
   subscriptionId!: number;
 
+  // How many months to charge for — 1 for the plan's own price, or a
+  // months value with a matching PlanDuration (see resolveTerm).
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  planTermId!: number;
+  months!: number;
 
   @IsEnum(ChargeOrderMethod)
   method!: ChargeOrderMethod;

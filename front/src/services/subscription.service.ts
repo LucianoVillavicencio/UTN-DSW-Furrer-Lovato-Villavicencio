@@ -33,16 +33,10 @@ export const getMySubscription = async (): Promise<Subscription | null> => {
   }
 };
 
-// planTermId is optional: omitting it keeps today's behavior, defaulting to
-// the plan's 1-month term server-side.
-export const changePlan = async (
-  planId: number,
-  planTermId?: number,
-): Promise<Subscription> => {
+export const changePlan = async (planId: number): Promise<Subscription> => {
   try {
     const { data } = await api.post<Subscription>('/subscription/change-plan', {
       planId,
-      ...(planTermId !== undefined ? { planTermId } : {}),
     });
     return data;
   } catch (error: unknown) {

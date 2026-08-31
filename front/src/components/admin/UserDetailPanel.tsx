@@ -10,6 +10,7 @@ import RegisterPaymentForm from './RegisterPaymentForm';
 import AssignPlanForm from './AssignPlanForm';
 import UserClassSection from './UserClassSection';
 import { formatDateOnly } from '../../lib/date';
+import { formatPaymentDate } from '../../lib/payment-date';
 import { formatPriceDisplay } from '../../lib/currency';
 import { isPlaceholderEmail } from '../../lib/placeholderEmail';
 import {
@@ -126,18 +127,19 @@ const UserDetailPanel = ({
     setDniError(null);
 
     const trimmedDni = dniInput.trim();
-    if (!trimmedDni) {
-      setDniError('El DNI es obligatorio.');
-      return;
-    }
-    if (!/^\d+$/.test(trimmedDni) || Number(trimmedDni) <= 0) {
+    // Empty is legitimate: a Google member has no DNI until they complete their
+    // profile, and blocking the whole form on it would leave the one account type
+    // an admin most often has to correct completely uneditable. The backend only
+    // touches the dni `if (dto.dni != null)`, so omitting it is a no-op there.
+    if (trimmedDni && (!/^\d+$/.test(trimmedDni) || Number(trimmedDni) <= 0)) {
       setDniError('El DNI tiene que ser un número entero.');
       return;
     }
 
     setIsSaving(true);
     try {
-      const payload: AdminUpdateUserPayload = { ...form, dni: Number(trimmedDni) };
+      const payload: AdminUpdateUserPayload = { ...form };
+      if (trimmedDni) payload.dni = Number(trimmedDni);
       if (!payload.email?.trim()) delete payload.email;
       await adminUpdateUser(user.id, payload);
       setSaveSuccess('Cambios guardados.');
@@ -206,7 +208,7 @@ const UserDetailPanel = ({
                 if (dniError) setDniError(null);
               }}
               error={dniError}
-              placeholder="40123456"
+              placeholder={user.dni == null ? 'Sin DNI — cuenta creada con Google' : '40123456'}
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <InputField
@@ -364,7 +366,7 @@ const UserDetailPanel = ({
             <ul className="mt-3 space-y-1.5 text-sm">
               {payments.map((p) => (
                 <li key={p.id} className="flex justify-between text-text-muted">
-                  <span>{formatDateOnly(p.date.slice(0, 10))}</span>
+                  <span>{formatPaymentDate(p.date)}</span>
                   <span>${formatPriceDisplay(p.amount)}</span>
                   <span className="capitalize">{p.payMethod}</span>
                 </li>

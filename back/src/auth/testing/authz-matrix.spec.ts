@@ -4,6 +4,9 @@ import { App } from 'supertest/types';
 
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
+import { AnalyticsController } from '../../modules/analytics/analytics.controller';
+import { AnalyticsService } from '../../modules/analytics/analytics.service';
+import { OwnerPasswordGuard } from '../../modules/analytics/analytics.guard';
 import { ClassController } from '../../modules/class/class.controller';
 import { ClassService } from '../../modules/class/class.service';
 import { ClassRegistrationController } from '../../modules/classRegistration/classRegistration.controller';
@@ -16,6 +19,7 @@ import { PaymentController } from '../../modules/payment/payment.controller';
 import { PaymentService } from '../../modules/payment/payment.service';
 import { PlanController } from '../../modules/plan/plan.controller';
 import { PlanService } from '../../modules/plan/plan.service';
+import { PlanDurationService } from '../../modules/plan/plan-duration.service';
 import { subscriptionController } from '../../modules/subscription/subscription.controller';
 import { subscriptionService } from '../../modules/subscription/subscription.service';
 import { SavedCardService } from '../../modules/savedCard/savedCard.service';
@@ -111,6 +115,41 @@ const adminOnly = async (
   await call(app, method, path, tokenFor('member'), body).expect(403);
   await call(app, method, path, tokenFor('admin'), body).expect(okFor(method));
 };
+
+describe('AnalyticsController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(
+      AnalyticsController,
+      [
+        {
+          provide: AnalyticsService,
+          useValue: {
+            buildOverview: jest.fn().mockResolvedValue({}),
+          },
+        },
+      ],
+      [
+        // This suite asserts *role* reachability, not the password boundary —
+        // that is Task 18's OwnerPasswordGuard suite — so the guard is
+        // overridden to always allow.
+        {
+          provide: OwnerPasswordGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
+      ],
+    );
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('restricts POST /analytics/overview to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/analytics/overview');
+  });
+});
 
 describe('AuthController authorization', () => {
   let app: INestApplication;
@@ -415,6 +454,7 @@ describe('PaymentController authorization', () => {
         useValue: {
           findMineForUser: jest.fn().mockResolvedValue([]),
           createManualPayment: jest.fn().mockResolvedValue({}),
+          registerPlanPayment: jest.fn().mockResolvedValue({}),
           createPayment: jest.fn().mockResolvedValue({}),
           findAll: jest.fn().mockResolvedValue([]),
           findAllDeleted: jest.fn().mockResolvedValue([]),
@@ -438,6 +478,10 @@ describe('PaymentController authorization', () => {
 
   it('restricts POST /Payment/manual to an admin', async () => {
     await adminOnly(app, 'post', '/api/v1/Payment/manual');
+  });
+
+  it('restricts POST /Payment/checkout to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/Payment/checkout');
   });
 
   it('restricts POST /Payment to an admin', async () => {
@@ -497,6 +541,15 @@ describe('PlanController authorization', () => {
           restorePlan: jest.fn().mockResolvedValue({}),
         },
       },
+      {
+        provide: PlanDurationService,
+        useValue: {
+          findByPlan: jest.fn().mockResolvedValue([]),
+          create: jest.fn().mockResolvedValue({}),
+          update: jest.fn().mockResolvedValue({}),
+          remove: jest.fn().mockResolvedValue({}),
+        },
+      },
     ]);
   });
 
@@ -530,6 +583,22 @@ describe('PlanController authorization', () => {
 
   it('restricts PATCH /plan/restore/:id to an admin', async () => {
     await adminOnly(app, 'patch', '/api/v1/plan/restore/1');
+  });
+
+  it('restricts GET /plan/:id/duration to an admin', async () => {
+    await adminOnly(app, 'get', '/api/v1/plan/1/duration');
+  });
+
+  it('restricts POST /plan/:id/duration to an admin', async () => {
+    await adminOnly(app, 'post', '/api/v1/plan/1/duration');
+  });
+
+  it('restricts PUT /plan/:id/duration/:durationId to an admin', async () => {
+    await adminOnly(app, 'put', '/api/v1/plan/1/duration/1');
+  });
+
+  it('restricts DELETE /plan/:id/duration/:durationId to an admin', async () => {
+    await adminOnly(app, 'delete', '/api/v1/plan/1/duration/1');
   });
 });
 
@@ -879,10 +948,16 @@ describe('completion gate', () => {
   it('lets an incomplete member complete their profile', async () => {
     app = await buildAuthzApp(AuthController, [authServiceMock]);
 
-    await call(app, 'post', '/api/v1/auth/complete-profile', incompleteToken(), {
-      dni: 40123456,
-      phone: '3411234567',
-    }).expect(201);
+    await call(
+      app,
+      'post',
+      '/api/v1/auth/complete-profile',
+      incompleteToken(),
+      {
+        dni: 40123456,
+        phone: '3411234567',
+      },
+    ).expect(201);
   });
 
   it('lets an incomplete member edit their own profile', async () => {
@@ -926,7 +1001,10 @@ describe('completion gate', () => {
     // An admin is not exempt: the account that repairs member data must not be
     // the account allowed to hold bad data.
     app = await buildAuthzApp(UserController, [
-      { provide: UserService, useValue: { findAll: jest.fn().mockResolvedValue([]) } },
+      {
+        provide: UserService,
+        useValue: { findAll: jest.fn().mockResolvedValue([]) },
+      },
     ]);
 
     await call(

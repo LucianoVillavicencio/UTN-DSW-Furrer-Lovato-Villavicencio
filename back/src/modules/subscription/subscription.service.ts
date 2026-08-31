@@ -4,15 +4,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, Repository, UpdateResult } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import {
+  DataSource,
+  EntityManager,
+  In,
+  LessThan,
+  Repository,
+  UpdateResult,
+} from 'typeorm';
 import { SubscriptionDto } from './dto/subscription-dto';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
 import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
-import { PlanTermService } from '../planTerm/planTerm.service';
+import { ResolvedTerm } from '../plan/plan-duration.rules';
 import {
+  dayAfter,
   isCurrentOn,
   renewalPeriod,
   subscriptionPeriod,
@@ -26,41 +34,8 @@ export class subscriptionService {
     private subscriptionRepository: Repository<Subscription>,
     private readonly planService: PlanService,
     private readonly userService: UserService,
-    private readonly planTermService: PlanTermService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
-
-  // Resolves which PlanTerm a plan change buys: the one the caller picked
-  // (validated to belong to `planId`, since a term id from another plan must
-  // not silently apply that plan's price/months here), or, when none was
-  // picked, the plan's 1-month term — every plan is expected to carry one
-  // (see PlanTerm.entity.ts), and a plan missing it fails loudly here rather
-  // than corrupting the subscription's period with a null-pointer crash.
-  private async resolvePlanTerm(planId: number, planTermId?: number) {
-    if (planTermId) {
-      const term = await this.planTermService.findTerm(planTermId);
-      // A soft-deleted term (a discontinued promo, say) must be just as
-      // unpurchasable through an explicit id as it already is through the
-      // default-term fallback below, which filters on `deleted` via
-      // findForPlan — otherwise anyone still holding the old id (a stale
-      // frontend cache, or one member telling another) could buy it at its
-      // discontinued price/duration.
-      if (!term || term.deleted || term.planId !== planId) {
-        throw new NotFoundException(
-          `El plazo con ID: ${planTermId} no existe para este plan.`,
-        );
-      }
-      return term;
-    }
-
-    const terms = await this.planTermService.findForPlan(planId);
-    const defaultTerm = terms.find((t) => t.months === 1);
-    if (!defaultTerm) {
-      throw new NotFoundException(
-        `El plan con ID: ${planId} no tiene un plazo de 1 mes configurado.`,
-      );
-    }
-    return defaultTerm;
-  }
 
   // Moves the authenticated user to another plan: closes the active
   // subscription, if there is one, and opens a new one on the chosen plan. This
@@ -69,18 +44,11 @@ export class subscriptionService {
   // self-service change opens the new subscription PENDING and an admin
   // recording the payment is what activates it: otherwise anyone could register
   // and grant themselves an active plan for free.
-  async changePlan(
-    userId: number,
-    planId: number,
-    planTermId?: number,
-    byAdmin = false,
-  ) {
+  async changePlan(userId: number, planId: number, byAdmin = false) {
     const plan = await this.planService.findPlan(planId);
     if (!plan || plan.deleted) {
       throw new NotFoundException(`El plan con ID: ${planId} no existe.`);
     }
-
-    const term = await this.resolvePlanTerm(planId, planTermId);
 
     const currentActive = await this.subscriptionRepository.findOne({
       where: {
@@ -127,43 +95,117 @@ export class subscriptionService {
     // self-service path keeps the member's current access until the new plan's
     // payment is recorded — see `activate`, which cancels the old ACTIVE
     // subscription once the new one is paid, not before.
-    if (currentActive && byAdmin) {
-      currentActive.state = SubscriptionState.CANCELLED;
-      await this.subscriptionRepository.save(currentActive);
+    const period = subscriptionPeriod(plan.numDays);
+
+    // Both writes in one unit of work: before this, a failure between them left
+    // the member with their previous plan cancelled and no replacement.
+    const saved = await this.dataSource.transaction(async (manager) => {
+      if (currentActive && byAdmin) {
+        currentActive.state = SubscriptionState.CANCELLED;
+        await manager.save(currentActive);
+      }
+      const newSubscription = manager.create(Subscription, {
+        userId,
+        planId,
+        ...period,
+        // A self-service change opens PENDING: it only becomes ACTIVE once an
+        // admin records the payment (see PaymentService.createManualPayment).
+        // The front-desk path goes through assignPlanToMember, which is
+        // staff-supervised, so it keeps activating on the spot.
+        state: byAdmin ? SubscriptionState.ACTIVE : SubscriptionState.PENDING,
+        deleted: false,
+      });
+      return manager.save(newSubscription);
+    });
+
+    return this.findSubscription(saved.id);
+  }
+
+  /**
+   * Opens an ACTIVE subscription on `planId` for `term`, cancelling every other
+   * live subscription the member has. Runs inside the CALLER's transaction:
+   * this is the front-desk sale path, where the payment row is written in the
+   * same unit of work and neither may exist without the other.
+   *
+   * Three deliberate differences from changePlan(byAdmin), all because a member
+   * is standing at the counter with money in hand:
+   *  - Renewing the SAME plan is allowed. changePlan refuses it, which is right
+   *    for self-service, where a member could otherwise open the same request
+   *    twice, and wrong here, where renewal is the most common sale.
+   *  - A stale PENDING request is CANCELLED rather than treated as a conflict.
+   *    Leaving it alive would let a later payment activate it and grant a
+   *    period nobody paid for twice.
+   *  - A renewal with unused paid days EXTENDS them: the new period starts the
+   *    day after the current ACTIVE subscription's endDate, if that endDate has
+   *    not passed. Confirmed with the human owner as a product decision —
+   *    activate()'s "starts when the payment lands" rule is left exactly as it
+   *    is, since it answers a different question (a stale unpaid request), not
+   *    this one (an early renewal with money already down).
+   *
+   * Every read and write goes through `manager`. Using this.subscriptionRepository
+   * anywhere in here would work in the happy path and silently not roll back.
+   */
+  async replaceActiveSubscription(
+    manager: EntityManager,
+    input: { userId: number; planId: number; term: ResolvedTerm },
+  ): Promise<Subscription> {
+    const live = await manager.find(Subscription, {
+      where: [
+        {
+          userId: input.userId,
+          state: SubscriptionState.ACTIVE,
+          deleted: false,
+        },
+        {
+          userId: input.userId,
+          state: SubscriptionState.PENDING,
+          deleted: false,
+        },
+      ],
+    });
+
+    // Read before cancelling: once `previous.state` is overwritten below there
+    // is nothing left to extend from.
+    // `state` is a plain string column, so the enum member is widened to its
+    // value before comparing (matches PaymentService.createManualPayment).
+    const today = toDateOnly(new Date());
+    const activeState: string = SubscriptionState.ACTIVE;
+    const currentActive = live.find((s) => s.state === activeState);
+    const from =
+      currentActive && isCurrentOn(currentActive.endDate, today)
+        ? dayAfter(String(currentActive.endDate))
+        : new Date();
+
+    for (const previous of live) {
+      previous.state = SubscriptionState.CANCELLED;
+      await manager.save(previous);
     }
 
-    const period = subscriptionPeriod(term.months * plan.numDays);
-
-    const newSubscription = this.subscriptionRepository.create({
-      userId,
-      planId,
-      ...period,
-      // A self-service change opens PENDING: it only becomes ACTIVE once an
-      // admin records the payment (see PaymentService.createManualPayment).
-      // The front-desk path goes through assignPlanToMember, which is
-      // staff-supervised, so it keeps activating on the spot.
-      state: byAdmin ? SubscriptionState.ACTIVE : SubscriptionState.PENDING,
+    // subscriptionPeriod, not a local calculation: a subscription created here
+    // and one created by changePlan must not get their dates computed
+    // differently — only the `from` argument varies here.
+    const created = manager.create(Subscription, {
+      userId: input.userId,
+      planId: input.planId,
+      planDurationId: input.term.planDurationId,
+      soldPrice: input.term.price,
+      ...subscriptionPeriod(input.term.numDays, from),
+      state: SubscriptionState.ACTIVE,
       deleted: false,
     });
 
-    return this.findSubscription(
-      (await this.subscriptionRepository.save(newSubscription)).id,
-    );
+    return manager.save(created);
   }
 
   // Same move as changePlan, made by an admin on behalf of a member who is
   // standing at the counter. The id comes from the route instead of the JWT,
   // so unlike the self-service path it has to be checked.
-  async assignPlanToMember(
-    userId: number,
-    planId: number,
-    planTermId?: number,
-  ) {
+  async assignPlanToMember(userId: number, planId: number) {
     const member = await this.userService.findUser(userId);
     if (!member || member.deleted) {
       throw new NotFoundException(`El socio con ID: ${userId} no existe.`);
     }
-    return this.changePlan(userId, planId, planTermId, true);
+    return this.changePlan(userId, planId, true);
   }
 
   // Full subscription history of one specific user (admin Users panel), most
@@ -185,7 +227,7 @@ export class subscriptionService {
   // The caller supplies the paid period length in `days` (e.g. termMonths *
   // plan.numDays for a multi-month term) — same convention as `renew` below —
   // since a subscription's day count can no longer be derived from the plan
-  // alone once multi-month PlanTerms are in play.
+  // alone once multi-month terms are in play.
   async activate(id: number, days: number) {
     const subscription = await this.findSubscription(id);
     if (!subscription) {
@@ -209,7 +251,9 @@ export class subscriptionService {
     // go ACTIVE with an endDate already in the past, and since nothing expires
     // a subscription yet (FLG-SEC-24) that reads as permanent access. The paid
     // period starts when the payment lands, not when it was requested.
-    const plan = await this.planService.findPlan(subscription.planId);
+    const plan = await this.planService.findPlanIncludingDeleted(
+      subscription.planId,
+    );
     if (!plan) {
       throw new NotFoundException(
         `El plan con ID: ${subscription.planId} no existe.`,

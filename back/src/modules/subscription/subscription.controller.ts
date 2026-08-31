@@ -48,11 +48,7 @@ export class subscriptionController {
     @ActiveUser() user: UserActiveInterface,
     @Body() dto: ChangePlanDto,
   ) {
-    return this.subscriptionService.changePlan(
-      user.sub,
-      dto.planId,
-      dto.planTermId,
-    );
+    return this.subscriptionService.changePlan(user.sub, dto.planId);
   }
 
   // Assigns a plan to a member from the Users panel or the new-member wizard.
@@ -62,11 +58,7 @@ export class subscriptionController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ChangePlanDto,
   ) {
-    return this.subscriptionService.assignPlanToMember(
-      id,
-      dto.planId,
-      dto.planTermId,
-    );
+    return this.subscriptionService.assignPlanToMember(id, dto.planId);
   }
 
   // Self-service: the authenticated user's active subscription, for the

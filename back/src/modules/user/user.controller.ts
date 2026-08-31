@@ -22,6 +22,15 @@ import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
 import { Role } from '../../common/enum/role.enum';
 
+// Number('abc') is NaN, which used to travel down as a filter that silently
+// matched nothing and was then dropped. An unparseable value is now simply
+// absent, and the service refuses a request with no usable criterion left.
+const toId = (raw?: string): number | undefined => {
+  if (raw === undefined) return undefined;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+};
+
 @Controller('api/v1/user')
 @ApiTags('Usuarios')
 // Declared at class level, so every endpoint is admin-only unless the handler
@@ -73,8 +82,8 @@ export class UserController {
     @Query('surname') surname?: string,
   ) {
     return this.userService.searchUsers({
-      id: id ? Number(id) : undefined,
-      dni: dni ? Number(dni) : undefined,
+      id: toId(id),
+      dni: toId(dni),
       email,
       name,
       surname,

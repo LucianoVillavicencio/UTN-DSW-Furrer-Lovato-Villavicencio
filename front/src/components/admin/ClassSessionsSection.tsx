@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pencil, Trash2, RotateCcw, Plus } from 'lucide-react';
+import { Pencil, Trash2, RotateCcw, Plus, CalendarClock } from 'lucide-react';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import SectionHeader from './SectionHeader';
 import ClassSessionForm from './ClassSessionForm';
 import {
   emptyClassSessionForm,
@@ -31,6 +32,7 @@ const ClassSessionsSection = () => {
     classes,
     isLoading,
     loadError,
+    optionsError,
     isSaving,
     isDeleting,
     save,
@@ -118,35 +120,36 @@ const ClassSessionsSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-text">Turnos</h3>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-primary"
-            />
-            Mostrar eliminados
-          </label>
-          <Button
-            size="sm"
-            onClick={() => {
-              setForm(emptyClassSessionForm);
-              setFormError(null);
-              setIsCreating(true);
-            }}
-            className="flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title="Turnos"
+        icon={CalendarClock}
+        description="Horarios semanales de cada clase."
+      >
+        <label className="flex items-center gap-2 text-sm text-text-muted">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          Mostrar eliminados
+        </label>
+        <Button
+          size="sm"
+          onClick={() => {
+            setForm(emptyClassSessionForm);
+            setFormError(null);
+            setIsCreating(true);
+          }}
+          className="flex items-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </Button>
+      </SectionHeader>
 
-      <FormAlert type="error" message={loadError ?? listError} />
-      {!isLoading && classes.length === 0 && (
+      <FormAlert type="error" message={loadError ?? listError ?? optionsError} />
+      {!isLoading && !optionsError && classes.length === 0 && (
         <FormAlert
           type="warning"
           message="No hay clases cargadas todavía — creá una en la pestaña Clases antes de agregar turnos."

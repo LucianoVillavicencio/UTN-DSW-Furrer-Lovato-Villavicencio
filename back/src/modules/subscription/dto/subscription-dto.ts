@@ -1,12 +1,14 @@
 import {
   IsBoolean,
   IsDateString,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
+import { SubscriptionState } from '../enum/subscription-state.enum';
 
 export class SubscriptionDto {
   @IsNumber()
@@ -32,6 +34,7 @@ export class SubscriptionDto {
   endDate!: string;
 
   @IsString()
+  @IsIn(Object.values(SubscriptionState))
   @IsOptional()
   state?: string;
 

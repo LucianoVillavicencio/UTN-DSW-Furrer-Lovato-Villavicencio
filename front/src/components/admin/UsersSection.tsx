@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
+import SectionHeader from './SectionHeader';
 import UserDetailPanel from './UserDetailPanel';
 import NewMemberWizard from './NewMemberWizard';
 import { searchUsers } from '../../services/user.service';
@@ -29,16 +30,30 @@ const UsersSection = () => {
   const [panelNonce, setPanelNonce] = useState(0);
 
   const handleSearch = async () => {
-    if (!searchValue.trim()) return;
+    const value = searchValue.trim();
+    if (!value) return;
+
+    // A DNI written the way it is printed — 40.123.456 — used to become NaN and
+    // come back as the first 50 members of the gym. Same rule the new-member
+    // wizard already applies to the same field.
+    if (searchMode === 'dni' && !/^\d+$/.test(value)) {
+      setSearchError('El DNI tiene que ser solo números, sin puntos ni espacios.');
+      setResults([]);
+      return;
+    }
+
+    setHasSearched(true);
     setIsSearching(true);
     setSearchError(null);
-    setHasSearched(true);
+    setResults([]);
     try {
-      const query = {
-        [searchMode]: searchMode === 'dni' ? Number(searchValue) : searchValue,
-      };
+      const query =
+        searchMode === 'dni' ? { dni: Number(value) } : { [searchMode]: value };
       const data = await searchUsers(query);
       setResults(data);
+      if (data.length === 0) {
+        setSearchError('No se encontraron usuarios con ese criterio.');
+      }
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'No se pudo buscar.');
     } finally {
@@ -80,10 +95,11 @@ const UsersSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-display text-lg font-semibold text-text">
-          Usuarios
-        </h3>
+      <SectionHeader
+        title="Usuarios"
+        icon={Users}
+        description="Buscar y gestionar socios y administradores."
+      >
         <Button
           size="sm"
           onClick={() => setIsCreating(true)}
@@ -92,7 +108,7 @@ const UsersSection = () => {
           <UserPlus className="h-4 w-4" />
           Nuevo socio
         </Button>
-      </div>
+      </SectionHeader>
 
       <div className="flex items-end gap-2">
         <div className="w-32 shrink-0">

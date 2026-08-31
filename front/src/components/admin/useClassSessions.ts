@@ -24,6 +24,7 @@ export const useClassSessions = (showDeleted: boolean) => {
   const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
   const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -32,7 +33,17 @@ export const useClassSessions = (showDeleted: boolean) => {
   const fetchSessions = (deleted: boolean) =>
     Promise.all([
       deleted ? getDeletedClassSessions() : getClassSession(),
-      getClass().catch(() => []),
+      // Tolerated, not swallowed: an empty class list still lets the admin read
+      // the turnos table. But it is what makes the picker empty and the form
+      // then refuse the save, so it has to say so instead of looking like an
+      // empty database.
+      getClass().catch((err: unknown) => {
+        console.warn('Could not load the class list for the turnos picker', err);
+        setOptionsError(
+          'No se pudieron cargar las clases. El selector de clase va a estar vacío.',
+        );
+        return [] as Class[];
+      }),
     ])
       .then(([sessionsData, classesData]) => {
         setSessions(
@@ -135,6 +146,7 @@ export const useClassSessions = (showDeleted: boolean) => {
     classes,
     isLoading,
     loadError,
+    optionsError,
     isSaving,
     isDeleting,
     save,

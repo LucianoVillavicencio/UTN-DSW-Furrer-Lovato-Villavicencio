@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 
@@ -20,22 +21,48 @@ const ConfirmDialog = ({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
+  const pressStartedOnBackdrop = useRef(false);
+
+  // Registered after any parent Modal's listener and stopping propagation, so
+  // Escape here dismisses the confirmation and not the panel behind it.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Always captured while this dialog is mounted, even mid-save, so it
+      // never leaks to a parent Modal's own Escape listener and dismisses
+      // the panel behind it. The cancel action itself still only fires when
+      // not busy, same as the Button's own disabled={isLoading}.
+      e.stopImmediatePropagation();
+      if (isLoading) return;
+      onCancel();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isLoading, onCancel]);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onCancel}
+      onMouseDown={(e) => {
+        pressStartedOnBackdrop.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && pressStartedOnBackdrop.current) {
+          onCancel();
+        }
+        pressStartedOnBackdrop.current = false;
+      }}
     >
-      <Card
-        className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <Card className="w-full max-w-sm hover:translate-y-0 hover:shadow-lg">
         <h4 className="font-display text-lg font-semibold text-text">
           {title}
         </h4>
-        <p className="mt-3 text-sm text-text-muted">{description}</p>
+        <p className="mt-3 text-sm leading-relaxed text-text-muted">
+          {description}
+        </p>
         <div className="mt-6 flex gap-3">
           <Button
             onClick={onConfirm}

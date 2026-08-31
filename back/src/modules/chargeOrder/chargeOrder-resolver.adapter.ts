@@ -39,7 +39,7 @@ export class ChargeOrderResolverAdapter implements OrderResolver {
     return {
       subscriptionId: chargeOrder.subscriptionId,
       amount: chargeOrder.amount,
-      termMonths: chargeOrder.planTerm.months,
+      termMonths: chargeOrder.planDuration?.months ?? 1,
       payMethod: chargeOrder.method,
       registeredById: chargeOrder.createdById,
     };

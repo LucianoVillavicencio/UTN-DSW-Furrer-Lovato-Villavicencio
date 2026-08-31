@@ -6,7 +6,7 @@ import { ChargeOrder } from './entity/chargeOrder.entity';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
-import { PlanTermService } from '../planTerm/planTerm.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
 import { ORDER_EXPIRATION_MS } from './chargeOrder.rules';
 
 describe('ChargeOrderService.createCharge', () => {
@@ -16,7 +16,7 @@ describe('ChargeOrderService.createCharge', () => {
     update: jest.Mock;
   };
   let subscriptions: { findSubscription: jest.Mock };
-  let planTerms: { findTerm: jest.Mock };
+  let planDurations: { findByPlan: jest.Mock };
   // The transaction's EntityManager, and the pessimistic-locked query
   // builder it hands back from createQueryBuilder — chainable, same shape
   // TypeORM's real one exposes for setLock/where/andWhere/getOne.
@@ -38,20 +38,21 @@ describe('ChargeOrderService.createCharge', () => {
     planId: 12,
     state: SubscriptionState.ACTIVE,
     deleted: false,
-    plan: { id: 12 },
+    plan: { id: 12, name: 'Plan Test', numDays: 30, price: 5000 },
   };
 
-  const term = {
+  const duration = {
     id: 55,
     planId: 12,
-    months: 1,
+    months: 3,
+    numDays: 90,
     price: 15000,
     deleted: false,
   };
 
   const params = {
     subscriptionId: 7,
-    planTermId: 55,
+    months: 3,
     method: 'point' as const,
     collectionPointId: 'terminal-1',
     adminId: 30111222,
@@ -84,7 +85,7 @@ describe('ChargeOrderService.createCharge', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: subscriptions },
-        { provide: PlanTermService, useValue: planTerms },
+        { provide: PlanDurationService, useValue: planDurations },
       ],
     }).compile();
 
@@ -95,7 +96,9 @@ describe('ChargeOrderService.createCharge', () => {
     subscriptions = {
       findSubscription: jest.fn().mockResolvedValue(subscription),
     };
-    planTerms = { findTerm: jest.fn().mockResolvedValue(term) };
+    planDurations = {
+      findByPlan: jest.fn().mockResolvedValue([duration]),
+    };
   });
 
   it('snapshots the amount from the term, not the plan', async () => {
@@ -104,7 +107,7 @@ describe('ChargeOrderService.createCharge', () => {
     await service.createCharge(params);
 
     expect(manager.save).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: term.price }),
+      expect.objectContaining({ amount: duration.price }),
     );
   });
 
@@ -280,20 +283,12 @@ describe('ChargeOrderService.createCharge', () => {
     expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
-  it('refuses a term that does not exist', async () => {
-    planTerms = { findTerm: jest.fn().mockResolvedValue(null) };
-    await buildService();
-
-    await expect(service.createCharge(params)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(repository.manager.transaction).not.toHaveBeenCalled();
-  });
-
-  it('refuses a term that belongs to a different plan', async () => {
-    planTerms = {
-      findTerm: jest.fn().mockResolvedValue({ ...term, planId: 999 }),
-    };
+  it('refuses a months value with no matching duration for this plan', async () => {
+    // findByPlan is already scoped to the subscription's own planId, so a
+    // duration belonging to a different plan can no longer leak in here the
+    // way a bare id lookup used to have to guard against — an empty result is
+    // the only way "no match" happens now.
+    planDurations = { findByPlan: jest.fn().mockResolvedValue([]) };
     await buildService();
 
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
@@ -335,7 +330,7 @@ describe('ChargeOrderService.findByExternalReference', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -362,7 +357,7 @@ describe('ChargeOrderService.findById', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -400,7 +395,7 @@ describe('ChargeOrderService.setMpOrderId', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -468,7 +463,7 @@ describe('ChargeOrderService.closeAsPaid', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -522,7 +517,7 @@ describe('ChargeOrderService.closeAsError', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -566,7 +561,7 @@ describe('ChargeOrderService.cancel', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -606,7 +601,7 @@ describe('ChargeOrderService.expireStale', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);

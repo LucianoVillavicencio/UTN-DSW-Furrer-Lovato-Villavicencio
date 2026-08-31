@@ -27,13 +27,13 @@ function DataTable<T>({
   return (
     <div className="overflow-x-auto rounded-2xl border border-border">
       <table className="w-full min-w-max text-left text-sm">
-        <thead className="bg-surface">
+        <thead className="border-b border-border bg-surface">
           <tr>
             {columns.map((col) => (
               <th
                 key={col.header}
                 scope="col"
-                className="px-4 py-3 font-body text-xs font-semibold uppercase tracking-wide text-text-muted"
+                className="px-5 py-3.5 font-body text-xs font-semibold uppercase tracking-wide text-text-muted"
               >
                 {col.header}
               </th>
@@ -45,7 +45,7 @@ function DataTable<T>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-10 text-center text-text-muted"
+                className="px-5 py-10 text-center text-text-muted"
               >
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
               </td>
@@ -54,7 +54,7 @@ function DataTable<T>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-10 text-center text-text-muted"
+                className="px-5 py-10 text-center text-text-muted"
               >
                 <Inbox className="mx-auto h-8 w-8 text-text-muted" />
                 <p className="mt-2 text-sm">{emptyMessage}</p>
@@ -66,13 +66,13 @@ function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={`bg-background font-body text-text transition-colors ${
-                  onRowClick ? 'cursor-pointer hover:bg-surface' : ''
+                  onRowClick ? 'cursor-pointer hover:bg-surface-hover' : ''
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.header}
-                    className={`px-4 py-3 ${col.className ?? ''}`}
+                    className={`px-5 py-3.5 ${col.className ?? ''}`}
                   >
                     {col.cell(row)}
                   </td>
