@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Receipt } from 'lucide-react';
 import Button from '../common/Button';
 import Card from '../common/Card';
 import DataTable, { type DataTableColumn } from './DataTable';
+import SectionHeader from './SectionHeader';
 import PlanChargeForm from './PlanChargeForm';
 import MemberSearchField from './MemberSearchField';
 import { getPayments } from '../../services/payment.service';
@@ -67,12 +69,25 @@ const AdminPaymentsSection = () => {
   const hasNext = offset + PAGE_SIZE < page.total;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
+      <SectionHeader
+        title="Pagos presenciales"
+        icon={Receipt}
+        description="Cobros en el mostrador e historial de pagos."
+      />
+
+      {/* This is the screen an admin opens fifty times a day, so it gets the
+          panel's one accent motif and more generous spacing than the other
+          five tabs — quick maintenance elsewhere, the counter here. */}
       <div>
-        <h3 className="font-display text-lg font-semibold text-text">
+        <h4 className="font-display text-xl font-semibold text-text">
           Cobrar un plan
-        </h3>
-        <Card className="mt-4 hover:translate-y-0 hover:shadow-lg">
+        </h4>
+        <Card className="relative mt-4 overflow-hidden p-8 hover:translate-y-0 hover:shadow-lg">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-0.5 bg-primary"
+          />
           {selectedUser ? (
             <PlanChargeForm
               selectedUser={selectedUser}
@@ -86,9 +101,9 @@ const AdminPaymentsSection = () => {
       </div>
 
       <div>
-        <h3 className="font-display text-lg font-semibold text-text">
+        <h4 className="font-display text-lg font-semibold text-text">
           Pagos recientes
-        </h3>
+        </h4>
         <div className="mt-4">
           {loadError && (
             <p className="mb-3 text-sm text-red-400">{loadError}</p>

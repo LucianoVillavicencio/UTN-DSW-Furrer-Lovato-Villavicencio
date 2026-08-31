@@ -40,7 +40,7 @@ const Modal = ({ title, onClose, children }: ModalProps) => {
       }}
     >
       <Card className="w-full max-w-lg hover:translate-y-0 hover:shadow-lg">
-        <div className="flex items-center justify-between border-b border-border pb-4">
+        <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
           <h3 className="font-display text-lg font-semibold text-text">
             {title}
           </h3>
@@ -48,12 +48,12 @@ const Modal = ({ title, onClose, children }: ModalProps) => {
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-lg p-1 text-text-muted transition-colors hover:text-primary"
+            className="rounded-lg p-1 text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="mt-5">{children}</div>
       </Card>
     </div>
   );

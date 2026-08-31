@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
+import SectionHeader from './SectionHeader';
 import UserDetailPanel from './UserDetailPanel';
 import NewMemberWizard from './NewMemberWizard';
 import { searchUsers } from '../../services/user.service';
@@ -94,10 +95,11 @@ const UsersSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-display text-lg font-semibold text-text">
-          Usuarios
-        </h3>
+      <SectionHeader
+        title="Usuarios"
+        icon={Users}
+        description="Buscar y gestionar socios y administradores."
+      >
         <Button
           size="sm"
           onClick={() => setIsCreating(true)}
@@ -106,7 +108,7 @@ const UsersSection = () => {
           <UserPlus className="h-4 w-4" />
           Nuevo socio
         </Button>
-      </div>
+      </SectionHeader>
 
       <div className="flex items-end gap-2">
         <div className="w-32 shrink-0">

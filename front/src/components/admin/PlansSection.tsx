@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2, RotateCcw, Plus, X, Check } from 'lucide-react';
+import { Pencil, Trash2, RotateCcw, Plus, X, Check, CreditCard } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import SectionHeader from './SectionHeader';
 import PlanDurationsField from './PlanDurationsField';
 import {
   getPlans,
@@ -279,28 +280,29 @@ const PlansSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-text">Planes</h3>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-primary"
-            />
-            Mostrar eliminados
-          </label>
-          <Button
-            size="sm"
-            onClick={openCreate}
-            className="flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title="Planes"
+        icon={CreditCard}
+        description="Membresías del gimnasio y sus duraciones opcionales."
+      >
+        <label className="flex items-center gap-2 text-sm text-text-muted">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          Mostrar eliminados
+        </label>
+        <Button
+          size="sm"
+          onClick={openCreate}
+          className="flex items-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </Button>
+      </SectionHeader>
 
       <p className="text-xs text-text-muted">
         Cambiar el precio no afecta a las suscripciones ya activas, solo a las

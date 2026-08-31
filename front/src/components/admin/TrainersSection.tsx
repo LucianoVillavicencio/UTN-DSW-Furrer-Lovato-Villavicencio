@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pencil, Trash2, RotateCcw, Plus } from 'lucide-react';
+import { Pencil, Trash2, RotateCcw, Plus, Users } from 'lucide-react';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import ConfirmDialog from './ConfirmDialog';
+import SectionHeader from './SectionHeader';
 import TrainerForm from './TrainerForm';
 import { useAdminTrainers } from './useAdminTrainers';
 import { resolveMediaUrl } from '../../lib/mediaUrl';
@@ -113,30 +114,29 @@ const TrainersSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-text">
-          Entrenadores
-        </h3>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-primary"
-            />
-            Mostrar eliminados
-          </label>
-          <Button
-            size="sm"
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title="Entrenadores"
+        icon={Users}
+        description="Staff que dicta las clases del gimnasio."
+      >
+        <label className="flex items-center gap-2 text-sm text-text-muted">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          Mostrar eliminados
+        </label>
+        <Button
+          size="sm"
+          onClick={() => setIsCreating(true)}
+          className="flex items-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </Button>
+      </SectionHeader>
 
       <FormAlert type="error" message={loadError ?? listError} />
 

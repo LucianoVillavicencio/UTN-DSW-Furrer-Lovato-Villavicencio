@@ -43,8 +43,14 @@ const AdminDashboard = () => {
 
       <main className="flex-1">
         <section className="border-b border-border bg-bg-secondary py-10">
-          <Container className="flex items-center gap-3">
-            <ShieldCheck className="h-7 w-7 text-primary" />
+          <Container className="flex items-center gap-4">
+            <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-primary/10">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-primary/70"
+              />
+            </span>
             <div>
               <h1 className="font-display text-2xl font-bold text-text">
                 Panel de administración
@@ -59,7 +65,7 @@ const AdminDashboard = () => {
 
         <section className="py-12">
           <Container className="flex flex-col gap-8 md:flex-row">
-            <div className="md:w-56 md:shrink-0">
+            <div className="md:shrink-0">
               <DashboardTabs
                 tabs={TABS}
                 activeTab={activeTab}

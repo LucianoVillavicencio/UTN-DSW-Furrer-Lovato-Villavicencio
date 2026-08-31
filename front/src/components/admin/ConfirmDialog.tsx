@@ -55,7 +55,9 @@ const ConfirmDialog = ({
         <h4 className="font-display text-lg font-semibold text-text">
           {title}
         </h4>
-        <p className="mt-3 text-sm text-text-muted">{description}</p>
+        <p className="mt-3 text-sm leading-relaxed text-text-muted">
+          {description}
+        </p>
         <div className="mt-6 flex gap-3">
           <Button
             onClick={onConfirm}
