@@ -31,6 +31,7 @@ const ClassSessionsSection = () => {
     classes,
     isLoading,
     loadError,
+    optionsError,
     isSaving,
     isDeleting,
     save,
@@ -145,8 +146,8 @@ const ClassSessionsSection = () => {
         </div>
       </div>
 
-      <FormAlert type="error" message={loadError ?? listError} />
-      {!isLoading && classes.length === 0 && (
+      <FormAlert type="error" message={loadError ?? listError ?? optionsError} />
+      {!isLoading && !optionsError && classes.length === 0 && (
         <FormAlert
           type="warning"
           message="No hay clases cargadas todavía — creá una en la pestaña Clases antes de agregar turnos."

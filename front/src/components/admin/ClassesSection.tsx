@@ -41,6 +41,7 @@ const ClassesSection = () => {
   const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
   const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Class | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,13 +58,21 @@ const ClassesSection = () => {
   const [typeError, setTypeError] = useState<string | null>(null);
   const [isSavingType, setIsSavingType] = useState(false);
 
+  const onOptionsFailure = (what: string) => (err: unknown) => {
+    console.warn(`Could not load ${what} for the classes form`, err);
+    setOptionsError(
+      'No se pudieron cargar tipos de clase o entrenadores. Los selectores van a estar vacíos.',
+    );
+    return [];
+  };
+
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
   const fetchClasses = (deleted: boolean) =>
     Promise.all([
       deleted ? getDeletedClasses() : getClass(),
-      getTypeClass().catch(() => []),
-      getTrainers().catch(() => []),
+      getTypeClass().catch(onOptionsFailure('type classes')),
+      getTrainers().catch(onOptionsFailure('trainers')),
     ])
       .then(([classesData, typesRes, trainersRes]) => {
         setClasses(classesData);
@@ -264,8 +273,8 @@ const ClassesSection = () => {
         </div>
       </div>
 
-      <FormAlert type="error" message={loadError ?? listError} />
-      {!isLoading && noOptions && (
+      <FormAlert type="error" message={loadError ?? listError ?? optionsError} />
+      {!isLoading && !optionsError && noOptions && (
         <FormAlert
           type="warning"
           message="No hay tipos de clase o entrenadores cargados todavía — creá al menos uno de cada uno antes de agregar una clase."
