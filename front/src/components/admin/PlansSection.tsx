@@ -6,6 +6,7 @@ import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import PlanDurationsField from './PlanDurationsField';
 import {
   getPlans,
   getDeletedPlans,
@@ -497,6 +498,10 @@ const PlansSection = () => {
                 en el plan o no.
               </p>
             </div>
+
+            {/* Editing only: a duration needs a planId, and a plan being
+                created has none until it is saved. */}
+            {editing?.id && <PlanDurationsField planId={editing.id} />}
 
             <div className="flex gap-3 pt-2">
               <Button
