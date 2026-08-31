@@ -81,9 +81,13 @@ export const usePlanCharge = (selectedUser: User | null) => {
   // Durations belong to the plan, so they reload on the plan and reset the
   // term — a 6-month term left over from another plan would resolve to null.
   useEffect(() => {
+    // Resets synchronously on every plan change, including planId becoming
+    // empty — a 6-month term left over from another plan would otherwise
+    // resolve to null once durations reload for the new plan.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMonths(1);
     if (!planId) {
       // Resets synchronously — no request is in flight here to gate this on.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDurations([]);
       return;
     }
