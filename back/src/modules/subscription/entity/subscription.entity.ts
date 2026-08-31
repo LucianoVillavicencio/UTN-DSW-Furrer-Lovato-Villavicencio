@@ -54,11 +54,11 @@ export class Subscription {
   @JoinColumn({ name: 'planDurationId' })
   planDuration?: PlanDuration | null;
 
-  // The price actually resolved and charged at the moment of sale — the
-  // number the admin's checkout screen showed and the payment was recorded
-  // against. Null means this subscription predates this column. This is
-  // what MRR must read, not planDuration.price: a PlanDuration's price can
-  // be changed later (retire the old row, add a new one at the same month
+  // The plan/duration's LIST price as resolved at the moment of sale — not
+  // Payment.amount, which is admin-editable and can differ (a discount).
+  // Null means this subscription predates this column. This is what MRR
+  // must read, not planDuration.price: a PlanDuration's price can be
+  // changed later (retire the old row, add a new one at the same month
   // count — the only way the admin UI supports repricing a term), and a
   // live join would then silently rewrite what every already-sold
   // subscription is recorded as having cost.
