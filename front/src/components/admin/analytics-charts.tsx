@@ -16,6 +16,13 @@ const AXIS_WIDTH = 46;
 const BAR_RADIUS = 4;
 const TOOLTIP_WIDTH = 112;
 const TOOLTIP_HEIGHT = 36;
+// Fixed headroom above the baseline, reserved unconditionally so the
+// tooltip always fits above ANY bar — including the tallest one, whose top
+// sits flush at TOP_MARGIN with no bar-height-dependent room to spare.
+const TOP_MARGIN = TOOLTIP_HEIGHT + 12; // 48
+// Room below the baseline for the period-label row, unchanged from before
+// the TOP_MARGIN shift — only where the baseline itself sits moved.
+const BOTTOM_MARGIN = 28;
 
 // A column's data-end (the top, where it meets the value) gets a 4px round;
 // the baseline (the bottom, where it meets the axis) stays square, so bars
@@ -38,7 +45,13 @@ interface RevenueChartProps {
 export const RevenueChart = ({ points }: RevenueChartProps) => {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const max = Math.max(1, ...points.map((p) => p.total));
-  const width = AXIS_WIDTH + points.length * (BAR_WIDTH + BAR_GAP);
+  // At least wide enough to seat the tooltip even on a sparse 1-2 point
+  // chart, where AXIS_WIDTH + a handful of bars is narrower than the
+  // tooltip itself — otherwise the horizontal clamp below goes negative.
+  const width = Math.max(
+    AXIS_WIDTH + points.length * (BAR_WIDTH + BAR_GAP),
+    TOOLTIP_WIDTH,
+  );
   const hovered = hoverIndex !== null ? points[hoverIndex] : undefined;
 
   const clearHover = (index: number) =>
@@ -46,9 +59,13 @@ export const RevenueChart = ({ points }: RevenueChartProps) => {
 
   return (
     <div className="overflow-x-auto">
-      <svg width={width} height={CHART_HEIGHT + 36} className="min-w-full">
+      <svg
+        width={width}
+        height={CHART_HEIGHT + TOP_MARGIN + BOTTOM_MARGIN}
+        className="min-w-full"
+      >
         {[0, 0.5, 1].map((fraction) => {
-          const y = CHART_HEIGHT - fraction * CHART_HEIGHT + 8;
+          const y = CHART_HEIGHT - fraction * CHART_HEIGHT + TOP_MARGIN;
           return (
             <g key={fraction}>
               <line
@@ -68,7 +85,7 @@ export const RevenueChart = ({ points }: RevenueChartProps) => {
         {points.map((point, index) => {
           const barHeight = Math.max(1, (point.total / max) * CHART_HEIGHT);
           const x = AXIS_WIDTH + index * (BAR_WIDTH + BAR_GAP);
-          const y = CHART_HEIGHT - barHeight + 8;
+          const y = CHART_HEIGHT - barHeight + TOP_MARGIN;
           const isHovered = hoverIndex === index;
           return (
             <g
@@ -88,7 +105,7 @@ export const RevenueChart = ({ points }: RevenueChartProps) => {
               />
               <text
                 x={x + BAR_WIDTH / 2}
-                y={CHART_HEIGHT + 24}
+                y={CHART_HEIGHT + TOP_MARGIN + 16}
                 fontSize={10}
                 textAnchor="middle"
                 className="fill-text-muted"
@@ -103,7 +120,7 @@ export const RevenueChart = ({ points }: RevenueChartProps) => {
           (() => {
             const barHeight = Math.max(1, (hovered.total / max) * CHART_HEIGHT);
             const barX = AXIS_WIDTH + hoverIndex * (BAR_WIDTH + BAR_GAP);
-            const barY = CHART_HEIGHT - barHeight + 8;
+            const barY = CHART_HEIGHT - barHeight + TOP_MARGIN;
             const rawX = barX + BAR_WIDTH / 2 - TOOLTIP_WIDTH / 2;
             const tooltipX = Math.min(Math.max(rawX, 0), width - TOOLTIP_WIDTH);
             const tooltipY = Math.max(barY - TOOLTIP_HEIGHT - 8, 0);
