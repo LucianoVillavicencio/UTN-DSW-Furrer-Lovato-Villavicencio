@@ -86,7 +86,13 @@ export class PlanDurationService {
       const clash = await this.durationRepository.findOne({
         where: { planId, months: dto.months },
       });
-      if (clash && !clash.deleted) {
+      // Unlike create()'s revival branch, a rename refuses ANY occupied slot
+      // — deleted or not. The unique index counts deleted rows too, so
+      // renaming into one would otherwise fall through to a DB-level
+      // collision (an unhandled QueryFailedError) instead of a clean 409. An
+      // admin who wants that slot back deletes the current row, then re-adds
+      // at the new months through create()'s revival path.
+      if (clash) {
         throw new ConflictException(
           `El plan ya tiene un precio para ${dto.months} meses.`,
         );

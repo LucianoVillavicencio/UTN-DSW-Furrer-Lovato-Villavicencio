@@ -87,4 +87,22 @@ describe('PlanDurationService', () => {
       service.update(2, 5, { months: 6, numDays: 180, price: 300 }),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it('refuses to rename a duration into a slot held by another live row', async () => {
+    repository.findOne
+      .mockResolvedValueOnce({ id: 1, planId: 2, months: 3, deleted: false }) // requireOwnDuration
+      .mockResolvedValueOnce({ id: 2, planId: 2, months: 6, deleted: false }); // clash lookup
+    await expect(
+      service.update(2, 1, { months: 6, numDays: 180, price: 300 }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('refuses to rename a duration into a slot held by a soft-deleted row', async () => {
+    repository.findOne
+      .mockResolvedValueOnce({ id: 1, planId: 2, months: 3, deleted: false }) // requireOwnDuration
+      .mockResolvedValueOnce({ id: 2, planId: 2, months: 6, deleted: true }); // clash lookup
+    await expect(
+      service.update(2, 1, { months: 6, numDays: 180, price: 300 }),
+    ).rejects.toThrow(ConflictException);
+  });
 });
