@@ -92,14 +92,26 @@ export class AnalyticsService {
       count: toNumber(row.count),
     }));
 
+    // The price comes from the subscription's own soldPrice snapshot, not a
+    // live join of planDuration.price: a PlanDuration's price can be
+    // silently rewritten later (retire it, re-add the same month count —
+    // the only repricing path the admin UI offers), and that must not
+    // retroactively change what an already-sold subscription is recorded as
+    // having cost. `months` still comes from the live relation — a
+    // duration's month count is effectively immutable in practice, since the
+    // edit-in-place PUT route is unreachable from the UI. soldPrice is only
+    // null for subscriptions written before this column existed.
     const estimatedMrr = active.reduce((sum, subscription) => {
       // A 12-month term at 600 is 50 a month. A null planDuration means it
       // was sold at the plan's own monthly price.
-      const monthly = subscription.planDuration
-        ? toNumber(subscription.planDuration.price) /
-          subscription.planDuration.months
-        : toNumber(subscription.plan.price);
-      return sum + monthly;
+      const price =
+        subscription.soldPrice != null
+          ? toNumber(subscription.soldPrice)
+          : subscription.planDuration
+            ? toNumber(subscription.planDuration.price)
+            : toNumber(subscription.plan.price);
+      const months = subscription.planDuration?.months ?? 1;
+      return sum + price / months;
     }, 0);
 
     return {

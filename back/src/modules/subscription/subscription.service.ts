@@ -186,6 +186,7 @@ export class subscriptionService {
       userId: input.userId,
       planId: input.planId,
       planDurationId: input.term.planDurationId,
+      soldPrice: input.term.price,
       ...subscriptionPeriod(input.term.numDays, from),
       state: SubscriptionState.ACTIVE,
       deleted: false,

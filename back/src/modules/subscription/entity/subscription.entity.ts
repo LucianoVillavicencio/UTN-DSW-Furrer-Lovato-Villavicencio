@@ -53,4 +53,15 @@ export class Subscription {
   @ManyToOne(() => PlanDuration, { nullable: true })
   @JoinColumn({ name: 'planDurationId' })
   planDuration?: PlanDuration | null;
+
+  // The price actually resolved and charged at the moment of sale — the
+  // number the admin's checkout screen showed and the payment was recorded
+  // against. Null means this subscription predates this column. This is
+  // what MRR must read, not planDuration.price: a PlanDuration's price can
+  // be changed later (retire the old row, add a new one at the same month
+  // count — the only way the admin UI supports repricing a term), and a
+  // live join would then silently rewrite what every already-sold
+  // subscription is recorded as having cost.
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  soldPrice?: number | null;
 }

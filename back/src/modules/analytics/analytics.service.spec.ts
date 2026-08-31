@@ -94,6 +94,21 @@ describe('AnalyticsService', () => {
     expect(result.estimatedMrr).toBe(59);
   });
 
+  it('prefers soldPrice over a since-repriced planDuration.price', async () => {
+    // Simulates a retired-then-revived duration: the same row now prices at
+    // 500, but this subscription was actually sold at 300 — soldPrice is
+    // the immutable record of that and must win.
+    activeSubs.mockResolvedValue([
+      {
+        plan: { price: '99.00' },
+        planDuration: { months: 6, price: '500.00' },
+        soldPrice: '300.00',
+      },
+    ]);
+    const result = await service.buildOverview(query);
+    expect(result.estimatedMrr).toBe(50);
+  });
+
   it('returns empty arrays and zeros for a range with no payments', async () => {
     revenueQb.getRawMany.mockResolvedValue([]);
     activeSubs.mockResolvedValue([]);

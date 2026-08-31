@@ -38,6 +38,7 @@ interface CreatedSubscriptionPayload {
   startDate: string;
   endDate: string;
   planDurationId?: number | null;
+  soldPrice?: number | null;
   state?: string;
 }
 
@@ -56,7 +57,6 @@ describe('subscriptionService', () => {
       [unknown, CreatedSubscriptionPayload]
     >;
   };
-
   beforeEach(async () => {
     subscriptionRepository = {
       create: jest.fn((entity: object) => entity),
@@ -70,7 +70,6 @@ describe('subscriptionService', () => {
         (_entity: unknown, data: CreatedSubscriptionPayload) => data,
       ),
     };
-
     const moduleRef = await Test.createTestingModule({
       providers: [
         subscriptionService,
@@ -335,6 +334,19 @@ describe('subscriptionService', () => {
           new Date(created.startDate).getTime()) /
         86_400_000;
       expect(days).toBe(180);
+    });
+
+    it('snapshots the resolved term price onto the subscription as soldPrice', async () => {
+      manager.find.mockResolvedValue([]);
+      await service.replaceActiveSubscription(manager, {
+        userId: 5,
+        planId: 2,
+        term,
+      });
+      expect(manager.create).toHaveBeenCalledWith(
+        Subscription,
+        expect.objectContaining({ soldPrice: term.price }),
+      );
     });
 
     it('extends from the day after the current ACTIVE endDate when it has not passed', async () => {
