@@ -29,16 +29,30 @@ const UsersSection = () => {
   const [panelNonce, setPanelNonce] = useState(0);
 
   const handleSearch = async () => {
-    if (!searchValue.trim()) return;
+    const value = searchValue.trim();
+    if (!value) return;
+
+    // A DNI written the way it is printed — 40.123.456 — used to become NaN and
+    // come back as the first 50 members of the gym. Same rule the new-member
+    // wizard already applies to the same field.
+    if (searchMode === 'dni' && !/^\d+$/.test(value)) {
+      setSearchError('El DNI tiene que ser solo números, sin puntos ni espacios.');
+      setResults([]);
+      return;
+    }
+
+    setHasSearched(true);
     setIsSearching(true);
     setSearchError(null);
-    setHasSearched(true);
+    setResults([]);
     try {
-      const query = {
-        [searchMode]: searchMode === 'dni' ? Number(searchValue) : searchValue,
-      };
+      const query =
+        searchMode === 'dni' ? { dni: Number(value) } : { [searchMode]: value };
       const data = await searchUsers(query);
       setResults(data);
+      if (data.length === 0) {
+        setSearchError('No se encontraron usuarios con ese criterio.');
+      }
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'No se pudo buscar.');
     } finally {

@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Users } from './entity/users.entity';
 
@@ -54,5 +55,42 @@ describe('findOrCreateGoogleUser', () => {
 
     const [row] = create.mock.calls[0] as [Record<string, unknown>];
     expect(row).not.toHaveProperty('id');
+  });
+});
+
+describe('searchUsers', () => {
+  // The guard is expected to throw before the query builder is ever touched,
+  // but the chain is mocked out fully anyway so a regression that removes the
+  // guard fails with "resolves instead of rejecting" rather than an unrelated
+  // TypeError from an incomplete mock.
+  const buildService = () => {
+    const queryBuilder = {
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    };
+    const createQueryBuilder = jest.fn().mockReturnValue(queryBuilder);
+    const repository = { createQueryBuilder };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service };
+  };
+
+  it('refuses a search with no usable criterion instead of returning everyone', async () => {
+    const { service } = buildService();
+
+    await expect(service.searchUsers({})).rejects.toThrow(BadRequestException);
+  });
+
+  it('refuses a NaN dni rather than silently dropping the filter', async () => {
+    const { service } = buildService();
+
+    await expect(
+      service.searchUsers({ dni: Number('40.123.456') }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

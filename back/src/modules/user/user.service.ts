@@ -115,9 +115,8 @@ export class UserService {
 
   // Admin search: id and dni and email match exactly, name/surname match with
   // a partial LIKE. Every filter is independent, so searching by just one is
-  // valid; with none of them this behaves like findAll(). Searching by dni
-  // survives this change deliberately — it is how the front desk finds a
-  // member by the number on their document.
+  // valid. Searching by dni survives this change deliberately — it is how the
+  // front desk finds a member by the number on their document.
   async searchUsers(query: {
     id?: number;
     dni?: number;
@@ -125,6 +124,21 @@ export class UserService {
     name?: string;
     surname?: string;
   }) {
+    const hasId = Number.isFinite(query.id);
+    const hasDni = Number.isFinite(query.dni);
+    const hasEmail = !!query.email?.trim();
+    const hasName = !!query.name?.trim();
+    const hasSurname = !!query.surname?.trim();
+
+    // Before this, a NaN dni — what Number('40.123.456') gives — failed the old
+    // truthiness test, no filter was applied, and the caller got the first 50
+    // members back as if they were search results.
+    if (!hasId && !hasDni && !hasEmail && !hasName && !hasSurname) {
+      throw new BadRequestException(
+        'Indicá un criterio de búsqueda válido (ID, DNI, email o nombre).',
+      );
+    }
+
     const qb = this.usersRepository
       .createQueryBuilder('user')
       // QueryBuilder ignores the entity's select:false, unlike
@@ -144,26 +158,18 @@ export class UserService {
       ])
       .where('user.deleted = false');
 
-    if (query.id) {
-      qb.andWhere('user.id = :id', { id: query.id });
-    }
-    if (query.dni) {
-      qb.andWhere('user.dni = :dni', { dni: query.dni });
-    }
-    if (query.email) {
-      qb.andWhere('user.email = :email', { email: query.email });
-    }
-    if (query.name) {
-      qb.andWhere('user.name LIKE :name', { name: `%${query.name}%` });
-    }
-    if (query.surname) {
+    if (hasId) qb.andWhere('user.id = :id', { id: query.id });
+    if (hasDni) qb.andWhere('user.dni = :dni', { dni: query.dni });
+    if (hasEmail)
+      qb.andWhere('user.email = :email', { email: query.email?.trim() });
+    if (hasName)
+      qb.andWhere('user.name LIKE :name', { name: `%${query.name?.trim()}%` });
+    if (hasSurname) {
       qb.andWhere('user.surname LIKE :surname', {
-        surname: `%${query.surname}%`,
+        surname: `%${query.surname?.trim()}%`,
       });
     }
 
-    // password is select:false on the entity, so there is no need to strip it
-    // here: TypeORM does not load it unless it is asked for explicitly.
     return qb.orderBy('user.name', 'ASC').take(50).getMany();
   }
 
