@@ -33,16 +33,41 @@ export const getMySubscription = async (): Promise<Subscription | null> => {
   }
 };
 
-export const changePlan = async (planId: number): Promise<Subscription> => {
+// planTermId is optional: omitting it keeps today's behavior, defaulting to
+// the plan's 1-month term server-side.
+export const changePlan = async (
+  planId: number,
+  planTermId?: number,
+): Promise<Subscription> => {
   try {
     const { data } = await api.post<Subscription>('/subscription/change-plan', {
       planId,
+      ...(planTermId !== undefined ? { planTermId } : {}),
     });
     return data;
   } catch (error: unknown) {
     throw new Error(getErrorMessage(error, 'No se pudo cambiar de plan.'), {
       cause: error,
     });
+  }
+};
+
+// Self-service: turning it off always succeeds; turning it on without an
+// active, chargeable saved card 409s (see subscription.controller.ts).
+export const setAutoRenew = async (
+  autoRenew: boolean,
+): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(
+      '/subscription/me/auto-renew',
+      { autoRenew },
+    );
+    return data;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo actualizar la renovación automática.'),
+      { cause: error },
+    );
   }
 };
 
@@ -163,6 +188,39 @@ export const restoreSubscription = async (id: number): Promise<boolean> => {
   } catch (error) {
     throw new Error(
       getErrorMessage(error, `Error al restaurar suscripción ${id}`),
+      { cause: error },
+    );
+  }
+};
+
+// Freezes a membership (injury/travel, admin-initiated). 409s
+// ('La suscripción ya está pausada.' / 'Solo se puede pausar una
+// suscripción activa.') if the subscription isn't currently 'activa'.
+export const pauseSubscription = async (id: number): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(`/subscription/${id}/pause`);
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, `Error al pausar suscripción ${id}`),
+      { cause: error },
+    );
+  }
+};
+
+// Resumes a paused membership, extending endDate by the days owed back.
+// 409s ('La suscripción no está pausada.') if it isn't currently paused.
+export const unpauseSubscription = async (
+  id: number,
+): Promise<Subscription> => {
+  try {
+    const { data } = await api.patch<Subscription>(
+      `/subscription/${id}/unpause`,
+    );
+    return data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, `Error al reanudar suscripción ${id}`),
       { cause: error },
     );
   }

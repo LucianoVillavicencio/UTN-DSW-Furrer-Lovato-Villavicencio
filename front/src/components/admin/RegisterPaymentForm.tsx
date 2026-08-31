@@ -51,6 +51,7 @@ const RegisterPaymentForm = ({
   const [selectedSubId, setSelectedSubId] = useState<number | ''>('');
 
   const [amount, setAmount] = useState('');
+  const [termMonths, setTermMonths] = useState('1');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0].value);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -122,6 +123,11 @@ const RegisterPaymentForm = ({
       setFormError('Ingresá un monto válido.');
       return;
     }
+    const termMonthsNum = termMonths.trim() === '' ? 1 : Number(termMonths);
+    if (!Number.isInteger(termMonthsNum) || termMonthsNum <= 0) {
+      setFormError('Ingresá una cantidad de meses válida.');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -133,11 +139,15 @@ const RegisterPaymentForm = ({
           | 'debito'
           | 'credito'
           | 'transferencia',
+        // Omit for the common single-month case; the backend already
+        // defaults to 1 when the field is absent.
+        ...(termMonthsNum !== 1 ? { termMonths: termMonthsNum } : {}),
       });
       setSuccess(
         `Pago de $${formatPriceDisplay(amountNum)} registrado correctamente.`,
       );
       setAmount('');
+      setTermMonths('1');
       onRegistered?.(payment);
     } catch (err) {
       setFormError(
@@ -264,7 +274,7 @@ const RegisterPaymentForm = ({
                 </select>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <InputField
                     label="Monto"
@@ -298,6 +308,16 @@ const RegisterPaymentForm = ({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <InputField
+                    label="Meses que cubre este pago"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="1"
+                    value={termMonths}
+                    onChange={(e) => setTermMonths(e.target.value)}
+                  />
                 </div>
               </div>
 

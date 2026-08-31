@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Card from '../common/Card';
 import DataTable, { type DataTableColumn } from './DataTable';
-import RegisterPaymentForm from './RegisterPaymentForm';
+import ChargePanel from './ChargePanel';
 import { getPayments } from '../../services/payment.service';
 import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
@@ -58,10 +58,10 @@ const AdminPaymentsSection = () => {
     <div className="space-y-8">
       <div>
         <h3 className="font-display text-lg font-semibold text-text">
-          Registrar pago presencial
+          Cobrar a un socio
         </h3>
         <Card className="mt-4 hover:translate-y-0 hover:shadow-lg">
-          <RegisterPaymentForm onRegistered={reload} />
+          <ChargePanel onCharged={reload} />
         </Card>
       </div>
 

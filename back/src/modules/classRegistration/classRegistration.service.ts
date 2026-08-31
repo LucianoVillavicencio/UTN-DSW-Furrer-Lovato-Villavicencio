@@ -406,6 +406,46 @@ export class ClassRegistrationService implements OnModuleInit {
     return this.findMyEnrollments(userId);
   }
 
+  /**
+   * Releases every reservation a member holds, across ALL of their enrollment
+   * groups — not one group at a time like cancelEnrollment. Used when a
+   * membership is paused: access stops and next week's spot cannot sit
+   * reserved while somebody else is turned away from it.
+   *
+   * Not filtered by `date`: since the weekly-slots migration (see
+   * ClassSessionService.backfillWeeklySlots), a ClassRegistration row is a
+   * standing weekly booking, not a dated occurrence — `date` records when the
+   * booking was MADE (changesUsedThisMonth and the enrollments page's "since"
+   * both read it that way), not a future class date. There is no column that
+   * marks a row as "in the past": a CONFIRMED, non-deleted row always means
+   * "currently holds this weekly spot", which is exactly what pausing must
+   * release, and an already-CANCELLED row is exactly the history pausing must
+   * leave alone. That distinction is what state/deleted already encode, so
+   * this filters on those alone — same fields cancelEnrollment filters on,
+   * just across every group instead of one.
+   */
+  async cancelFutureForUser(userId: number): Promise<void> {
+    const rows = await this.classRegistrationRepository.find({
+      where: {
+        userId,
+        state: ClassRegistrationState.CONFIRMED,
+        deleted: false,
+      },
+    });
+
+    const now = new Date();
+    for (const registration of rows) {
+      registration.state = ClassRegistrationState.CANCELLED;
+      registration.deleted = true;
+      registration.cancelledAt = now;
+      await this.classRegistrationRepository.save(registration);
+      await this.classSessionService.adjustAvailableSpots(
+        registration.classSessionId,
+        1,
+      );
+    }
+  }
+
   // ------------------------------------------------------------------ admin
 
   // Admin-only from here down: the member-facing flow above is what the

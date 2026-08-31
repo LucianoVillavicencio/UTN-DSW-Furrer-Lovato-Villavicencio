@@ -7,6 +7,7 @@ import { buildTypeOrmConfig } from './config/typeorm.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PlanModule } from './modules/plan/plan.module';
+import { PlanTermModule } from './modules/planTerm/planTerm.module';
 import { TrainerModule } from './modules/trainer/trainer.module';
 import { ClassModule } from './modules/class/class.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -14,16 +15,20 @@ import { TypeClassModule } from './modules/typeClass/typeClass.module';
 import { classRegistrationModule } from './modules/classRegistration/classRegistration.module';
 import { ClassSessionModule } from './modules/classSession/classSession.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { PauseModule } from './modules/subscription/pause.module';
+import { RenewalModule } from './modules/renewal/renewal.module';
+import { RefundModule } from './modules/refund/refund.module';
+import { MercadoPagoWebhookModule } from './modules/mercadopago/mercadopago-webhook.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AuthModule } from './auth/auth.module';
-import { AUTH_THROTTLE, CONTACT_THROTTLE } from './auth/auth.throttle';
+import { REGISTERED_THROTTLERS } from './auth/auth.throttle';
 import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
 import { SecurityLogFilter } from './common/filters/security-log.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([AUTH_THROTTLE, CONTACT_THROTTLE]),
+    ThrottlerModule.forRoot(REGISTERED_THROTTLERS),
     // Drives the nightly subscription expiry sweep in subscriptionService.
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
@@ -34,11 +39,16 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     UserModule,
     TypeClassModule,
     PlanModule,
+    PlanTermModule,
     TrainerModule,
     ClassModule,
     ClassSessionModule,
     SubscriptionModule,
+    PauseModule,
     PaymentModule,
+    RenewalModule,
+    RefundModule,
+    MercadoPagoWebhookModule,
     classRegistrationModule,
     ContactModule,
     AuthModule,
