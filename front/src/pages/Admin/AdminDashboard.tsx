@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -13,19 +13,16 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Container from '../../components/common/Container';
-import Card from '../../components/common/Card';
 import DashboardTabs, {
   type DashboardTab,
 } from '../../components/dashboard/DashboardTabs';
+import ResumenTab from '../../components/admin/ResumenTab';
 import ClassesSection from '../../components/admin/ClassesSection';
 import ClassSessionsSection from '../../components/admin/ClassSessionsSection';
 import TrainersSection from '../../components/admin/TrainersSection';
 import PlansSection from '../../components/admin/PlansSection';
 import UsersSection from '../../components/admin/UsersSection';
 import AdminPaymentsSection from '../../components/admin/AdminPaymentsSection';
-import { getPlans } from '../../services/plan.service';
-import { getClass } from '../../services/class.service';
-import { getTrainers } from '../../services/trainer.service';
 
 const TABS: DashboardTab[] = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
@@ -36,50 +33,6 @@ const TABS: DashboardTab[] = [
   { id: 'usuarios', label: 'Usuarios', icon: UsersIcon },
   { id: 'pagos', label: 'Pagos presenciales', icon: Receipt },
 ];
-
-const ResumenTab = () => {
-  const [stats, setStats] = useState({ plans: 0, classes: 0, trainers: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.allSettled([getPlans(), getClass(), getTrainers()]).then(
-      (results) => {
-        const [plansRes, classesRes, trainersRes] = results;
-        setStats({
-          plans: plansRes.status === 'fulfilled' ? plansRes.value.length : 0,
-          classes:
-            classesRes.status === 'fulfilled' ? classesRes.value.length : 0,
-          trainers:
-            trainersRes.status === 'fulfilled' ? trainersRes.value.length : 0,
-        });
-        setIsLoading(false);
-      },
-    );
-  }, []);
-
-  return (
-    <div className="grid gap-6 sm:grid-cols-3">
-      <Card className="hover:translate-y-0 hover:shadow-lg">
-        <p className="font-body text-sm text-text-muted">Planes activos</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">
-          {isLoading ? '…' : stats.plans}
-        </p>
-      </Card>
-      <Card className="hover:translate-y-0 hover:shadow-lg">
-        <p className="font-body text-sm text-text-muted">Clases</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">
-          {isLoading ? '…' : stats.classes}
-        </p>
-      </Card>
-      <Card className="hover:translate-y-0 hover:shadow-lg">
-        <p className="font-body text-sm text-text-muted">Entrenadores</p>
-        <p className="mt-2 font-display text-3xl font-bold text-text">
-          {isLoading ? '…' : stats.trainers}
-        </p>
-      </Card>
-    </div>
-  );
-};
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('resumen');
