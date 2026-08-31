@@ -3,7 +3,7 @@ import Card from '../common/Card';
 import DataTable, { type DataTableColumn } from './DataTable';
 import RegisterPaymentForm from './RegisterPaymentForm';
 import { getPayments } from '../../services/payment.service';
-import { formatDateOnly } from '../../lib/date';
+import { formatPaymentDate } from '../../lib/payment-date';
 import { formatPriceDisplay } from '../../lib/currency';
 import type { Payment } from '../../types/payment';
 
@@ -38,7 +38,7 @@ const AdminPaymentsSection = () => {
   };
 
   const columns: DataTableColumn<Payment>[] = [
-    { header: 'Fecha', cell: (p) => formatDateOnly(p.date.slice(0, 10)) },
+    { header: 'Fecha', cell: (p) => formatPaymentDate(p.date) },
     {
       header: 'Socio',
       cell: (p) =>

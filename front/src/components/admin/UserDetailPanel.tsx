@@ -9,6 +9,7 @@ import RegisterPaymentForm from './RegisterPaymentForm';
 import AssignPlanForm from './AssignPlanForm';
 import UserClassSection from './UserClassSection';
 import { formatDateOnly } from '../../lib/date';
+import { formatPaymentDate } from '../../lib/payment-date';
 import { formatPriceDisplay } from '../../lib/currency';
 import { isPlaceholderEmail } from '../../lib/placeholderEmail';
 import {
@@ -316,7 +317,7 @@ const UserDetailPanel = ({
             <ul className="mt-3 space-y-1.5 text-sm">
               {payments.map((p) => (
                 <li key={p.id} className="flex justify-between text-text-muted">
-                  <span>{formatDateOnly(p.date.slice(0, 10))}</span>
+                  <span>{formatPaymentDate(p.date)}</span>
                   <span>${formatPriceDisplay(p.amount)}</span>
                   <span className="capitalize">{p.payMethod}</span>
                 </li>
