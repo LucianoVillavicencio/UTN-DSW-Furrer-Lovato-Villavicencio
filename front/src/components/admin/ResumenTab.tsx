@@ -4,6 +4,7 @@ import { getPlans } from '../../services/plan.service';
 import { getClass } from '../../services/class.service';
 import { getTrainers } from '../../services/trainer.service';
 import { getUsers } from '../../services/user.service';
+import OwnerAnalyticsPanel from './OwnerAnalyticsPanel';
 
 interface Stats {
   plans: number | null;
@@ -78,6 +79,8 @@ const ResumenTab = () => {
         <StatCard label="Clases" value={stats.classes} isLoading={isLoading} />
         <StatCard label="Entrenadores" value={stats.trainers} isLoading={isLoading} />
       </div>
+
+      <OwnerAnalyticsPanel />
     </div>
   );
 };
