@@ -905,6 +905,24 @@ describe('PaymentService.registerPlanPayment', () => {
     ];
     expect(input.term.numDays).toBe(180);
   });
+
+  it('records the term it sold, not the column default', async () => {
+    await service.registerPlanPayment(
+      {
+        userId: 3,
+        planId: 12,
+        months: 6,
+        amount: 27000,
+        payMethod: 'efectivo',
+      },
+      30111222,
+    );
+
+    expect(manager.create).toHaveBeenCalledWith(
+      Payment,
+      expect.objectContaining({ termMonths: 6, amount: 27000 }),
+    );
+  });
 });
 
 describe('PaymentService.createFailedPayment', () => {

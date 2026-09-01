@@ -69,6 +69,14 @@ export class PaymentService {
         date: new Date(),
         state: PaymentState.COMPLETED,
         registeredById: adminId,
+        // Without this the column default of 1 records every multi-month sale
+        // as a single month. Nothing reads it today, but the data is wrong
+        // the moment anything does.
+        termMonths: term.months,
+        // The plan's own monthly list price — same meaning the field already
+        // carries in createFromMercadoPago. Not the discounted amount: that
+        // is what `amount` and the subscription's soldPrice record.
+        monthlyPriceAtPurchase: plan.price,
         deleted: false,
       });
 
