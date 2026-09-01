@@ -121,4 +121,31 @@ describe('AnalyticsService', () => {
       estimatedMrr: 0,
     });
   });
+
+  it('amortizes a discounted sale at the price actually charged', async () => {
+    activeSubs.mockResolvedValue([
+      {
+        soldPrice: 14000,
+        planDuration: { months: 3, price: 15000 },
+        plan: { price: 5000 },
+      },
+    ]);
+
+    const result = await service.buildOverview(query);
+
+    // 14000 charged over 3 months, not the 15000 list price.
+    expect(result.estimatedMrr).toBeCloseTo(14000 / 3);
+  });
+
+  it('counts a renewed member once, not once per subscription row', async () => {
+    // A renewal leaves the previous row CANCELLED and a fresh ACTIVE one
+    // behind; only the active row is counted.
+    activeSubs.mockResolvedValue([
+      { soldPrice: 14000, planDuration: { months: 3 }, plan: { price: 5000 } },
+    ]);
+
+    const result = await service.buildOverview(query);
+
+    expect(result.activeSubscriptions).toBe(1);
+  });
 });
