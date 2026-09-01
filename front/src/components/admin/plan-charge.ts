@@ -3,8 +3,8 @@ import type { DurationMonths, Plan, PlanDuration } from '../../types/plan';
 
 export type ChargeMonths = 1 | DurationMonths;
 
-// Moved here from RegisterPaymentForm, which was the only owner: both that
-// form and the new PlanChargeForm offer the same four, and the backend's
+// Moved here from RegisterPaymentForm, which is again the only owner now that
+// the counter's own form offers all six of CHARGE_METHODS below. The backend's
 // @IsIn on PlanCheckoutDto.payMethod is the list this must match.
 export const PAY_METHODS = [
   { value: 'efectivo', label: 'Efectivo' },

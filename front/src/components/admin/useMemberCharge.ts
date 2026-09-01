@@ -236,6 +236,16 @@ export const useMemberCharge = (
     }
   };
 
+  // Clears a finished order so the admin can charge the SAME member again
+  // without going back through the search — the panel's "Nuevo cobro" (after
+  // 'pagada') and "Reintentar" (after 'cancelada'/'expirada'/'error') buttons.
+  // cancelOrder only covers an order that is still 'pendiente'.
+  const resetOrder = (): void => {
+    stopPolling();
+    setOrderView(null);
+    setOrderError(null);
+  };
+
   const submit = async (userId: number): Promise<void> => {
     setFormError(null);
     setSuccess(null);
@@ -308,6 +318,6 @@ export const useMemberCharge = (
     plans, plansError, planId, setPlanId: setPlanIdTouched, months, setMonths,
     options, resolvedPrice, amountText, setAmountText,
     method, setMethod, orderView, isCreatingOrder, orderError,
-    isSaving, formError, success, submit, cancelOrder,
+    isSaving, formError, success, submit, cancelOrder, resetOrder,
   };
 };

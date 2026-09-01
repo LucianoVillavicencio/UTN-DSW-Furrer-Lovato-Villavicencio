@@ -5,13 +5,10 @@ import Card from '../common/Card';
 import DataTable, { type DataTableColumn } from './DataTable';
 import ChargePanel from './ChargePanel';
 import SectionHeader from './SectionHeader';
-import PlanChargeForm from './PlanChargeForm';
-import MemberSearchField from './MemberSearchField';
 import { getPayments } from '../../services/payment.service';
 import { formatPaymentDate } from '../../lib/payment-date';
 import { formatPriceDisplay } from '../../lib/currency';
 import type { AdminPayment, PaymentPage } from '../../types/payment';
-import type { User } from '../../types/user';
 
 const PAGE_SIZE = 25;
 
@@ -33,7 +30,6 @@ const columns: DataTableColumn<AdminPayment>[] = [
 ];
 
 const AdminPaymentsSection = () => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [page, setPage] = useState<PaymentPage>({ items: [], total: 0 });
   const [offset, setOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,31 +77,14 @@ const AdminPaymentsSection = () => {
           panel's one accent motif and more generous spacing than the other
           five tabs — quick maintenance elsewhere, the counter here. */}
       <div>
-        <h4 className="font-display text-xl font-semibold text-text">
-          Cobrar un plan
-        </h4>
+        <h3 className="font-display text-lg font-semibold text-text">
+          Cobrar a un socio
+        </h3>
         <Card className="relative mt-4 overflow-hidden p-8 hover:translate-y-0 hover:shadow-lg">
           <span
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-0.5 bg-primary"
           />
-          {selectedUser ? (
-            <PlanChargeForm
-              selectedUser={selectedUser}
-              onRegistered={reload}
-              onChangeMember={() => setSelectedUser(null)}
-            />
-          ) : (
-            <MemberSearchField onSelect={setSelectedUser} />
-          )}
-        </Card>
-      </div>
-
-      <div>
-        <h3 className="font-display text-lg font-semibold text-text">
-          Cobrar a un socio
-        </h3>
-        <Card className="mt-4 hover:translate-y-0 hover:shadow-lg">
           <ChargePanel onCharged={reload} />
         </Card>
       </div>

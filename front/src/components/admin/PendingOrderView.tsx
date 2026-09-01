@@ -4,10 +4,19 @@ import { formatDateOnly } from '../../lib/date';
 import { formatPriceDisplay } from '../../lib/currency';
 import type { OrderView } from './useMemberCharge';
 
+// The statuses that leave nothing to wait for and nothing to cancel — the only
+// way forward is to arm a fresh order. Mirrors charge-panel.ts's terminal set
+// minus 'pagada', which gets its own "Nuevo cobro" wording instead.
+const RETRYABLE_STATUSES = ['cancelada', 'expirada', 'error'];
+
 interface PendingOrderViewProps {
   order: OrderView;
   onCancel: () => void;
   isCancelling?: boolean;
+  // Clears the finished order so the admin can charge the same member again
+  // without re-searching them. Optional: the block still renders without it,
+  // just with no way out of a terminal state.
+  onReset?: () => void;
 }
 
 // Lifted from ChargePanel.tsx's live-order block. Purely presentational: it
@@ -15,7 +24,12 @@ interface PendingOrderViewProps {
 // arrived from a poll (someone else cancelled it, or it expired) — the "clear
 // it locally on cancel" behavior lives in useMemberCharge's cancelOrder, not
 // here.
-const PendingOrderView = ({ order, onCancel, isCancelling }: PendingOrderViewProps) => {
+const PendingOrderView = ({
+  order,
+  onCancel,
+  isCancelling,
+  onReset,
+}: PendingOrderViewProps) => {
   const isPending = order.status === 'pendiente';
 
   return (
@@ -44,7 +58,23 @@ const PendingOrderView = ({ order, onCancel, isCancelling }: PendingOrderViewPro
               Nueva vigencia: {formatDateOnly(order.newEndDate)}
             </p>
           )}
+          {onReset && (
+            <Button
+              onClick={onReset}
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+            >
+              Nuevo cobro
+            </Button>
+          )}
         </div>
+      )}
+
+      {onReset && RETRYABLE_STATUSES.includes(order.status) && (
+        <Button onClick={onReset} variant="secondary" size="sm">
+          Reintentar
+        </Button>
       )}
 
       {isPending && (
