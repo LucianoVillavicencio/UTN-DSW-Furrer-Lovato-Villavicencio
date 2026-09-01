@@ -387,7 +387,15 @@ export class MercadoPagoClient {
       const body: SdkOrderCreateBody = {
         type: request.type,
         external_reference: request.externalReference,
-        total_amount: request.totalAmount.toFixed(2),
+        // The charge amount for a 'point'/'qr' in-person order is driven by
+        // transactions.payments[].amount, NOT total_amount — the Orders API
+        // reference's own in-person examples never send total_amount at all.
+        // A bare total_amount with no transactions is accepted by this SDK
+        // version's loose types but rejected by the real API with a plain
+        // 400 and no structured cause, which is what sent this in circles.
+        transactions: {
+          payments: [{ amount: request.totalAmount.toFixed(2) }],
+        },
         expiration_time: request.expirationTime,
         description: request.description,
         // The installed SDK's `CreateOrderConfig` type only models the
@@ -405,11 +413,6 @@ export class MercadoPagoClient {
         // task, not this one.
         config,
       };
-
-      // TEMP diagnostic — remove once the 400 from MP is root-caused. No
-      // secrets in here: the access token lives in sdkConfig/headers, never
-      // in this body.
-      console.warn('[diag] MP createOrder body:', JSON.stringify(body));
 
       const order = await orderClient.create({
         body,
