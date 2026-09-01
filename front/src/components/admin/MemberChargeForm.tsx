@@ -50,7 +50,7 @@ const MemberChargeForm = ({
 }: MemberChargeFormProps) => {
   const {
     plans, plansError, planId, setPlanId, months, setMonths,
-    options, resolvedPrice, amountText, setAmountText,
+    options, resolvedPrice, amountText, setAmountText, autoRenewedToday,
     method, setMethod, orderView, isCreatingOrder, orderError,
     isSaving, formError, success, submit, cancelOrder, resetOrder,
   } = useMemberCharge(selectedUser, onCharged);
@@ -134,6 +134,16 @@ const MemberChargeForm = ({
           </select>
         </div>
       </div>
+
+      {/* The double-charge guard: this card is the only in-person charge
+          screen, so it is the only place left to warn that the member's
+          membership already collected through Mercado Pago today. */}
+      {autoRenewedToday && (
+        <FormAlert
+          type="warning"
+          message="Esta membresía ya se renovó automáticamente hoy."
+        />
+      )}
 
       <FormAlert
         type="warning"

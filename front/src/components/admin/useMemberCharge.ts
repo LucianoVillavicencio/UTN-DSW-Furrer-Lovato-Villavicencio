@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { getPlans, getPlanDurations } from '../../services/plan.service';
 import { getSubscriptionsByUser } from '../../services/subscription.service';
-import { registerPlanCheckout } from '../../services/payment.service';
+import {
+  getPaymentsByUser,
+  registerPlanCheckout,
+} from '../../services/payment.service';
 import {
   createChargeOrder,
   getChargeOrder,
@@ -18,9 +21,13 @@ import {
   type ChargeMethod,
   type ChargeMonths,
 } from './plan-charge';
-import { POLL_INTERVAL_MS, shouldKeepPolling } from './charge-panel';
+import {
+  POLL_INTERVAL_MS,
+  hasAutoRenewedToday,
+  shouldKeepPolling,
+} from './charge-panel';
 import type { Plan, PlanDuration } from '../../types/plan';
-import type { PlanCheckoutPayload } from '../../types/payment';
+import type { Payment, PlanCheckoutPayload } from '../../types/payment';
 import type { User } from '../../types/user';
 
 // The live order's status/amount/qrPayload/expiresAt/newEndDate in one shape,
@@ -55,6 +62,7 @@ export const useMemberCharge = (
   const [months, setMonths] = useState<ChargeMonths>(1);
   const [durations, setDurations] = useState<PlanDuration[]>([]);
   const [amountText, setAmountText] = useState('');
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [method, setMethod] = useState<ChargeMethod>(CHARGE_METHODS[0].value);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -131,6 +139,29 @@ export const useMemberCharge = (
     };
   }, [selectedUser]);
 
+  // The advance-payment warning's data source: the backend has no flag for
+  // "this membership was already auto-renewed today", so the panel infers it
+  // from the member's payment history — see hasAutoRenewedToday. Same
+  // staleness guard as the effect above; a response that lands after the admin
+  // has moved to another member must not write anything.
+  useEffect(() => {
+    if (!selectedUser) return;
+    let isCurrent = true;
+    void getPaymentsByUser(selectedUser.id)
+      .then((data) => {
+        if (!isCurrent) return;
+        setPayments(data);
+      })
+      .catch((err: unknown) => {
+        if (!isCurrent) return;
+        console.warn('Could not read the member payment history', err);
+        setPayments([]);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedUser]);
+
   // Durations belong to the plan, so they reload on the plan and reset the
   // term — a 6-month term left over from another plan would resolve to null.
   useEffect(() => {
@@ -171,6 +202,7 @@ export const useMemberCharge = (
   const plan = plans.find((p) => p.id === planId) ?? null;
   const options = durationOptionsFor(plan, durations);
   const resolvedPrice = resolvedPriceFor(plan, durations, months);
+  const autoRenewedToday = hasAutoRenewedToday(payments, new Date());
 
   // Recomputed unconditionally, never left stale: the old form kept the
   // previous subscription's amount when the new one had no price. Satisfying
@@ -316,7 +348,7 @@ export const useMemberCharge = (
 
   return {
     plans, plansError, planId, setPlanId: setPlanIdTouched, months, setMonths,
-    options, resolvedPrice, amountText, setAmountText,
+    options, resolvedPrice, amountText, setAmountText, autoRenewedToday,
     method, setMethod, orderView, isCreatingOrder, orderError,
     isSaving, formError, success, submit, cancelOrder, resetOrder,
   };
