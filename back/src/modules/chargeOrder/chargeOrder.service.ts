@@ -13,14 +13,18 @@ import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 import { PlanDurationService } from '../plan/plan-duration.service';
 import { resolveTerm } from '../plan/plan-duration.rules';
+import { PlanService } from '../plan/plan.service';
+import { UserService } from '../user/user.service';
 import {
   buildExternalReference,
   ORDER_EXPIRATION_MS,
 } from './chargeOrder.rules';
 
 export interface CreateChargeParams {
-  subscriptionId: number;
+  userId: number;
+  planId: number;
   months: number;
+  amount: number;
   method: 'point' | 'qr';
   collectionPointId: string;
   adminId: number;
@@ -40,6 +44,8 @@ export class ChargeOrderService {
     private chargeOrderRepository: Repository<ChargeOrder>,
     private readonly subscriptionService: subscriptionService,
     private readonly planDurationService: PlanDurationService,
+    private readonly planService: PlanService,
+    private readonly userService: UserService,
   ) {}
 
   // Arms a new charge order at the counter. The busy-collection-point check
@@ -49,30 +55,41 @@ export class ChargeOrderService {
   // amounts. It is deliberately keyed on collectionPointId, not
   // subscriptionId.
   async createCharge(params: CreateChargeParams) {
-    const { subscriptionId, months, method, collectionPointId, adminId } =
-      params;
+    const {
+      userId,
+      planId,
+      months,
+      amount,
+      method,
+      collectionPointId,
+      adminId,
+    } = params;
 
-    const subscription =
-      await this.subscriptionService.findSubscription(subscriptionId);
-    if (!subscription || subscription.deleted) {
-      throw new NotFoundException(
-        `La suscripción con ID: ${subscriptionId} no existe.`,
-      );
+    const member = await this.userService.findUser(userId);
+    if (!member || member.deleted) {
+      throw new NotFoundException(`El socio con ID: ${userId} no existe.`);
     }
 
+    // A deliberately frozen membership must not be sold to at the counter.
     // `state` is a plain string column, so the enum member is widened to its
     // value before comparing — same pattern as PaymentService.
     const pausedState: string = SubscriptionState.PAUSED;
-    if (subscription.state === pausedState) {
+    const live = await this.subscriptionService.findByUser(userId);
+    if (live.some((s) => !s.deleted && s.state === pausedState)) {
       throw new ConflictException('No se puede cobrar una membresía pausada.');
     }
 
+    const plan = await this.planService.findPlan(planId);
+    if (!plan) {
+      throw new NotFoundException(`El plan con ID: ${planId} no existe.`);
+    }
+
     // resolveTerm throws NotFoundException itself when `months` has no
-    // matching (non-deleted) PlanDuration for this plan.
-    const durations = await this.planDurationService.findByPlan(
-      subscription.planId,
-    );
-    const term = resolveTerm(subscription.plan, months, durations);
+    // matching (non-deleted) PlanDuration for this plan. Its price is NOT
+    // used as the order amount — the admin's amount is, so a front-desk
+    // discount is what the member is actually charged.
+    const durations = await this.planDurationService.findByPlan(planId);
+    const term = resolveTerm(plan, months, durations);
 
     // Expire stale orders before checking whether the point is busy, so an
     // abandoned charge from a few minutes ago never blocks the counter. Bulk
@@ -82,7 +99,7 @@ export class ChargeOrderService {
 
     const now = new Date();
     const externalReference = buildExternalReference(
-      subscriptionId,
+      userId,
       randomUUID().slice(0, 8),
     );
 
@@ -113,16 +130,17 @@ export class ChargeOrderService {
       }
 
       const newOrder = manager.create(ChargeOrder, {
-        subscriptionId,
+        subscriptionId: null,
+        userId,
+        planId,
+        termMonths: term.months,
         planDurationId: term.planDurationId,
         method,
         externalReference,
         mpOrderId: null,
         qrPayload: null,
         collectionPointId,
-        // Snapshot the term's price, not the plan's — see the entity
-        // comment on `amount`.
-        amount: term.price,
+        amount,
         status: ChargeOrderStatus.PENDING,
         expiresAt: new Date(now.getTime() + ORDER_EXPIRATION_MS),
         paymentId: null,
