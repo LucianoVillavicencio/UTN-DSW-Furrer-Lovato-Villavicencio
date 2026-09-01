@@ -185,7 +185,7 @@ describe('ChargeOrderController', () => {
       expect(mercadoPagoClient.createOrder).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'qr',
-          qr: { external_pos_id: CONFIGURED_POS, mode: 'hibrid' },
+          qr: { external_pos_id: CONFIGURED_POS, mode: 'hybrid' },
         }),
       );
       // The QR payload must be PERSISTED (not just returned once in this

@@ -9,10 +9,15 @@ import MpSdkConfig, {
 import { MercadoPagoConfig } from './mercadopago.config';
 
 /**
- * Mercado Pago spells the hybrid QR mode this way in their API. It is not a
- * typo in our code — do not "fix" it to `hybrid` or `hibrido`.
+ * The Orders API rejects anything but `'static'`, `'dynamic'`, or
+ * `'hybrid'` for `config.qr.mode` (confirmed against the live API — a
+ * request with `'hibrid'` 400s with "value must be one of 'static',
+ * 'dynamic', 'hybrid'"). A previous version of this file claimed `'hibrid'`
+ * was Mercado Pago's actual (typo'd) spelling and warned against "fixing"
+ * it — that was wrong, or the API has since changed; either way, `'hibrid'`
+ * silently broke every QR charge.
  */
-export const QR_MODE_HYBRID = 'hibrid';
+export const QR_MODE_HYBRID = 'hybrid';
 
 /**
  * Thrown by every `MercadoPagoClient` method when the SDK call could not be
@@ -94,6 +99,23 @@ export interface MpOrderResult {
   statusDetail?: string;
   /** QR payload data, present for `type: 'qr'` orders. */
   qrData?: string;
+  /**
+   * The `external_reference` the order was created with — how the webhook
+   * receiver maps an `order`-topic notification back to a `charge_orders`
+   * row, the same role `MpPaymentResult.externalReference` plays for a
+   * legacy Payments API notification.
+   */
+  externalReference?: string;
+  /** Amount actually collected so far, as a number (e.g. ARS, not cents). */
+  totalPaidAmount?: number;
+  /**
+   * The id of this order's first transaction payment (e.g. `PAY01...`) —
+   * this is an Orders API resource id, NOT a legacy Payments API id, so it
+   * must never be passed to `getPayment`/`GET /v1/payments/{id}` (that 404s).
+   * It is only ever stored locally as `Payment.mpPaymentId`, an opaque
+   * dedupe/reference key.
+   */
+  paymentId?: string;
 }
 
 interface CreateOrderRequestBase {
@@ -235,6 +257,12 @@ export class MercadoPagoClient {
       status: order.status,
       statusDetail: order.status_detail,
       qrData: order.type_response?.qr_data,
+      externalReference: order.external_reference,
+      totalPaidAmount:
+        order.total_paid_amount !== undefined
+          ? Number(order.total_paid_amount)
+          : undefined,
+      paymentId: order.transactions?.payments?.[0]?.id,
     };
   }
 
@@ -387,12 +415,13 @@ export class MercadoPagoClient {
       const body: SdkOrderCreateBody = {
         type: request.type,
         external_reference: request.externalReference,
-        // The charge amount for a 'point'/'qr' in-person order is driven by
-        // transactions.payments[].amount, NOT total_amount — the Orders API
-        // reference's own in-person examples never send total_amount at all.
-        // A bare total_amount with no transactions is accepted by this SDK
-        // version's loose types but rejected by the real API with a plain
-        // 400 and no structured cause, which is what sent this in circles.
+        // In-person order types (point/qr) take the amount on the
+        // transaction, not as a top-level `total_amount` — the live Orders
+        // API 400s with "additionalProperties 'total_amount' not allowed"
+        // if it's sent here, and separately 400s "missing properties:
+        // transactions" if this is omitted. Confirmed against the real API,
+        // not just the SDK's types (which allow `total_amount` because it
+        // applies to `type: "online"` orders instead).
         transactions: {
           payments: [{ amount: request.totalAmount.toFixed(2) }],
         },
@@ -421,6 +450,21 @@ export class MercadoPagoClient {
       return this.normalizeOrder(order);
     } catch (err) {
       throw this.wrapError('createOrder', err);
+    }
+  }
+
+  /**
+   * Re-fetches an order by id — the authoritative source an `order`-topic
+   * webhook notification must act on, never the notification body itself.
+   */
+  async getOrder(mpOrderId: string): Promise<MpOrderResult> {
+    const sdkConfig = this.getSdkConfig();
+    try {
+      const orderClient = new Order(sdkConfig);
+      const order = await orderClient.get({ id: mpOrderId });
+      return this.normalizeOrder(order);
+    } catch (err) {
+      throw this.wrapError('getOrder', err);
     }
   }
 

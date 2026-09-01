@@ -111,10 +111,26 @@ export function verifyWebhookSignature(
   const parsed = parseSignatureHeader(input.signatureHeader);
   if (!parsed) return false;
 
-  const ts = Number(parsed.ts);
-  if (!Number.isFinite(ts)) return false;
+  const rawTs = Number(parsed.ts);
+  if (!Number.isFinite(rawTs)) return false;
 
-  const age = Math.abs(now.getTime() - ts);
+  // Mercado Pago's own docs describe `ts` as milliseconds, but real Point
+  // `order`-topic deliveries were confirmed (by capturing live traffic) to
+  // send it as Unix SECONDS on some notifications/retries and milliseconds
+  // on others, for the same underlying event — an undocumented
+  // inconsistency, not a bug in a specific delivery. `now.getTime()` is
+  // always milliseconds, so a seconds-based `ts` compared directly reads as
+  // ~1970 and fails the freshness check by decades, silently rejecting a
+  // genuinely fresh, correctly-signed notification. A value below this
+  // threshold cannot be a plausible millisecond timestamp for any date
+  // after 2001, so it must be seconds and needs scaling first. The
+  // manifest below still hashes `parsed.ts` verbatim — MP signs whatever
+  // string it actually sent, so only this freshness check needs the
+  // normalized value.
+  const MIN_PLAUSIBLE_MS_TIMESTAMP = 1_000_000_000_000; // 2001-09-09
+  const tsMs = rawTs < MIN_PLAUSIBLE_MS_TIMESTAMP ? rawTs * 1000 : rawTs;
+
+  const age = Math.abs(now.getTime() - tsMs);
   if (age > SIGNATURE_TOLERANCE_MS) return false;
 
   const manifest = buildSignatureManifest({

@@ -6,7 +6,7 @@ import {
 } from './webhook.service';
 
 describe('WebhookService.handleNotification', () => {
-  let client: { getPayment: jest.Mock };
+  let client: { getPayment: jest.Mock; getOrder: jest.Mock };
   let orderResolver: OrderResolver & { resolve: jest.Mock; close: jest.Mock };
   let paymentService: {
     findByMpPaymentId: jest.Mock;
@@ -41,7 +41,7 @@ describe('WebhookService.handleNotification', () => {
   };
 
   beforeEach(() => {
-    client = { getPayment: jest.fn() };
+    client = { getPayment: jest.fn(), getOrder: jest.fn() };
     orderResolver = {
       resolve: jest.fn().mockResolvedValue(resolvedOrder),
       close: jest.fn().mockResolvedValue(undefined),
@@ -272,5 +272,81 @@ describe('WebhookService.handleNotification', () => {
 
     expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
     expect(orderResolver.close).not.toHaveBeenCalled();
+  });
+
+  // Point/QR front-desk charges are created via the Orders API
+  // (MercadoPagoClient.createOrder), so Mercado Pago notifies them under the
+  // `order` topic with an ORDER id, not a legacy Payments API payment id —
+  // a completely different resource namespace. Passing that id to
+  // getPayment (the `payment`-topic path above) 404s in production; this
+  // describe block exercises the getOrder-based path instead.
+  describe('an order-topic notification (Point/QR front-desk charges)', () => {
+    it('records an approved order and activates the subscription', async () => {
+      client.getOrder.mockResolvedValue({
+        id: 'ORD01',
+        status: 'processed',
+        statusDetail: 'accredited',
+        totalPaidAmount: 15000,
+        externalReference: 'order-1',
+        paymentId: 'PAY01',
+      });
+
+      await service.handleNotification('ORD01', 'order');
+
+      expect(client.getOrder).toHaveBeenCalledWith('ORD01');
+      expect(client.getPayment).not.toHaveBeenCalled();
+      expect(orderResolver.resolve).toHaveBeenCalledWith('order-1');
+      expect(paymentService.createFromMercadoPago).toHaveBeenCalledWith({
+        mpPaymentId: 'PAY01',
+        subscriptionId: 7,
+        amount: 15000,
+        termMonths: 1,
+        payMethod: 'mercadopago',
+        registeredById: null,
+      });
+      expect(orderResolver.close).toHaveBeenCalledWith('order-1', 1);
+    });
+
+    it('answers 200 for an order status it does not act on, such as created', async () => {
+      client.getOrder.mockResolvedValue({
+        id: 'ORD02',
+        status: 'created',
+        totalPaidAmount: 15000,
+        externalReference: 'order-1',
+        paymentId: 'PAY02',
+      });
+
+      await expect(
+        service.handleNotification('ORD02', 'order'),
+      ).resolves.toBeUndefined();
+
+      expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
+    });
+
+    it('answers 200 and writes nothing for an order with no transaction yet', async () => {
+      client.getOrder.mockResolvedValue({
+        id: 'ORD03',
+        status: 'created',
+        externalReference: 'order-1',
+        paymentId: undefined,
+      });
+
+      await expect(
+        service.handleNotification('ORD03', 'order'),
+      ).resolves.toBeUndefined();
+
+      expect(orderResolver.resolve).not.toHaveBeenCalled();
+      expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
+    });
+  });
+
+  it('answers 200 and writes nothing for an unhandled notification topic', async () => {
+    await expect(
+      service.handleNotification('some-id', 'merchant_order'),
+    ).resolves.toBeUndefined();
+
+    expect(client.getPayment).not.toHaveBeenCalled();
+    expect(client.getOrder).not.toHaveBeenCalled();
+    expect(paymentService.createFromMercadoPago).not.toHaveBeenCalled();
   });
 });

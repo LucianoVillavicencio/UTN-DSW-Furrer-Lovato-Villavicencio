@@ -564,19 +564,12 @@ const ChargePanel = ({ onCharged }: ChargePanelProps) => {
                         Monto: ${formatPriceDisplay(orderView.amount)}
                       </p>
 
-                      {method === 'qr' &&
-                        orderView.qrPayload &&
-                        orderView.status === 'pendiente' && (
-                          <div className="space-y-1">
-                            <p className="break-all rounded-lg bg-background p-3 font-mono text-xs text-text">
-                              {orderView.qrPayload}
-                            </p>
-                            <p className="text-xs text-text-muted">
-                              Mostrale este código al socio para que lo escanee
-                              desde la app.
-                            </p>
-                          </div>
-                        )}
+                      {method === 'qr' && orderView.status === 'pendiente' && (
+                        <p className="text-xs text-text-muted">
+                          Pedile al socio que escanee el QR impreso en el
+                          mostrador desde la app.
+                        </p>
+                      )}
 
                       {orderView.status === 'pagada' && (
                         <div>

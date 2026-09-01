@@ -6,6 +6,7 @@ import { MailModule } from '../../common/mail/mail.module';
 import { ChargeOrderModule } from '../chargeOrder/chargeOrder.module';
 import { ChargeOrderResolverAdapter } from '../chargeOrder/chargeOrder-resolver.adapter';
 import { WebhookController } from './webhook.controller';
+import { WebhookRootController } from './webhook-root.controller';
 import { ORDER_RESOLVER, WebhookService } from './webhook.service';
 
 /**
@@ -36,7 +37,7 @@ import { ORDER_RESOLVER, WebhookService } from './webhook.service';
     MailModule,
     ChargeOrderModule,
   ],
-  controllers: [WebhookController],
+  controllers: [WebhookController, WebhookRootController],
   providers: [
     WebhookService,
     ChargeOrderResolverAdapter,
