@@ -81,8 +81,10 @@ export class ChargeOrderController {
     }
 
     const chargeOrder = await this.chargeOrderService.createCharge({
-      subscriptionId: dto.subscriptionId,
+      userId: dto.userId,
+      planId: dto.planId,
       months: dto.months,
+      amount: dto.amount,
       method: dto.method,
       collectionPointId,
       adminId: admin.sub,
@@ -92,7 +94,7 @@ export class ChargeOrderController {
     // so a retried request against the same order never double-arms it on
     // MP's side.
     const idempotencyKey = chargeOrder.externalReference;
-    const description = `Cobro de membresía — suscripción #${chargeOrder.subscriptionId}`;
+    const description = `Cobro de membresía — socio #${chargeOrder.userId}`;
 
     let mpOrder: MpOrderResult;
     try {

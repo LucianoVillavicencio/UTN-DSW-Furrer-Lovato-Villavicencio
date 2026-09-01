@@ -7,7 +7,9 @@ import { MercadoPagoClient } from '../mercadopago/mercadopago.client';
 import { MercadoPagoConfig } from '../mercadopago/mercadopago.config';
 import { PaymentService } from '../payment/payment.service';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
+import { ChargeOrderMethod } from './enum/chargeOrder-method.enum';
 import { ORDER_EXPIRATION } from './chargeOrder.rules';
+import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
 import { buildAuthzApp, tokenFor } from '../../auth/testing/authz-harness';
 
 describe('ChargeOrderController', () => {
@@ -98,6 +100,45 @@ describe('ChargeOrderController', () => {
   });
 
   describe('POST /api/v1/charge-order', () => {
+    it('forwards the purchase intent to the service', async () => {
+      const admin = { sub: 40000001 } as UserActiveInterface;
+      chargeOrderService.createCharge.mockResolvedValue(pendingOrder);
+      mercadoPagoClient.createOrder.mockResolvedValue({
+        id: 'mp-order-1',
+        status: 'created',
+      });
+      chargeOrderService.setMpOrderId.mockResolvedValue({
+        ...pendingOrder,
+        mpOrderId: 'mp-order-1',
+      });
+
+      const controller = new ChargeOrderController(
+        chargeOrderService as unknown as ChargeOrderService,
+        mercadoPagoClient as unknown as MercadoPagoClient,
+        mercadoPagoConfig as unknown as MercadoPagoConfig,
+        paymentService as unknown as PaymentService,
+      );
+
+      await controller.createCharge(admin, {
+        userId: 3,
+        planId: 12,
+        months: 3,
+        amount: 14000,
+        method: ChargeOrderMethod.POINT,
+        collectionPointId: 'ignored-by-the-server',
+      });
+
+      expect(chargeOrderService.createCharge).toHaveBeenCalledWith({
+        userId: 3,
+        planId: 12,
+        months: 3,
+        amount: 14000,
+        method: ChargeOrderMethod.POINT,
+        collectionPointId: CONFIGURED_TERMINAL,
+        adminId: admin.sub,
+      });
+    });
+
     it('arms a point order and dispatches it to Mercado Pago', async () => {
       chargeOrderService.createCharge.mockResolvedValue(pendingOrder);
       mercadoPagoClient.createOrder.mockResolvedValue({
@@ -113,8 +154,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('admin', 40000001)}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'point',
           collectionPointId: 'terminal-1',
         })
@@ -124,8 +167,10 @@ describe('ChargeOrderController', () => {
       // 'server-terminal-9', and that is what must reach both the busy-point
       // check and Mercado Pago.
       expect(chargeOrderService.createCharge).toHaveBeenCalledWith({
-        subscriptionId: 7,
+        userId: 7,
+        planId: 1,
         months: 3,
+        amount: 15000,
         method: 'point',
         collectionPointId: CONFIGURED_TERMINAL,
         adminId: 40000001,
@@ -170,8 +215,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'qr',
           collectionPointId: 'caja-5',
         })
@@ -209,8 +256,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'point',
           collectionPointId: 'terminal-1',
         })
@@ -236,8 +285,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'point',
           // A body that supplies one anyway must NOT be able to stand in for
           // the missing server config.
@@ -259,8 +310,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('admin')}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'qr',
           collectionPointId: 'caja-from-the-browser',
         })
@@ -278,8 +331,10 @@ describe('ChargeOrderController', () => {
         .post('/api/v1/charge-order')
         .set('Authorization', `Bearer ${tokenFor('member')}`)
         .send({
-          subscriptionId: 7,
+          userId: 7,
+          planId: 1,
           months: 3,
+          amount: 15000,
           method: 'point',
           collectionPointId: 'terminal-1',
         })
