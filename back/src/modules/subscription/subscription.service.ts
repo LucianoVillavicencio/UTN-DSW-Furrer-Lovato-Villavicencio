@@ -147,7 +147,16 @@ export class subscriptionService {
    */
   async replaceActiveSubscription(
     manager: EntityManager,
-    input: { userId: number; planId: number; term: ResolvedTerm },
+    input: {
+      userId: number;
+      planId: number;
+      term: ResolvedTerm;
+      // What the member was actually charged, which is not term.price
+      // whenever the front desk gives a discount. estimatedMrr divides this
+      // by the term's months, so recording the list price here would report
+      // revenue the gym never billed.
+      soldPrice: number;
+    },
   ): Promise<Subscription> {
     const live = await manager.find(Subscription, {
       where: [
@@ -188,7 +197,7 @@ export class subscriptionService {
       userId: input.userId,
       planId: input.planId,
       planDurationId: input.term.planDurationId,
-      soldPrice: input.term.price,
+      soldPrice: input.soldPrice,
       ...subscriptionPeriod(input.term.numDays, from),
       state: SubscriptionState.ACTIVE,
       deleted: false,

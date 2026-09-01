@@ -59,6 +59,7 @@ export class PaymentService {
           userId: dto.userId,
           planId: dto.planId,
           term,
+          soldPrice: dto.amount,
         });
 
       const payment = manager.create(Payment, {

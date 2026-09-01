@@ -1,7 +1,7 @@
 import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
-import { In } from 'typeorm';
+import { EntityManager, In } from 'typeorm';
 import { subscriptionService } from './subscription.service';
 import { Subscription } from './entity/subscription.entity';
 import { SubscriptionState } from './enum/subscription-state.enum';
@@ -282,7 +282,7 @@ describe('subscriptionService', () => {
       );
     });
 
-    it('honors a multi-month term (90 days), not just the plan\'s 1-month numDays', async () => {
+    it("honors a multi-month term (90 days), not just the plan's 1-month numDays", async () => {
       const stale = {
         id: 7,
         userId: 30111222,
@@ -357,6 +357,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       expect(manager.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: 1, state: 'cancelada' }),
@@ -381,6 +382,7 @@ describe('subscriptionService', () => {
           userId: 5,
           planId: 2,
           term,
+          soldPrice: term.price,
         }),
       ).resolves.toBeDefined();
     });
@@ -391,6 +393,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       expect(manager.create).toHaveBeenCalledWith(
         Subscription,
@@ -410,10 +413,28 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       expect(manager.create).toHaveBeenCalledWith(
         Subscription,
         expect.objectContaining({ soldPrice: term.price }),
+      );
+    });
+
+    it('records the charged amount as soldPrice, not the list price', async () => {
+      await service.replaceActiveSubscription(
+        manager as unknown as EntityManager,
+        {
+          userId: 3,
+          planId: 12,
+          term: { months: 3, numDays: 90, price: 15000, planDurationId: 55 },
+          soldPrice: 14000,
+        },
+      );
+
+      expect(manager.create).toHaveBeenCalledWith(
+        Subscription,
+        expect.objectContaining({ soldPrice: 14000, planDurationId: 55 }),
       );
     });
 
@@ -426,6 +447,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       const created = manager.create.mock.calls[0][1];
       // created.startDate is already a 'YYYY-MM-DD' string (subscriptionPeriod's
@@ -446,6 +468,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       const created = manager.create.mock.calls[0][1];
       // Compared directly as a string — see the comment above.
@@ -460,6 +483,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       const created = manager.create.mock.calls[0][1];
       // Compared directly as a string — see the comment above.
@@ -472,6 +496,7 @@ describe('subscriptionService', () => {
         userId: 5,
         planId: 2,
         term,
+        soldPrice: term.price,
       });
       expect(subscriptionRepository.save).not.toHaveBeenCalled();
     });
