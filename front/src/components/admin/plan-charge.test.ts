@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   durationOptionsFor,
   findChargeFormError,
+  isOrderMethod,
   resolvedPriceFor,
 } from './plan-charge';
 import type { Plan, PlanDuration } from '../../types/plan';
@@ -65,5 +66,19 @@ describe('findChargeFormError', () => {
     expect(findChargeFormError({ planId: 2, months: 1, amountText: 'nada' })).toMatch(
       /monto/i,
     );
+  });
+});
+
+describe('isOrderMethod', () => {
+  it('routes point and qr through a charge order', () => {
+    expect(isOrderMethod('point')).toBe(true);
+    expect(isOrderMethod('qr')).toBe(true);
+  });
+
+  it('routes the cash family through plan checkout', () => {
+    expect(isOrderMethod('efectivo')).toBe(false);
+    expect(isOrderMethod('debito')).toBe(false);
+    expect(isOrderMethod('credito')).toBe(false);
+    expect(isOrderMethod('transferencia')).toBe(false);
   });
 });

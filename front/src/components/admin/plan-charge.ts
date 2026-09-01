@@ -13,6 +13,25 @@ export const PAY_METHODS = [
   { value: 'transferencia', label: 'Transferencia' },
 ] as const;
 
+// The six methods the counter offers. 'point' and 'qr' are dispatched to
+// Mercado Pago and settle asynchronously through the webhook; the rest are
+// recorded immediately by plan-checkout.
+export const CHARGE_METHODS = [
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'debito', label: 'Débito' },
+  { value: 'credito', label: 'Crédito' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'point', label: 'Tarjeta (Point)' },
+  { value: 'qr', label: 'QR' },
+] as const;
+
+export type ChargeMethod = (typeof CHARGE_METHODS)[number]['value'];
+
+// Also narrows: submit() below relies on this to type the charge-order
+// payload's `method` field without a cast.
+export const isOrderMethod = (method: string): method is 'point' | 'qr' =>
+  method === 'point' || method === 'qr';
+
 export interface ChargeFormInput {
   planId: number | '';
   months: ChargeMonths;
