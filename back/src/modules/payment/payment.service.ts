@@ -84,6 +84,63 @@ export class PaymentService {
     });
   }
 
+  // The webhook's counterpart to registerPlanPayment: same unit of work, but
+  // triggered by Mercado Pago confirming an approved payment rather than by
+  // the admin's own request. The subscription is created HERE and nowhere
+  // earlier, so an abandoned or declined charge leaves the member's
+  // membership untouched.
+  async confirmPlanCharge(input: {
+    mpPaymentId: string;
+    userId: number;
+    planId: number;
+    months: number;
+    amount: number;
+    payMethod: string;
+    registeredById?: number | null;
+  }): Promise<{ payment: Payment; subscription: Subscription }> {
+    // Idempotency first: Mercado Pago retries a notification up to eight
+    // times over four days, and a retry must not sell the plan twice.
+    const existing = await this.findByMpPaymentId(input.mpPaymentId);
+    if (existing) {
+      return { payment: existing, subscription: existing.subscription };
+    }
+
+    const plan = await this.planService.findPlan(input.planId);
+    if (!plan) {
+      throw new NotFoundException(`El plan con ID: ${input.planId} no existe.`);
+    }
+
+    const durations = await this.planDurationService.findByPlan(input.planId);
+    const term = resolveTerm(plan, input.months, durations);
+
+    return this.dataSource.transaction(async (manager) => {
+      const subscription =
+        await this.subscriptionService.replaceActiveSubscription(manager, {
+          userId: input.userId,
+          planId: input.planId,
+          term,
+          soldPrice: input.amount,
+        });
+
+      const payment = manager.create(Payment, {
+        subscriptionId: subscription.id,
+        mpPaymentId: input.mpPaymentId,
+        amount: input.amount,
+        payMethod: input.payMethod,
+        date: new Date(),
+        state: PaymentState.COMPLETED,
+        registeredById: input.registeredById ?? null,
+        termMonths: term.months,
+        // Same convention as createFromMercadoPago: the plan's monthly list
+        // price, not the discounted amount.
+        monthlyPriceAtPurchase: plan.price,
+        deleted: false,
+      });
+
+      return { payment: await manager.save(payment), subscription };
+    });
+  }
+
   // In-person payment recorded by an admin (see specs.md §3.5). Still the
   // only way a payment gets written until Mercado Pago exists.
   async createManualPayment(dto: ManualPaymentDto, adminId: number) {

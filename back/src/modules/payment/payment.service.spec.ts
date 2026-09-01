@@ -925,6 +925,123 @@ describe('PaymentService.registerPlanPayment', () => {
   });
 });
 
+describe('PaymentService.confirmPlanCharge', () => {
+  let service: PaymentService;
+  let paymentRepository: { findOne: jest.Mock };
+  let dataSource: { transaction: jest.Mock };
+  let manager: { create: jest.Mock; save: jest.Mock };
+  let subscriptions: { replaceActiveSubscription: jest.Mock };
+  let plans: { findPlan: jest.Mock };
+  let durations: { findByPlan: jest.Mock };
+  let users: { findUser: jest.Mock };
+
+  const input = {
+    mpPaymentId: 'mp-1',
+    userId: 3,
+    planId: 12,
+    months: 3,
+    amount: 14000,
+    payMethod: 'point',
+    registeredById: 30111222,
+  };
+
+  beforeEach(async () => {
+    paymentRepository = {
+      findOne: jest.fn().mockResolvedValue(null),
+    };
+    manager = {
+      create: jest.fn((entityClass: new () => object, data: object) =>
+        Object.assign(new entityClass(), data),
+      ),
+      save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+    };
+    dataSource = {
+      transaction: jest.fn((cb: (manager: unknown) => Promise<unknown>) =>
+        cb(manager),
+      ),
+    };
+    subscriptions = {
+      replaceActiveSubscription: jest.fn().mockResolvedValue({ id: 55 }),
+    };
+    plans = {
+      findPlan: jest.fn().mockResolvedValue({
+        id: 12,
+        name: 'Trimestral',
+        price: 5000,
+        numDays: 30,
+        deleted: false,
+      }),
+    };
+    durations = {
+      findByPlan: jest.fn().mockResolvedValue([
+        {
+          id: 20,
+          planId: 12,
+          months: 3,
+          numDays: 90,
+          price: 14000,
+          deleted: false,
+        },
+      ]),
+    };
+    users = { findUser: jest.fn() };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentService,
+        { provide: getRepositoryToken(Payment), useValue: paymentRepository },
+        { provide: getDataSourceToken(), useValue: dataSource },
+        { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: plans },
+        { provide: PlanDurationService, useValue: durations },
+        { provide: UserService, useValue: users },
+      ],
+    }).compile();
+
+    service = moduleRef.get(PaymentService);
+  });
+
+  it('creates the subscription and the payment in one transaction', async () => {
+    const result = await service.confirmPlanCharge(input);
+
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({ userId: 3, planId: 12, soldPrice: 14000 }),
+    );
+    expect(manager.create).toHaveBeenCalledWith(
+      Payment,
+      expect.objectContaining({
+        mpPaymentId: 'mp-1',
+        termMonths: 3,
+        amount: 14000,
+        payMethod: 'point',
+      }),
+    );
+    expect(result.subscription).toBeDefined();
+    expect(result.payment).toBeDefined();
+  });
+
+  it('is idempotent on mpPaymentId', async () => {
+    paymentRepository.findOne.mockResolvedValue({
+      id: 99,
+      mpPaymentId: 'mp-1',
+    });
+
+    const result = await service.confirmPlanCharge(input);
+
+    expect(result.payment.id).toBe(99);
+    expect(subscriptions.replaceActiveSubscription).not.toHaveBeenCalled();
+  });
+
+  it('rejects a plan that does not exist', async () => {
+    plans.findPlan.mockResolvedValue(null);
+
+    await expect(service.confirmPlanCharge(input)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});
+
 describe('PaymentService.createFailedPayment', () => {
   let service: PaymentService;
   let repository: { create: jest.Mock; save: jest.Mock };
