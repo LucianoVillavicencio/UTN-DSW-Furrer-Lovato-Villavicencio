@@ -71,11 +71,17 @@ export class ChargeOrderService {
     }
 
     // A deliberately frozen membership must not be sold to at the counter.
+    // findByUser orders { id: 'DESC' }, so live[0] — not "any paused row" —
+    // is the member's current subscription: a renewal sold in cash after a
+    // pause opens a fresh row and leaves the old PAUSED one sitting there,
+    // non-deleted, forever, and that stale row must not block this member's
+    // real, current, unpaused membership.
     // `state` is a plain string column, so the enum member is widened to its
     // value before comparing — same pattern as PaymentService.
     const pausedState: string = SubscriptionState.PAUSED;
     const live = await this.subscriptionService.findByUser(userId);
-    if (live.some((s) => !s.deleted && s.state === pausedState)) {
+    const [current] = live;
+    if (current && !current.deleted && current.state === pausedState) {
       throw new ConflictException('No se puede cobrar una membresía pausada.');
     }
 

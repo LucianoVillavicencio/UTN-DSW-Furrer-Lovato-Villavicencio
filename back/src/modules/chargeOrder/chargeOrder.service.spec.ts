@@ -147,6 +147,21 @@ describe('ChargeOrderService.createCharge', () => {
     );
   });
 
+  // findByUser orders { id: 'DESC' }, so a stale PAUSED row that isn't the
+  // member's current subscription must not block a charge. Without this, a
+  // member who paused and was later re-sold a plan for cash (registerPlanPayment
+  // has no paused guard) would find every future Point/QR charge permanently
+  // refused by the old, already-superseded PAUSED row.
+  it('allows a charge when only an older, superseded subscription is paused', async () => {
+    await buildService();
+    subscriptions.findByUser.mockResolvedValue([
+      { id: 10, userId: 3, state: SubscriptionState.ACTIVE, deleted: false },
+      { id: 5, userId: 3, state: SubscriptionState.PAUSED, deleted: false },
+    ]);
+
+    await expect(service.createCharge(params)).resolves.toBeDefined();
+  });
+
   it('rejects a plan that does not exist', async () => {
     await buildService();
     plans.findPlan.mockResolvedValue(null);
