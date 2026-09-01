@@ -21,12 +21,26 @@ export class ChargeOrder {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: Number, nullable: false })
-  subscriptionId!: number;
+  // Null until the charge is confirmed: the subscription this order produces
+  // does not exist while the order is still pending, and never exists at all
+  // if the charge is abandoned, expires or is declined.
+  @Column({ type: Number, nullable: true })
+  subscriptionId!: number | null;
 
-  @ManyToOne(() => Subscription, { eager: true, nullable: false })
+  @ManyToOne(() => Subscription, { eager: true, nullable: true })
   @JoinColumn({ name: 'subscriptionId' })
-  subscription!: Subscription;
+  subscription!: Subscription | null;
+
+  // What is being bought. Recorded on the order because the webhook needs it
+  // to build the subscription once the money lands.
+  @Column({ type: Number, nullable: false })
+  userId!: number;
+
+  @Column({ type: Number, nullable: false })
+  planId!: number;
+
+  @Column({ type: Number, nullable: false })
+  termMonths!: number;
 
   // Null means the plan's own 1-month price — same convention as
   // Subscription.planDurationId.

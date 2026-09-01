@@ -19,15 +19,12 @@ export const ORDER_EXPIRATION_MS = 5 * 60 * 1000;
  * - Must not carry personally identifying information (no names, DNIs, emails)
  * - Must be unique per order
  *
- * Keying the reference on the subscription id (not the member) keeps PII out of
- * a third party's system entirely.
- *
- * @param subscriptionId - The subscription ID (number)
- * @param random - Random string component for uniqueness (string)
- * @returns The formatted external reference string
+ * Keyed on the member id rather than the subscription id: an order is now
+ * armed before any subscription exists. A numeric user id is no more
+ * identifying to a third party than a subscription id was.
  */
-export function buildExternalReference(subscriptionId: number, random: string): string {
-  return `flg-sub-${subscriptionId}-${random}`;
+export function buildExternalReference(userId: number, random: string): string {
+  return `flg-user-${userId}-${random}`;
 }
 
 /**

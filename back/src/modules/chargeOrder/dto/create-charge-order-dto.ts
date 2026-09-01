@@ -1,5 +1,7 @@
 import {
   IsEnum,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsPositive,
@@ -11,17 +13,24 @@ import { ChargeOrderMethod } from '../enum/chargeOrder-method.enum';
 // it comes from the JWT via @ActiveUser(), same rule as ManualPaymentDto's
 // note on not accepting a user id directly.
 export class CreateChargeOrderDto {
-  @IsNumber()
+  @IsInt()
   @IsPositive()
-  @IsNotEmpty()
-  subscriptionId!: number;
+  userId!: number;
 
-  // How many months to charge for — 1 for the plan's own price, or a
-  // months value with a matching PlanDuration (see resolveTerm).
+  @IsInt()
+  @IsPositive()
+  planId!: number;
+
+  // MONTHS, never a day count — the backend resolves numDays itself through
+  // resolveTerm, so a forged value cannot buy free access.
+  @IsInt()
+  @IsIn([1, 3, 6, 12])
+  months!: number;
+
+  // Admin-editable on purpose: the front desk gives discounts.
   @IsNumber()
   @IsPositive()
-  @IsNotEmpty()
-  months!: number;
+  amount!: number;
 
   @IsEnum(ChargeOrderMethod)
   method!: ChargeOrderMethod;
