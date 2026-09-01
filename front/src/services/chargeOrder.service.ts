@@ -6,8 +6,10 @@ import api from './api';
 // pure polling/label logic that consumes these responses.
 
 export interface CreateChargeOrderPayload {
-  subscriptionId: number;
+  userId: number;
+  planId: number;
   months: number;
+  amount: number;
   method: 'point' | 'qr';
   collectionPointId: string;
 }
