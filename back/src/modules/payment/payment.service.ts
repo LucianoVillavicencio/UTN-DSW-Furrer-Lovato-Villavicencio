@@ -113,32 +113,50 @@ export class PaymentService {
     const durations = await this.planDurationService.findByPlan(input.planId);
     const term = resolveTerm(plan, input.months, durations);
 
-    return this.dataSource.transaction(async (manager) => {
-      const subscription =
-        await this.subscriptionService.replaceActiveSubscription(manager, {
-          userId: input.userId,
-          planId: input.planId,
-          term,
-          soldPrice: input.amount,
+    const { payment, subscription } = await this.dataSource.transaction(
+      async (manager) => {
+        const subscription =
+          await this.subscriptionService.replaceActiveSubscription(manager, {
+            userId: input.userId,
+            planId: input.planId,
+            term,
+            soldPrice: input.amount,
+          });
+
+        const payment = manager.create(Payment, {
+          subscriptionId: subscription.id,
+          mpPaymentId: input.mpPaymentId,
+          amount: input.amount,
+          payMethod: input.payMethod,
+          date: new Date(),
+          state: PaymentState.COMPLETED,
+          registeredById: input.registeredById ?? null,
+          termMonths: term.months,
+          // Same convention as createFromMercadoPago: the plan's monthly list
+          // price, not the discounted amount.
+          monthlyPriceAtPurchase: plan.price,
+          deleted: false,
         });
 
-      const payment = manager.create(Payment, {
-        subscriptionId: subscription.id,
-        mpPaymentId: input.mpPaymentId,
-        amount: input.amount,
-        payMethod: input.payMethod,
-        date: new Date(),
-        state: PaymentState.COMPLETED,
-        registeredById: input.registeredById ?? null,
-        termMonths: term.months,
-        // Same convention as createFromMercadoPago: the plan's monthly list
-        // price, not the discounted amount.
-        monthlyPriceAtPurchase: plan.price,
-        deleted: false,
-      });
+        return { payment: await manager.save(payment), subscription };
+      },
+    );
 
-      return { payment: await manager.save(payment), subscription };
-    });
+    // replaceActiveSubscription returns manager.save(created) — a plain
+    // save(), which TypeORM never runs eager relations for (those only load
+    // on find/findOne). Subscription.user/plan are eager:true, so without
+    // this re-fetch the caller (WebhookService, for the receipt email) gets
+    // a subscription with user/plan undefined. Outside the transaction: the
+    // write already committed, so this read needs no lock.
+    const hydratedSubscription =
+      await this.subscriptionService.findSubscription(subscription.id);
+    if (!hydratedSubscription) {
+      throw new NotFoundException(
+        `La suscripción con ID: ${subscription.id} no existe.`,
+      );
+    }
+
+    return { payment, subscription: hydratedSubscription };
   }
 
   // In-person payment recorded by an admin (see specs.md §3.5). Still the

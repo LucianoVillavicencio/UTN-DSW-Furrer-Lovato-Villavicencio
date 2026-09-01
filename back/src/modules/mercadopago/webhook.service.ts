@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MercadoPagoClient, MpPaymentResult } from './mercadopago.client';
 import { PaymentService } from '../payment/payment.service';
 import { Payment } from '../payment/entity/payment.entity';
-import { subscriptionService } from '../subscription/subscription.service';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { MailService } from '../../common/mail/mail.service';
 
@@ -78,7 +77,6 @@ export class WebhookService {
     private readonly client: MercadoPagoClient,
     @Inject(ORDER_RESOLVER) private readonly orderResolver: OrderResolver,
     private readonly paymentService: PaymentService,
-    private readonly subscriptionService: subscriptionService,
     private readonly mailService: MailService,
   ) {}
 

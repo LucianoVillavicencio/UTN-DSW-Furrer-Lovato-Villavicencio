@@ -12,7 +12,6 @@ describe('WebhookService.handleNotification', () => {
     findByMpPaymentId: jest.Mock;
     confirmPlanCharge: jest.Mock;
   };
-  let subscriptionService: Record<string, never>;
   let mailService: { sendPaymentReceipt: jest.Mock };
   let service: WebhookService;
 
@@ -43,7 +42,6 @@ describe('WebhookService.handleNotification', () => {
       client as never,
       orderResolver,
       paymentService as never,
-      subscriptionService as never,
       mailService as never,
     );
   };
@@ -64,10 +62,6 @@ describe('WebhookService.handleNotification', () => {
       findByMpPaymentId: jest.fn().mockResolvedValue(null),
       confirmPlanCharge: jest.fn().mockResolvedValue(confirmedCharge),
     };
-    // No longer read by handleNotification — confirmPlanCharge now returns
-    // the subscription directly — kept only to satisfy the constructor's
-    // positional signature.
-    subscriptionService = {};
     mailService = {
       sendPaymentReceipt: jest.fn().mockResolvedValue(undefined),
     };

@@ -930,10 +930,27 @@ describe('PaymentService.confirmPlanCharge', () => {
   let paymentRepository: { findOne: jest.Mock };
   let dataSource: { transaction: jest.Mock };
   let manager: { create: jest.Mock; save: jest.Mock };
-  let subscriptions: { replaceActiveSubscription: jest.Mock };
+  let subscriptions: {
+    replaceActiveSubscription: jest.Mock;
+    findSubscription: jest.Mock;
+  };
   let plans: { findPlan: jest.Mock };
   let durations: { findByPlan: jest.Mock };
   let users: { findUser: jest.Mock };
+
+  // What replaceActiveSubscription's manager.save(created) actually returns:
+  // no user/plan, since TypeORM never runs eager relations for a plain
+  // save(). Distinct object identity from the hydrated version below, so a
+  // test asserting on the RETURNED subscription proves the hydrated one —
+  // not this one — is what came back.
+  const unhydratedSubscription = { id: 55 };
+  // What findSubscription (a real findOne, which DOES run eager relations)
+  // returns: the same row, now carrying user/plan.
+  const hydratedSubscription = {
+    id: 55,
+    user: { email: 'a@b.c', name: 'Ana' },
+    plan: { name: 'Trimestral' },
+  };
 
   const input = {
     mpPaymentId: 'mp-1',
@@ -961,7 +978,10 @@ describe('PaymentService.confirmPlanCharge', () => {
       ),
     };
     subscriptions = {
-      replaceActiveSubscription: jest.fn().mockResolvedValue({ id: 55 }),
+      replaceActiveSubscription: jest
+        .fn()
+        .mockResolvedValue(unhydratedSubscription),
+      findSubscription: jest.fn().mockResolvedValue(hydratedSubscription),
     };
     plans = {
       findPlan: jest.fn().mockResolvedValue({
@@ -1019,6 +1039,40 @@ describe('PaymentService.confirmPlanCharge', () => {
     );
     expect(result.subscription).toBeDefined();
     expect(result.payment).toBeDefined();
+  });
+
+  // Regression guard for the receipt-email bug: replaceActiveSubscription
+  // returns a plain manager.save() result, which TypeORM never populates
+  // eager relations for. A test that merely mocks replaceActiveSubscription
+  // to already return a fully-hydrated { user, plan } object — as this file
+  // used to — would pass even if the real code never re-fetched anything, and
+  // that is exactly how this bug shipped. Asserting the DISTINCT hydrated
+  // object came back, and that findSubscription was actually called with the
+  // id the transaction produced, exercises the real hydration call rather
+  // than assuming it.
+  it("hydrates the returned subscription's user/plan after the transaction commits", async () => {
+    const result = await service.confirmPlanCharge(input);
+
+    expect(subscriptions.findSubscription).toHaveBeenCalledWith(55);
+    expect(result.subscription).toBe(hydratedSubscription);
+    expect(result.subscription).not.toBe(unhydratedSubscription);
+    expect(result.subscription.user).toEqual({
+      email: 'a@b.c',
+      name: 'Ana',
+    });
+    expect(result.subscription.plan).toEqual({ name: 'Trimestral' });
+  });
+
+  it('fails loudly if the just-created subscription cannot be re-fetched', async () => {
+    // Should never happen in practice — the row was written moments earlier
+    // in the same request — but a null here must not silently hand the
+    // caller an under-hydrated subscription; that is the exact bug this
+    // hydration step exists to close.
+    subscriptions.findSubscription.mockResolvedValue(null);
+
+    await expect(service.confirmPlanCharge(input)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('is idempotent on mpPaymentId', async () => {
