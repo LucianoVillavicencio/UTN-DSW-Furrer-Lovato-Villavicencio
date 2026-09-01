@@ -14,9 +14,10 @@ export const ORDER_RESOLVER = Symbol('ORDER_RESOLVER');
  * anything is written — never the webhook body's own amount.
  */
 export interface ResolvedOrder {
-  subscriptionId: number;
-  amount: number;
+  userId: number;
+  planId: number;
   termMonths: number;
+  amount: number;
   payMethod: string;
   // The admin who started the charge at the counter (ChargeOrder.createdById),
   // so the resulting Payment.registeredById reflects that someone DID record
@@ -45,8 +46,13 @@ export interface OrderResolver {
   resolve(externalReference: string): Promise<ResolvedOrder | null>;
   // Called once the webhook has durably recorded the payment for this order,
   // so the resolver can close its own bookkeeping (e.g. ChargeOrder ->
-  // 'pagada'). Must not be called before the Payment write succeeds.
-  close(externalReference: string, paymentId: number): Promise<void>;
+  // 'pagada') with the subscription that payment actually produced. Must not
+  // be called before the Payment write succeeds.
+  close(
+    externalReference: string,
+    paymentId: number,
+    subscriptionId: number,
+  ): Promise<void>;
 }
 
 /**

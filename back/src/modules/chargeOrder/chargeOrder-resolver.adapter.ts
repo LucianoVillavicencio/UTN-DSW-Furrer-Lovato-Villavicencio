@@ -37,15 +37,24 @@ export class ChargeOrderResolverAdapter implements OrderResolver {
     }
 
     return {
-      subscriptionId: chargeOrder.subscriptionId,
+      userId: chargeOrder.userId,
+      planId: chargeOrder.planId,
+      termMonths: chargeOrder.termMonths,
       amount: chargeOrder.amount,
-      termMonths: chargeOrder.planDuration?.months ?? 1,
       payMethod: chargeOrder.method,
       registeredById: chargeOrder.createdById,
     };
   }
 
-  async close(externalReference: string, paymentId: number): Promise<void> {
-    await this.chargeOrderService.closeAsPaid(externalReference, paymentId);
+  async close(
+    externalReference: string,
+    paymentId: number,
+    subscriptionId: number,
+  ): Promise<void> {
+    await this.chargeOrderService.closeAsPaid(
+      externalReference,
+      paymentId,
+      subscriptionId,
+    );
   }
 }

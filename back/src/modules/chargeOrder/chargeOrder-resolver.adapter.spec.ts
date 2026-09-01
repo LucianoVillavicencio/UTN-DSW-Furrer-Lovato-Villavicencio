@@ -2,7 +2,7 @@ import { ChargeOrderResolverAdapter } from './chargeOrder-resolver.adapter';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
 
 describe('ChargeOrderResolverAdapter.resolve', () => {
-  let chargeOrderService: {
+  let chargeOrders: {
     findByExternalReference: jest.Mock;
     closeAsPaid: jest.Mock;
   };
@@ -10,40 +10,48 @@ describe('ChargeOrderResolverAdapter.resolve', () => {
 
   const pendingOrder = {
     id: 1,
-    subscriptionId: 7,
-    planDurationId: 55,
-    planDuration: { id: 55, months: 3 },
-    method: 'qr' as const,
-    externalReference: 'flg-sub-7-abcd1234',
-    amount: 15000,
+    userId: 3,
+    planId: 12,
+    termMonths: 3,
+    method: 'point' as const,
+    externalReference: 'flg-user-3-a1b2c3d4',
+    amount: 14000,
     status: ChargeOrderStatus.PENDING,
     createdById: 30111222,
   };
 
   beforeEach(() => {
-    chargeOrderService = {
+    chargeOrders = {
       findByExternalReference: jest.fn(),
       closeAsPaid: jest.fn().mockResolvedValue(undefined),
     };
-    adapter = new ChargeOrderResolverAdapter(chargeOrderService as never);
+    adapter = new ChargeOrderResolverAdapter(chargeOrders as never);
   });
 
-  it('maps a pendiente order to a ResolvedOrder', async () => {
-    chargeOrderService.findByExternalReference.mockResolvedValue(pendingOrder);
-
-    const result = await adapter.resolve('flg-sub-7-abcd1234');
-
-    expect(result).toEqual({
-      subscriptionId: 7,
-      amount: 15000,
+  it('resolves the purchase intent recorded on the order', async () => {
+    chargeOrders.findByExternalReference.mockResolvedValue({
+      id: 1,
+      userId: 3,
+      planId: 12,
       termMonths: 3,
-      payMethod: 'qr',
+      amount: 14000,
+      method: 'point',
+      createdById: 30111222,
+      status: ChargeOrderStatus.PENDING,
+    });
+
+    await expect(adapter.resolve('flg-user-3-a1b2c3d4')).resolves.toEqual({
+      userId: 3,
+      planId: 12,
+      termMonths: 3,
+      amount: 14000,
+      payMethod: 'point',
       registeredById: 30111222,
     });
   });
 
   it('returns null when no order matches the external reference', async () => {
-    chargeOrderService.findByExternalReference.mockResolvedValue(null);
+    chargeOrders.findByExternalReference.mockResolvedValue(null);
 
     const result = await adapter.resolve('unknown-ref');
 
@@ -58,12 +66,12 @@ describe('ChargeOrderResolverAdapter.resolve', () => {
   ])(
     'returns null for a %s order instead of re-resolving it',
     async (status) => {
-      chargeOrderService.findByExternalReference.mockResolvedValue({
+      chargeOrders.findByExternalReference.mockResolvedValue({
         ...pendingOrder,
         status,
       });
 
-      const result = await adapter.resolve('flg-sub-7-abcd1234');
+      const result = await adapter.resolve('flg-user-3-a1b2c3d4');
 
       expect(result).toBeNull();
     },
@@ -71,18 +79,27 @@ describe('ChargeOrderResolverAdapter.resolve', () => {
 });
 
 describe('ChargeOrderResolverAdapter.close', () => {
-  it('delegates to chargeOrderService.closeAsPaid', async () => {
-    const chargeOrderService = {
+  let chargeOrders: {
+    findByExternalReference: jest.Mock;
+    closeAsPaid: jest.Mock;
+  };
+  let adapter: ChargeOrderResolverAdapter;
+
+  beforeEach(() => {
+    chargeOrders = {
       findByExternalReference: jest.fn(),
       closeAsPaid: jest.fn().mockResolvedValue(undefined),
     };
-    const adapter = new ChargeOrderResolverAdapter(chargeOrderService as never);
+    adapter = new ChargeOrderResolverAdapter(chargeOrders as never);
+  });
 
-    await adapter.close('flg-sub-7-abcd1234', 42);
+  it('passes the resulting subscription to closeAsPaid', async () => {
+    await adapter.close('flg-user-3-a1b2c3d4', 77, 88);
 
-    expect(chargeOrderService.closeAsPaid).toHaveBeenCalledWith(
-      'flg-sub-7-abcd1234',
-      42,
+    expect(chargeOrders.closeAsPaid).toHaveBeenCalledWith(
+      'flg-user-3-a1b2c3d4',
+      77,
+      88,
     );
   });
 });

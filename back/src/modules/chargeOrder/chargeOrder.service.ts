@@ -195,7 +195,11 @@ export class ChargeOrderService {
 
   // Closes an order once the webhook (Task 16+) confirms Mercado Pago
   // approved the payment.
-  async closeAsPaid(externalReference: string, paymentId: number) {
+  async closeAsPaid(
+    externalReference: string,
+    paymentId: number,
+    subscriptionId: number,
+  ) {
     const order = await this.findByExternalReference(externalReference);
     if (!order) {
       throw new NotFoundException(
@@ -204,6 +208,9 @@ export class ChargeOrderService {
     }
     order.status = ChargeOrderStatus.PAID;
     order.paymentId = paymentId;
+    // Filled in only now: this is the subscription the confirmed payment
+    // actually produced.
+    order.subscriptionId = subscriptionId;
     order.updatedAt = new Date();
     return this.chargeOrderRepository.save(order);
   }
