@@ -1,7 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MercadoPagoClient, MpPaymentResult } from './mercadopago.client';
 import { PaymentService } from '../payment/payment.service';
+import { Payment } from '../payment/entity/payment.entity';
 import { subscriptionService } from '../subscription/subscription.service';
+import { Subscription } from '../subscription/entity/subscription.entity';
 import { MailService } from '../../common/mail/mail.service';
 
 /** DI token for the injected {@link OrderResolver} — see the interface below. */
@@ -159,6 +161,7 @@ export class WebhookService {
             await this.orderResolver.close(
               payment.externalReference,
               existing.id,
+              existing.subscriptionId,
             );
           } catch (err) {
             // Swallowed on purpose: the Payment is already durably recorded,
@@ -190,17 +193,10 @@ export class WebhookService {
       return;
     }
 
-    // The order snapshot's amount, not the webhook body's — refuses a
-    // payment that was somehow approved for a different amount than what the
-    // order was created for, instead of crediting whatever MP says was paid.
-    //
-    // Both sides are coerced with Number() rather than compared directly:
-    // resolved.amount traces back to a MySQL DECIMAL column, which the mysql2
-    // driver hands back as a STRING unless the column opts into
-    // decimalTransformer (ChargeOrder.amount does). This costs nothing while
-    // that transformer is in place, and stops a future decimal column that
-    // forgets it from silently turning every approved payment into a
-    // "mismatch" that is logged and thrown away.
+    // The order snapshot's amount, never the notification body's — refuses a
+    // payment approved for a different amount than the order was armed for.
+    // Both sides go through Number() because a MySQL DECIMAL arrives as a
+    // string unless the column opts into decimalTransformer.
     if (Number(payment.transactionAmount) !== Number(resolved.amount)) {
       this.logger.warn(
         `Payment ${payment.id} amount ${String(payment.transactionAmount)} does not match order snapshot ${resolved.amount} for external reference ${payment.externalReference}.`,
@@ -208,36 +204,35 @@ export class WebhookService {
       return;
     }
 
-    const createdPayment = await this.paymentService.createFromMercadoPago({
-      mpPaymentId: payment.id,
-      subscriptionId: resolved.subscriptionId,
-      amount: resolved.amount,
-      termMonths: resolved.termMonths,
-      payMethod: resolved.payMethod,
-      registeredById: resolved.registeredById ?? null,
-    });
+    let confirmed: { payment: Payment; subscription: Subscription };
+    try {
+      confirmed = await this.paymentService.confirmPlanCharge({
+        mpPaymentId: payment.id,
+        userId: resolved.userId,
+        planId: resolved.planId,
+        months: resolved.termMonths,
+        amount: resolved.amount,
+        payMethod: resolved.payMethod,
+        registeredById: resolved.registeredById ?? null,
+      });
+    } catch (err) {
+      // Rethrown, not swallowed: Mercado Pago has already taken the money, so
+      // a non-200 here earns a retry. Closing the order as an error instead
+      // would hide a payment with nothing recorded against it.
+      this.logger.error(
+        `Could not confirm charge for external reference ${payment.externalReference} (payment ${payment.id}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw err;
+    }
+    const { payment: createdPayment, subscription } = confirmed;
 
-    // Only after the Payment write has actually succeeded — closing the
-    // resolver's own bookkeeping (e.g. ChargeOrder -> 'pagada') before that
-    // would risk marking an order paid with no Payment row behind it.
+    // Only after the write succeeded — marking an order paid with no Payment
+    // behind it would be worse than a retried notification.
     await this.orderResolver.close(
       payment.externalReference,
       createdPayment.id,
+      subscription.id,
     );
-
-    // Re-fetched after the write (rather than resolved beforehand) so the
-    // receipt's endDate reflects the activation/renewal that
-    // createFromMercadoPago just performed, not the subscription's state
-    // before this payment.
-    const subscription = await this.subscriptionService.findSubscription(
-      resolved.subscriptionId,
-    );
-    if (!subscription) {
-      // Should be unreachable — createFromMercadoPago itself would have
-      // thrown NotFoundException for a subscription that doesn't exist — but
-      // a missing receipt is not worth crashing a webhook delivery over.
-      return;
-    }
 
     await this.mailService.sendPaymentReceipt({
       to: subscription.user.email,
