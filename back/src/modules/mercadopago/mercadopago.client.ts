@@ -406,6 +406,11 @@ export class MercadoPagoClient {
         config,
       };
 
+      // TEMP diagnostic — remove once the 400 from MP is root-caused. No
+      // secrets in here: the access token lives in sdkConfig/headers, never
+      // in this body.
+      console.warn('[diag] MP createOrder body:', JSON.stringify(body));
+
       const order = await orderClient.create({
         body,
         requestOptions: { idempotencyKey: request.idempotencyKey },
