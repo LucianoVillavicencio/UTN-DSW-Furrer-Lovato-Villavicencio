@@ -88,6 +88,11 @@ export class ChargeOrderController {
       adminId: admin.sub,
     });
 
+    // TEMP diagnostic — remove once the 502 from MP is root-caused.
+    this.logger.warn(
+      `[diag] order ${chargeOrder.id}: amount=${chargeOrder.amount} (${typeof chargeOrder.amount}) months=${dto.months} collectionPointId=${collectionPointId}`,
+    );
+
     // Deterministic and unique per order (external_reference already is),
     // so a retried request against the same order never double-arms it on
     // MP's side.
