@@ -3,13 +3,16 @@ import { Roles } from './role.decorator';
 import { AuthGuard } from '../guard/auth.guard';
 import { RolesGuard } from '../guard/roles.guard';
 import { CompleteProfileGuard } from '../guard/complete-profile.guard';
+import { PasswordChangeGuard } from '../guard/password-change.guard';
 import { Role } from '../../common/enum/role.enum';
 
 /**
  * Guards a route. With no arguments it only requires a valid JWT; with roles it
  * also requires one of them (ADMIN always passes — see RolesGuard). Also
  * requires a completed profile (dni and phone set) unless the route carries
- * @AllowIncompleteProfile() — see CompleteProfileGuard.
+ * @AllowIncompleteProfile() — see CompleteProfileGuard. Also requires the
+ * password to have been changed since it was generated at the front desk,
+ * unless the route carries @AllowTemporaryPassword() — see PasswordChangeGuard.
  *
  * CompleteProfileGuard is composed in here rather than registered as a global
  * APP_GUARD for two reasons: it keeps the gate deny-by-default (a route added
@@ -28,6 +31,6 @@ import { Role } from '../../common/enum/role.enum';
 export function Auth(...roles: Role[]) {
   return applyDecorators(
     Roles(...roles),
-    UseGuards(AuthGuard, RolesGuard, CompleteProfileGuard),
+    UseGuards(AuthGuard, RolesGuard, CompleteProfileGuard, PasswordChangeGuard),
   );
 }

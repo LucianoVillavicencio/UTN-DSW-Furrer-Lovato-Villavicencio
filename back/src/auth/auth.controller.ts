@@ -10,6 +10,7 @@ import type { UserActiveInterface } from '../common/interfaces/user-active.inter
 import { GoogleLoginDto } from './dto/google-login-dto';
 import { CompleteProfileDto } from './dto/complete-profile-dto';
 import { AllowIncompleteProfile } from './decorators/allow-incomplete-profile.decorator';
+import { AllowTemporaryPassword } from './decorators/allow-temporary-password.decorator';
 import {
   AUTH_THROTTLE,
   SKIP_ALL_THROTTLERS,
@@ -48,6 +49,7 @@ export class AuthController {
   @Get('profile')
   @Auth(Role.USER)
   @AllowIncompleteProfile()
+  @AllowTemporaryPassword()
   @SkipThrottle(SKIP_ALL_THROTTLERS)
   profile(@ActiveUser() user: UserActiveInterface) {
     return this.authService.profile(user);
