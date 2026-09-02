@@ -32,6 +32,13 @@ export const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
 ];
 
+// Guards against a stale MemberChargeForm submission resolving after the
+// admin has already advanced past 'cobro' (the skip button, or simply
+// finishing fast) — same race class the old nextStepAfterPlanAssigned
+// guarded against for the deleted plan step.
+export const nextStepAfterCharge = (current: WizardStep): WizardStep =>
+  current === 'cobro' ? 'clase' : current;
+
 // Same checks the API runs, so the admin sees the problem without a round trip.
 export const findNewMemberFormError = (form: NewMemberForm): string | null => {
   const dni = form.dni.trim();

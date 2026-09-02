@@ -4,6 +4,7 @@ import {
   WIZARD_STEPS,
   credentialsFor,
   findNewMemberFormError,
+  nextStepAfterCharge,
   toAdminCreateUserPayload,
   type NewMemberForm,
 } from './new-member-wizard';
@@ -101,6 +102,18 @@ describe('WIZARD_STEPS', () => {
 
   it('has no plan step: the charge creates the subscription', () => {
     expect(WIZARD_STEPS.map((s) => s.id)).not.toContain('plan');
+  });
+});
+
+describe('nextStepAfterCharge', () => {
+  it('advances from cobro to clase', () => {
+    expect(nextStepAfterCharge('cobro')).toBe('clase');
+  });
+
+  it('leaves any other step unchanged, so a stale callback cannot regress navigation', () => {
+    expect(nextStepAfterCharge('clase')).toBe('clase');
+    expect(nextStepAfterCharge('resumen')).toBe('resumen');
+    expect(nextStepAfterCharge('datos')).toBe('datos');
   });
 });
 

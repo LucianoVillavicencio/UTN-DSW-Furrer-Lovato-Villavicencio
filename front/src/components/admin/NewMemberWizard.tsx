@@ -11,6 +11,7 @@ import WizardSummaryStep from './WizardSummaryStep';
 import {
   EMPTY_NEW_MEMBER_FORM,
   findNewMemberFormError,
+  nextStepAfterCharge,
   toAdminCreateUserPayload,
   type NewMemberForm,
   type WizardStep,
@@ -77,7 +78,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
             {createdUser.dni}
           </p>
         )}
-        {generatedPassword && createdUser && (
+        {generatedPassword && createdUser && step !== 'resumen' && (
           <MemberCredentialsCard
             username={createdUser.email}
             password={generatedPassword}
@@ -113,7 +114,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
               selectedUser={createdUser}
               onCharged={(summary) => {
                 setChargeSummary(summary);
-                setStep('clase');
+                setStep(nextStepAfterCharge);
               }}
             />
             <div className="flex justify-end">
