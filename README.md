@@ -8,7 +8,7 @@ planes y pagos; socios reservan turnos, gestionan su suscripción y siguen su hi
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5%2F6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)](#roadmap-y-estado)
+[![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)](#índice)
 [![License](https://img.shields.io/badge/license-académico%20%2F%20sin%20licencia%20pública-lightgrey)](#licencia)
 
 Trabajo Práctico de la materia **Desarrollo de Software (UTN)**. No es un paquete publicado ni
@@ -27,7 +27,6 @@ tiene pipeline de CI — las badges de stack son informativas.
 - [Uso rápido](#uso-rápido)
 - [Configuración](#configuración)
 - [Scripts útiles](#scripts-útiles)
-- [Roadmap y estado](#roadmap-y-estado)
 - [Flujo de trabajo / Contribuciones](#flujo-de-trabajo--contribuciones)
 - [Soporte / Preguntas frecuentes](#soporte--preguntas-frecuentes)
 - [Documentación adicional](#documentación-adicional)
@@ -46,8 +45,10 @@ tiene pipeline de CI — las badges de stack son informativas.
 
 FLG Gym reemplaza la gestión manual (planillas, WhatsApp, cuadernos) de un gimnasio por una
 plataforma web con dos vistas: un **panel de administración** (clases, profesores, planes,
-socios, pagos presenciales) y un **panel de socio** (perfil, cambio de plan, historial de pagos).
-Nace como TP de la cátedra pero está pensado para poder correr en un gimnasio real chico/mediano.
+socios, cobros presenciales en efectivo/transferencia o con tarjeta vía Mercado Pago —terminal
+Point o QR—) y un **panel de socio** (perfil, cambio de plan, tarjeta guardada para renovación
+automática, historial de pagos). Nace como TP de la cátedra pero está pensado para poder correr
+en un gimnasio real chico/mediano.
 
 Funcionalidades principales:
 
@@ -61,9 +62,26 @@ Funcionalidades principales:
 - **Panel de administración**: ABM de clases, turnos, profesores, planes y tipos de clase, con
   borrado lógico y restauración.
 - **Gestión de socios**: búsqueda por DNI, email o nombre; edición de perfil, cambio de rol,
-  alta/baja y cancelación de suscripción desde el panel de administración.
-- **Pagos presenciales**: registro de pagos en efectivo/tarjeta contra la suscripción activa de
-  un socio, con historial visible tanto para el admin como para el propio socio.
+  alta/baja, pausa (con tope de días) y cancelación de suscripción desde el panel de
+  administración.
+- **Cobro unificado en mostrador**: el admin arma un cobro contra el plan/término elegido y lo
+  cobra en efectivo/transferencia (se registra directo) o con tarjeta a través de la terminal
+  Point o un QR fijo de Mercado Pago (se arma una orden que pasa a pendiente → pagada).
+- **Comprobantes impresos**: los pagos en efectivo/transferencia se imprimen como recibo en la
+  impresora integrada de la terminal Point, con log de cada intento para no reimprimir en un
+  reintento.
+- **Tarjeta guardada y renovación automática**: el socio puede guardar una tarjeta (tokenizada
+  por Mercado Pago) para que su suscripción se renueve sola; un cron nocturno cobra antes del
+  vencimiento, reintenta si falla y avisa por mail el resultado.
+- **Reembolsos**: reembolso prorrateado (según meses ya usados, sin el descuento original) por
+  Mercado Pago si el pago fue con tarjeta, o registrado manualmente si fue en efectivo.
+- **Vista financiera**: panel separado del rol de admin, protegido por una contraseña propia
+  (`OWNER_ANALYTICS_PASSWORD`), con ingresos en el tiempo, desglose por plan/método de pago y
+  MRR estimado.
+- **Formulario de contacto**: guarda el mensaje y notifica por email (Gmail) al staff del
+  gimnasio.
+- **Pagos presenciales**: historial de pagos visible tanto para el admin como para el propio
+  socio.
 
 ## Capturas
 Landing Page de FLG: [`assets/Landingpage.png`](assets/Landingpage.png).
@@ -94,8 +112,8 @@ assets/  Diagramas y recursos del proyecto
 ## Modelo de dominio
 
 Entidades principales: `Users`, `Plan`, `Trainer`, `TypeClass`, `Class`, `ClassSession`,
-`ClassRegistration`, `Subscription`, `Payment`, `Contact`. Todas soportan borrado lógico
-(`deleted`). Roles: `USER` (socio) y `ADMIN`.
+`ClassRegistration`, `Subscription`, `Payment`, `Contact`, `ChargeOrder`, `Receipt`, `Refund`,
+`SavedCard`. Todas soportan borrado lógico (`deleted`). Roles: `USER` (socio) y `ADMIN`.
 
 ### Clases semanales e inscripciones
 
@@ -187,6 +205,15 @@ cd front && npm run dev
 | `JWT_SECRET` | Secreto para firmar los JWT — generar uno propio (`openssl rand -base64 48`) | *(generado)* |
 | `JWT_EXPIRES_IN` | Expiración de los tokens | `1d` |
 | `FRONTEND_URL` | Origen permitido por CORS | `http://localhost:5173` |
+| `GMAIL_USER` | Cuenta de Gmail que envía las notificaciones del formulario de contacto | `tu-cuenta@gmail.com` |
+| `GMAIL_APP_PASSWORD` | App Password de esa cuenta (no la clave normal) | *(generada en Google)* |
+| `MP_ENABLED` | Debe ser exactamente `true` para activar cobros con Mercado Pago y el cron de renovación. En `false` el sistema sigue funcionando con efectivo, reembolsos en efectivo, pausas y planes multi-mes | `false` |
+| `MP_ACCESS_TOKEN` | Access token de la app de Mercado Pago | *(secreto, solo en `.env`)* |
+| `MP_PUBLIC_KEY` | Public key de Mercado Pago | *(no secreta)* |
+| `MP_WEBHOOK_SECRET` | Secreto para validar la firma de los webhooks de MP | *(secreto)* |
+| `MP_POINT_TERMINAL_ID` | Terminal Point en modo PDV, formato `TIPO__SERIAL` | *(según terminal)* |
+| `MP_QR_EXTERNAL_POS_ID` | `external_id` de la caja asociada al QR impreso | *(según caja)* |
+| `OWNER_ANALYTICS_PASSWORD` | Contraseña de la vista financiera del panel (Resumen → "Ver más"). Opcional: sin definir, esa vista responde 503 y el resto del panel funciona igual. No es un rol; se revalida en cada request y rotarla cierra la vista para todos | *(elegida)* |
 
 ### `front/.env`
 
@@ -194,6 +221,10 @@ cd front && npm run dev
 | :--- | :--- | :--- |
 | `VITE_GOOGLE_CLIENT_ID` | Debe coincidir con `GOOGLE_CLIENT_ID` del backend | `xxx.apps.googleusercontent.com` |
 | `VITE_API_URL` | URL base de la API | `http://localhost:3000/api/v1` |
+| `VITE_WHATSAPP_NUMBER` | WhatsApp de atención, solo dígitos en formato internacional sin `+` | `5493410000000` |
+| `VITE_MP_PUBLIC_KEY` | Public key de Mercado Pago para el Card Payment Brick (no es secreta) | *(no secreta)* |
+| `VITE_MP_POINT_TERMINAL_ID` | Debe coincidir con `MP_POINT_TERMINAL_ID` del backend | *(según terminal)* |
+| `VITE_MP_QR_EXTERNAL_POS_ID` | Debe coincidir con `MP_QR_EXTERNAL_POS_ID` del backend | *(según caja)* |
 
 Ninguno de estos valores reales debe commitearse — los `.env` están en `.gitignore`, solo se
 versionan los `.env.example`.
