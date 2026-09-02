@@ -10,6 +10,7 @@ export interface JwtPayload {
   email: string;
   role: Role;
   profileComplete: boolean;
+  mustChangePassword: boolean;
   iat: number;
   exp: number;
 }

@@ -1,10 +1,22 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 
-interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+type InputFieldSize = 'sm' | 'md';
+
+// A size prop rather than utility classes through className: the base class
+// string already sets py-2.5, and a competing py-3 has equal specificity, so
+// which one wins depends on the order Tailwind emits them — not on their order
+// in the attribute. The project has neither tailwind-merge nor clsx.
+const sizeStyles: Record<InputFieldSize, string> = {
+  sm: 'py-2.5 text-sm',
+  md: 'py-3 text-base',
+};
+
+interface InputFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label: string;
   icon?: ReactNode;
   rightElement?: ReactNode;
   error?: string | null;
+  size?: InputFieldSize;
 }
 
 const InputField = ({
@@ -15,6 +27,7 @@ const InputField = ({
   id,
   disabled,
   className = '',
+  size = 'sm',
   ...props
 }: InputFieldProps) => {
   const generatedId = useId();
@@ -38,11 +51,11 @@ const InputField = ({
           id={inputId}
           disabled={disabled}
           {...props}
-          className={`w-full rounded-xl border bg-surface py-2.5 ${
+          className={`w-full rounded-xl border bg-surface ${sizeStyles[size]} ${
             icon ? 'pl-10' : 'pl-4'
           } ${
             rightElement ? 'pr-10' : 'pr-4'
-          } text-sm text-text placeholder-text-muted/60 font-body transition-all duration-200 ${
+          } text-text placeholder-text-muted/60 font-body transition-all duration-200 ${
             error
               ? 'border-red-500/80 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
               : 'border-border hover:border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/40'

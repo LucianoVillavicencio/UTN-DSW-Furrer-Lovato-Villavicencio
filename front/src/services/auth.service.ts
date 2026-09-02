@@ -2,6 +2,7 @@ import type {
   RegisterUserData,
   AuthResponse,
   CompleteProfilePayload,
+  ChangePasswordPayload,
 } from '../types/user';
 import { AxiosError } from 'axios';
 import api from './api'; // tu instancia de axios con baseURL: .../api/v1
@@ -140,6 +141,27 @@ export const completeProfileApi = async (
   } catch (error: unknown) {
     throw new Error(
       getErrorMessage(error, 'No se pudieron guardar tus datos.'),
+      { cause: error },
+    );
+  }
+};
+
+// Returns a fresh token whose mustChangePassword claim is false — that is what
+// releases the gate, exactly as completeProfileApi does for the profile gate.
+export const changePassword = async (
+  payload: ChangePasswordPayload,
+): Promise<AuthResponse> => {
+  try {
+    const { data } = await api.post<AuthResponse>(
+      '/auth/change-password',
+      payload,
+    );
+
+    persistSession(data);
+    return data;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo cambiar la contraseña.'),
       { cause: error },
     );
   }

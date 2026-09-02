@@ -16,6 +16,7 @@ const member = (profileComplete: boolean): UserActiveInterface => ({
   email: 'socio@gmail.com',
   role: Role.USER,
   profileComplete,
+  mustChangePassword: false,
 });
 
 const guardWith = (allowIncomplete: boolean) => {

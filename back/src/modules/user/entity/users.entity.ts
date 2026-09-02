@@ -32,6 +32,13 @@ export class Users {
   @Column({ type: String, nullable: true, length: 255, select: false })
   password?: string | null;
 
+  // True only for a password this system generated at the front desk. The
+  // member clears it by changing the password; PasswordChangeGuard blocks
+  // everything else until they do. Never true for a password an admin typed
+  // with the member present — that one was chosen deliberately.
+  @Column({ type: Boolean, nullable: false, default: false })
+  mustChangePassword!: boolean;
+
   @Column({ type: 'enum', enum: Role, default: Role.USER })
   role!: Role;
 

@@ -11,6 +11,10 @@ export interface UserActiveInterface {
   // Derived from the row at sign-in time, never stored. CompleteProfileGuard
   // reads it; POST /auth/complete-profile mints a fresh token to flip it.
   profileComplete: boolean;
+  // True while the member is still on a password this system generated for
+  // them at the front desk. PasswordChangeGuard reads it; a successful
+  // password change mints a fresh token to flip it.
+  mustChangePassword: boolean;
 }
 
 // An Express request after AuthGuard has attached the verified JWT payload.

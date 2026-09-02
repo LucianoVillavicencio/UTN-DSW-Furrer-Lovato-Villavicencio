@@ -16,6 +16,10 @@ export interface AuthContextValue {
   // False for an account that has not yet supplied its dni and phone.
   // ProtectedRoute redirects on it; the API refuses such an account anyway.
   isProfileComplete: boolean;
+  // True until the member sets their own password — a temporary/front-desk
+  // password still works for login but ProtectedRoute redirects everywhere
+  // else until it is replaced.
+  mustChangePassword: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
   register: (data: RegisterUserData) => Promise<AuthResponse>;
   loginWithGoogle: (idToken: string) => Promise<AuthResponse>;

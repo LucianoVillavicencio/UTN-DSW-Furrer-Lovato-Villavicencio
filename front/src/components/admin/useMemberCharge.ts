@@ -18,8 +18,10 @@ import {
   findChargeFormError,
   isOrderMethod,
   resolvedPriceFor,
+  summarizeCharge,
   type ChargeMethod,
   type ChargeMonths,
+  type ChargeSummary,
 } from './plan-charge';
 import {
   POLL_INTERVAL_MS,
@@ -54,7 +56,7 @@ const QR_EXTERNAL_POS_ID = import.meta.env.VITE_MP_QR_EXTERNAL_POS_ID as
 // fixed by lifting state to the section, only by this guard.
 export const useMemberCharge = (
   selectedUser: User | null,
-  onCharged?: () => void | Promise<void>,
+  onCharged?: (summary: ChargeSummary) => void | Promise<void>,
 ) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [plansError, setPlansError] = useState<string | null>(null);
@@ -232,7 +234,13 @@ export const useMemberCharge = (
           // reaches 'pagada' — see the cash branch of submit() below, which
           // fires onCharged immediately instead.
           if (status.status === 'pagada') {
-            void onCharged?.();
+            // The form is disabled while an order is pendiente, so plan, months
+            // and amount still hold exactly what the order was created from.
+            if (plan) {
+              void onCharged?.(
+                summarizeCharge(plan, months, parsePriceInput(amountText), method),
+              );
+            }
           }
         }
       })
@@ -289,7 +297,6 @@ export const useMemberCharge = (
     }
 
     const amount = parsePriceInput(amountText);
-    const term = months === 1 ? '1 mes' : `${months} meses`;
 
     // Point and QR settle asynchronously: the order is armed here and the
     // subscription is only created once the webhook confirms it, so this
@@ -333,10 +340,11 @@ export const useMemberCharge = (
         amount,
         payMethod: method as PlanCheckoutPayload['payMethod'],
       });
+      const summary = summarizeCharge(plan!, months, amount, method);
       setSuccess(
-        `Cobro de $${formatPriceDisplay(amount)} registrado — ${plan?.name ?? 'plan'}, ${term}.`,
+        `Cobro de $${formatPriceDisplay(amount)} registrado — ${plan?.name ?? 'plan'}, ${summary.termLabel}.`,
       );
-      await onCharged?.();
+      await onCharged?.(summary);
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : 'No se pudo registrar el cobro.',

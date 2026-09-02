@@ -18,6 +18,7 @@ import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { Auth } from '../../auth/decorators/auth.decorator';
 import { AllowIncompleteProfile } from '../../auth/decorators/allow-incomplete-profile.decorator';
+import { AllowTemporaryPassword } from '../../auth/decorators/allow-temporary-password.decorator';
 import { ActiveUser } from '../../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../../common/interfaces/user-active.interface';
 import { Role } from '../../common/enum/role.enum';
@@ -58,6 +59,7 @@ export class UserController {
   @Patch('me')
   @Auth(Role.USER)
   @AllowIncompleteProfile()
+  @AllowTemporaryPassword()
   updateMyProfile(
     @ActiveUser() activeUser: UserActiveInterface,
     @Body() dto: UpdateProfileDto,

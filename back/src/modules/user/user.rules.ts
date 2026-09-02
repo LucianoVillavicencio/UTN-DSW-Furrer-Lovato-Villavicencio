@@ -1,3 +1,5 @@
+import { randomInt } from 'crypto';
+
 // A member created at the front desk may have no email at all, but
 // `users.email` is NOT NULL and is the login identifier. A deterministic
 // address derived from the DNI fills the column, is unique because `users.dni`
@@ -15,18 +17,6 @@ export const placeholderEmailFor = (dni: number): string =>
 export const isPlaceholderEmail = (email: string | null | undefined): boolean =>
   !!email && email.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`);
 
-// A password is only reachable through the login form, which asks for an
-// email, so one without the other would be dead data.
-export const findAdminCreateUserError = (input: {
-  email?: string;
-  password?: string;
-}): string | null => {
-  if (input.password?.trim() && !input.email?.trim()) {
-    return 'Para definir una contraseña el socio necesita un email.';
-  }
-  return null;
-};
-
 // Just enough of a user row to answer the question. Taking a structural type
 // rather than the Users entity keeps this file free of an entity import and
 // lets a DTO or a JWT-shaped object be checked with the same function.
@@ -41,3 +31,23 @@ export interface ProfileCompletenessSource {
 // the DTO's job.
 export const isProfileComplete = (user: ProfileCompletenessSource): boolean =>
   user.dni != null && !!user.phone?.trim();
+
+// The alphabets omit every glyph that is misread when a password is written
+// on a slip and typed back in later: i/l/1 and o/0. `randomInt` and not
+// Math.random — this is a credential, not a nonce.
+const PASSWORD_LETTERS = 'abcdefghjkmnpqrstuvwxyz';
+const PASSWORD_DIGITS = '23456789';
+
+const pickFrom = (alphabet: string): string =>
+  alphabet[randomInt(alphabet.length)];
+
+/**
+ * A password for a member created at the front desk who did not supply one.
+ * Four letters then four digits, which satisfies AdminCreateUserDto's
+ * @MinLength(8) and @Matches(letter + digit) by construction.
+ */
+export const generateMemberPassword = (): string =>
+  [
+    ...Array.from({ length: 4 }, () => pickFrom(PASSWORD_LETTERS)),
+    ...Array.from({ length: 4 }, () => pickFrom(PASSWORD_DIGITS)),
+  ].join('');

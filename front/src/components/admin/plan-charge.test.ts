@@ -4,6 +4,7 @@ import {
   findChargeFormError,
   isOrderMethod,
   resolvedPriceFor,
+  summarizeCharge,
 } from './plan-charge';
 import type { Plan, PlanDuration } from '../../types/plan';
 
@@ -80,5 +81,23 @@ describe('isOrderMethod', () => {
     expect(isOrderMethod('debito')).toBe(false);
     expect(isOrderMethod('credito')).toBe(false);
     expect(isOrderMethod('transferencia')).toBe(false);
+  });
+});
+
+describe('summarizeCharge', () => {
+  const plan = { id: 1, name: 'Full', price: 19995, maxClasses: 3 } as Plan;
+
+  it('describes the plan and the term for a one-month charge', () => {
+    expect(summarizeCharge(plan, 1, 19995, 'efectivo')).toEqual({
+      plan,
+      months: 1,
+      amount: 19995,
+      method: 'efectivo',
+      termLabel: '1 mes',
+    });
+  });
+
+  it('pluralizes a longer term', () => {
+    expect(summarizeCharge(plan, 3, 50000, 'point').termLabel).toBe('3 meses');
   });
 });
