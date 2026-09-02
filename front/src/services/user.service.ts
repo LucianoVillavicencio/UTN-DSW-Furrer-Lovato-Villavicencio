@@ -163,11 +163,18 @@ export interface AdminCreateUserPayload {
   password?: string;
 }
 
+// The plaintext of a password the backend generated because the admin left the
+// field blank. Present on this response and nowhere else in the API — it is
+// never stored in the clear, so it cannot be fetched again.
+export type AdminCreatedUser = Omit<User, 'password'> & {
+  generatedPassword?: string;
+};
+
 export const adminCreateUser = async (
   payload: AdminCreateUserPayload,
-): Promise<Omit<User, 'password'>> => {
+): Promise<AdminCreatedUser> => {
   try {
-    const { data } = await api.post<Omit<User, 'password'>>('/user', payload);
+    const { data } = await api.post<AdminCreatedUser>('/user', payload);
     return data;
   } catch (error) {
     throw new Error(getErrorMessage(error, 'No se pudo crear el socio.'), {

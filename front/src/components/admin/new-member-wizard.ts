@@ -52,9 +52,6 @@ export const findNewMemberFormError = (form: NewMemberForm): string | null => {
   }
 
   const password = form.password.trim();
-  if (password && !email) {
-    return 'Para definir una contraseña el socio necesita un email.';
-  }
   if (password && password.length < 8) {
     return 'La contraseña tiene que tener al menos 8 caracteres.';
   }

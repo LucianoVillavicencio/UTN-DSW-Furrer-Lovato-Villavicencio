@@ -48,7 +48,7 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
         onChange={(e) => onChange({ ...form, email: e.target.value })}
       />
       <p className="mt-1 text-xs text-text-muted">
-        Sin email, el socio no puede iniciar sesión en la web.
+        Si lo dejás vacío, el socio inicia sesión con su DNI.
       </p>
     </div>
     <div>
@@ -62,7 +62,8 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
         onChange={(e) => onChange({ ...form, password: e.target.value })}
       />
       <p className="mt-1 text-xs text-text-muted">
-        Requiere email. Si la dejás vacía, el socio no inicia sesión.
+        Si la dejás vacía, el sistema genera una y te la muestra para
+        anotarla.
       </p>
     </div>
   </div>

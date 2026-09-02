@@ -49,12 +49,6 @@ describe('findNewMemberFormError', () => {
     );
   });
 
-  it('rejects a password with no email', () => {
-    expect(findNewMemberFormError({ ...valid, password: 'unaClave1' })).toBe(
-      'Para definir una contraseña el socio necesita un email.',
-    );
-  });
-
   it('rejects a password under eight characters', () => {
     expect(
       findNewMemberFormError({
