@@ -13,7 +13,7 @@ import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { CompleteProfileDto } from '../../auth/dto/complete-profile-dto';
-import { findAdminCreateUserError, placeholderEmailFor } from './user.rules';
+import { placeholderEmailFor } from './user.rules';
 import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 
@@ -37,11 +37,6 @@ export class UserService {
   // It returns through findUser() so the password column, which is select:false
   // on the entity but present on the object just saved, never leaves the API.
   async adminCreateUser(dto: AdminCreateUserDto) {
-    const ruleError = findAdminCreateUserError(dto);
-    if (ruleError) {
-      throw new BadRequestException(ruleError);
-    }
-
     const existingByDni = await this.findUserByDni(dto.dni);
     if (existingByDni) {
       throw new ConflictException(

@@ -17,18 +17,6 @@ export const placeholderEmailFor = (dni: number): string =>
 export const isPlaceholderEmail = (email: string | null | undefined): boolean =>
   !!email && email.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`);
 
-// A password is only reachable through the login form, which asks for an
-// email, so one without the other would be dead data.
-export const findAdminCreateUserError = (input: {
-  email?: string;
-  password?: string;
-}): string | null => {
-  if (input.password?.trim() && !input.email?.trim()) {
-    return 'Para definir una contraseña el socio necesita un email.';
-  }
-  return null;
-};
-
 // Just enough of a user row to answer the question. Taking a structural type
 // rather than the Users entity keeps this file free of an entity import and
 // lets a DTO or a JWT-shaped object be checked with the same function.

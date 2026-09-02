@@ -1,5 +1,4 @@
 import {
-  findAdminCreateUserError,
   generateMemberPassword,
   isPlaceholderEmail,
   isProfileComplete,
@@ -29,37 +28,6 @@ describe('isPlaceholderEmail', () => {
     expect(isPlaceholderEmail(null)).toBe(false);
     expect(isPlaceholderEmail(undefined)).toBe(false);
     expect(isPlaceholderEmail('')).toBe(false);
-  });
-});
-
-describe('findAdminCreateUserError', () => {
-  it('accepts a member with neither email nor password', () => {
-    expect(findAdminCreateUserError({})).toBeNull();
-  });
-
-  it('accepts a member with an email and no password', () => {
-    expect(findAdminCreateUserError({ email: 'rosa@gmail.com' })).toBeNull();
-  });
-
-  it('accepts a member with both', () => {
-    expect(
-      findAdminCreateUserError({
-        email: 'rosa@gmail.com',
-        password: 'unaClave1',
-      }),
-    ).toBeNull();
-  });
-
-  it('rejects a password with no email, because there is nothing to log in with', () => {
-    expect(findAdminCreateUserError({ password: 'unaClave1' })).toBe(
-      'Para definir una contraseña el socio necesita un email.',
-    );
-  });
-
-  it('treats a blank email as no email', () => {
-    expect(
-      findAdminCreateUserError({ email: '   ', password: 'unaClave1' }),
-    ).toBe('Para definir una contraseña el socio necesita un email.');
   });
 });
 
