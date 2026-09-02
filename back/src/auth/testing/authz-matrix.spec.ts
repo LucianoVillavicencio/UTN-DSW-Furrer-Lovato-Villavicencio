@@ -17,6 +17,8 @@ import { ContactController } from '../../modules/contact/contact.controller';
 import { ContactService } from '../../modules/contact/contact.service';
 import { PaymentController } from '../../modules/payment/payment.controller';
 import { PaymentService } from '../../modules/payment/payment.service';
+import { ReceiptPrintService } from '../../modules/receipt/receipt-print.service';
+import { MercadoPagoConfig } from '../../modules/mercadopago/mercadopago.config';
 import { PlanController } from '../../modules/plan/plan.controller';
 import { PlanService } from '../../modules/plan/plan.service';
 import { PlanDurationService } from '../../modules/plan/plan-duration.service';
@@ -464,6 +466,22 @@ describe('PaymentController authorization', () => {
           deletePayment: jest.fn().mockResolvedValue({}),
           restorePayment: jest.fn().mockResolvedValue({}),
         },
+      },
+      {
+        provide: ReceiptPrintService,
+        useValue: {
+          printPaymentReceipt: jest.fn().mockResolvedValue({ status: 'sent' }),
+        },
+      },
+      {
+        // Disabled: this matrix asserts reachability, not printing — leaving
+        // Mercado Pago "off" keeps createManualPayment/registerPlanPayment's
+        // {} responses from tripping the printable-method branch.
+        provide: MercadoPagoConfig,
+        useValue: {
+          enabled: false,
+          pointTerminalId: undefined,
+        } as unknown as Record<string, jest.Mock>,
       },
     ]);
   });
