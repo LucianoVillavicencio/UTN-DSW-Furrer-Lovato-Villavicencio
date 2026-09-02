@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Users } from './entity/users.entity';
+import * as bcrypt from 'bcrypt';
 
 describe('UserService', () => {
   it('no longer exposes updateUsers', () => {
@@ -190,5 +191,49 @@ describe('adminCreateUser', () => {
     const [row] = create.mock.calls[0] as [Record<string, unknown>];
     expect(row.mustChangePassword).toBe(false);
     expect(result).not.toHaveProperty('generatedPassword');
+  });
+});
+
+describe('updateProfile and the temporary-password flag', () => {
+  const buildService = (stored: Partial<Users>) => {
+    const save = jest.fn((row: Users) => Promise.resolve(row));
+    const findOne = jest.fn().mockResolvedValue(stored);
+    const repository = { save, findOne, create: jest.fn() };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service, save };
+  };
+
+  it('clears the flag when the member sets their own password', async () => {
+    const hashed = await bcrypt.hash('krtm4829', 10);
+    const { service, save } = buildService({
+      id: 7,
+      email: '40123456@presencial.flg',
+      password: hashed,
+      mustChangePassword: true,
+    });
+
+    await service.updateProfile(7, {
+      currentPassword: 'krtm4829',
+      newPassword: 'rosa1234',
+    });
+
+    const [row] = save.mock.calls[0] as [Users];
+    expect(row.mustChangePassword).toBe(false);
+  });
+
+  it('leaves the flag alone when no password is being changed', async () => {
+    const { service, save } = buildService({
+      id: 7,
+      email: '40123456@presencial.flg',
+      password: 'irrelevant-hash',
+      mustChangePassword: true,
+    });
+
+    await service.updateProfile(7, { phone: '341555' });
+
+    const [row] = save.mock.calls[0] as [Users];
+    expect(row.mustChangePassword).toBe(true);
   });
 });

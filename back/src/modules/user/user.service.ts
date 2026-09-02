@@ -236,6 +236,9 @@ export class UserService {
         throw new UnauthorizedException('La contraseña actual es incorrecta.');
       }
       user.password = await bcrypt.hash(dto.newPassword, 10);
+      // Whichever screen the change came from, the member is no longer on the
+      // password the front desk generated for them.
+      user.mustChangePassword = false;
     }
 
     const saved = await this.usersRepository.save(user);
