@@ -9,6 +9,7 @@ import { ActiveUser } from '../common/decorators/active-user.decorator';
 import type { UserActiveInterface } from '../common/interfaces/user-active.interface';
 import { GoogleLoginDto } from './dto/google-login-dto';
 import { CompleteProfileDto } from './dto/complete-profile-dto';
+import { ChangePasswordDto } from './dto/change-password-dto';
 import { AllowIncompleteProfile } from './decorators/allow-incomplete-profile.decorator';
 import { AllowTemporaryPassword } from './decorators/allow-temporary-password.decorator';
 import {
@@ -60,11 +61,27 @@ export class AuthController {
   @Post('complete-profile')
   @Auth(Role.USER)
   @AllowIncompleteProfile()
+  @AllowTemporaryPassword()
   @SkipThrottle(SKIP_ALL_THROTTLERS)
   completeProfile(
     @ActiveUser() user: UserActiveInterface,
     @Body() dto: CompleteProfileDto,
   ) {
     return this.authService.completeProfile(user.sub, dto);
+  }
+
+  // Reachable by an account still on its generated password: the way out of
+  // the gate cannot be behind the gate.
+  @Post('change-password')
+  @Auth(Role.USER)
+  @AllowIncompleteProfile()
+  @AllowTemporaryPassword()
+  @Throttle({ auth: { limit: AUTH_THROTTLE.limit, ttl: AUTH_THROTTLE.ttl } })
+  @SkipThrottle(SKIP_CONTACT_THROTTLE)
+  changePassword(
+    @ActiveUser() user: UserActiveInterface,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.sub, dto);
   }
 }

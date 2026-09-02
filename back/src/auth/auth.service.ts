@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { GoogleLoginDto } from './dto/google-login-dto';
 import { CompleteProfileDto } from './dto/complete-profile-dto';
+import { ChangePasswordDto } from './dto/change-password-dto';
 import { isProfileComplete } from '../modules/user/user.rules';
 
 @Injectable()
@@ -138,6 +139,27 @@ export class AuthService {
   // stays locked out until the old one expires.
   async completeProfile(id: number, dto: CompleteProfileDto) {
     const user = await this.userService.completeProfile(id, dto);
+    return this.buildAuthResponse(user);
+  }
+
+  /**
+   * The way out of PasswordChangeGuard. UserService.updateProfile does the
+   * bcrypt verification and the rehash — this adds the part it cannot: a
+   * freshly signed token. Without one the member keeps a claim that says
+   * mustChangePassword: true and stays gated until the old token expires.
+   */
+  async changePassword(id: number, dto: ChangePasswordDto) {
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'La contraseña nueva tiene que ser distinta de la actual.',
+      );
+    }
+
+    const user = await this.userService.updateProfile(id, {
+      currentPassword: dto.currentPassword,
+      newPassword: dto.newPassword,
+    });
+
     return this.buildAuthResponse(user);
   }
 
