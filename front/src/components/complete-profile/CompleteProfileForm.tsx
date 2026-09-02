@@ -82,7 +82,12 @@ const CompleteProfileForm = () => {
         const data = await changePasswordRequest(
           toChangePasswordPayload(passwordForm),
         );
-        updateUser({ mustChangePassword: data.user.mustChangePassword });
+        // changePasswordRequest already wrote the full fresh user to
+        // localStorage via persistSession. Syncing React state with that same
+        // full object (rather than a single-field patch built from the stale
+        // pre-request state) keeps the two in agreement instead of relying on
+        // them coincidentally matching.
+        updateUser(data.user);
       }
 
       navigate('/dashboard', { replace: true });
