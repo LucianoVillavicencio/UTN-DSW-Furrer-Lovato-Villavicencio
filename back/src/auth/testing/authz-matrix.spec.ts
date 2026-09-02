@@ -867,6 +867,19 @@ describe('UserController authorization', () => {
           restoreUsers: jest.fn().mockResolvedValue({}),
         },
       },
+      {
+        provide: ReceiptPrintService,
+        useValue: {
+          printCredentialsSlip: jest.fn().mockResolvedValue({ status: 'sent' }),
+        },
+      },
+      {
+        provide: MercadoPagoConfig,
+        useValue: {
+          enabled: false,
+          pointTerminalId: undefined,
+        } as unknown as Record<string, jest.Mock>,
+      },
     ]);
   });
 
@@ -876,6 +889,10 @@ describe('UserController authorization', () => {
 
   it('restricts POST /user to an admin', async () => {
     await adminOnly(app, 'post', '/api/v1/user');
+  });
+
+  it('restricts POST /user/:id/credentials-slip to an admin', async () => {
+    await adminOnly(app, 'post', `/api/v1/user/${OWN_ID}/credentials-slip`);
   });
 
   it('opens PATCH /user/me to any logged-in caller', async () => {
@@ -989,6 +1006,14 @@ describe('completion gate', () => {
         provide: UserService,
         useValue: { updateProfile: jest.fn().mockResolvedValue({}) },
       },
+      { provide: ReceiptPrintService, useValue: {} },
+      {
+        provide: MercadoPagoConfig,
+        useValue: { enabled: false, pointTerminalId: undefined } as unknown as Record<
+          string,
+          jest.Mock
+        >,
+      },
     ]);
 
     await call(app, 'patch', '/api/v1/user/me', incompleteToken(), {
@@ -1027,6 +1052,14 @@ describe('completion gate', () => {
       {
         provide: UserService,
         useValue: { findAll: jest.fn().mockResolvedValue([]) },
+      },
+      { provide: ReceiptPrintService, useValue: {} },
+      {
+        provide: MercadoPagoConfig,
+        useValue: { enabled: false, pointTerminalId: undefined } as unknown as Record<
+          string,
+          jest.Mock
+        >,
       },
     ]);
 
