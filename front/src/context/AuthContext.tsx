@@ -96,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // field existed has no such property, and that must read as incomplete
     // rather than silently pass the gate.
     isProfileComplete: session.user?.profileComplete === true,
+    mustChangePassword: session.user?.mustChangePassword === true,
     login,
     register,
     loginWithGoogle,

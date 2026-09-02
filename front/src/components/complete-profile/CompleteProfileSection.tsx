@@ -9,15 +9,25 @@ import { useAuth } from '../../context/useAuth';
 // redirects *to* here, so wrapping this one would loop. It does its own two
 // checks instead, and the second is what makes the screen appear exactly once.
 const CompleteProfileSection = () => {
-  const { isAuthenticated, isProfileComplete } = useAuth();
+  const { isAuthenticated, isProfileComplete, mustChangePassword } =
+    useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (isProfileComplete) {
+  // Shows while either gate is closed — ProtectedRoute redirects here for
+  // both reasons, and CompleteProfileForm renders whichever section(s) apply.
+  if (isProfileComplete && !mustChangePassword) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  // A member with a complete profile who only needs to replace a temporary
+  // password gets copy that matches what's actually being asked of them.
+  const heading = isProfileComplete ? 'Elegí tu contraseña' : 'Completá tu perfil';
+  const subtitle = isProfileComplete
+    ? 'Estás usando la contraseña que te dieron en el gimnasio. Elegí una nueva para continuar.'
+    : 'Necesitamos tu DNI y tu teléfono para terminar de registrarte. Solo te lo vamos a pedir esta vez.';
 
   return (
     <Container className="py-6 sm:py-12">
@@ -28,11 +38,10 @@ const CompleteProfileSection = () => {
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h1 className="mt-4 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text">
-              Completá tu perfil
+              {heading}
             </h1>
             <p className="mt-2 font-body text-sm text-text-muted">
-              Necesitamos tu DNI y tu teléfono para terminar de registrarte.
-              Solo te lo vamos a pedir esta vez.
+              {subtitle}
             </p>
           </div>
 
