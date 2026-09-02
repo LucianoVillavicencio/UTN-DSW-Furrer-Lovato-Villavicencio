@@ -1,4 +1,3 @@
-import MemberCredentialsCard from './MemberCredentialsCard';
 import { formatPriceDisplay } from '../../lib/currency';
 import type { ChargeSummary } from './plan-charge';
 import type { User } from '../../types/user';
@@ -6,17 +5,12 @@ import type { User } from '../../types/user';
 interface WizardSummaryStepProps {
   user: User;
   summary: ChargeSummary | null;
-  generatedPassword?: string;
 }
 
 // Everything the admin needs on the slip, in one place, at the end of the
-// flow. The credentials block is absent when the admin typed a password —
-// there is nothing to reveal in that case.
-const WizardSummaryStep = ({
-  user,
-  summary,
-  generatedPassword,
-}: WizardSummaryStepProps) => (
+// flow. The credentials card lives in WizardContextRail now, not here — it
+// stays visible from step 1 onward instead of being shown only at the end.
+const WizardSummaryStep = ({ user, summary }: WizardSummaryStepProps) => (
   <div className="space-y-4">
     <div className="rounded-xl border border-border bg-surface p-4">
       <p className="font-semibold text-text">
@@ -24,13 +18,6 @@ const WizardSummaryStep = ({
       </p>
       <p className="text-xs text-text-muted">DNI {user.dni ?? 'Sin DNI'}</p>
     </div>
-
-    {generatedPassword && (
-      <MemberCredentialsCard
-        username={user.email}
-        password={generatedPassword}
-      />
-    )}
 
     {summary ? (
       <dl className="space-y-2 rounded-xl border border-border bg-surface p-4 text-sm">

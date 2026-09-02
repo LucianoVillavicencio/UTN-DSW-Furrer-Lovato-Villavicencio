@@ -3,10 +3,10 @@ import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import Modal from './Modal';
 import WizardStepper from './WizardStepper';
+import WizardContextRail from './WizardContextRail';
 import MemberDataStep from './MemberDataStep';
 import MemberClassStep from './MemberClassStep';
 import MemberChargeForm from './MemberChargeForm';
-import MemberCredentialsCard from './MemberCredentialsCard';
 import WizardSummaryStep from './WizardSummaryStep';
 import {
   EMPTY_NEW_MEMBER_FORM,
@@ -68,56 +68,91 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
   };
 
   return (
-    <Modal title="Nuevo socio" onClose={onClose}>
-      <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-        <WizardStepper current={step} />
+    <Modal title="Nuevo socio" onClose={onClose} size="xl">
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="min-w-0">
+          <WizardStepper current={step} />
 
-        {createdUser && (
-          <p className="text-xs text-text-muted">
-            Socio creado: {createdUser.name} {createdUser.surname} · DNI{' '}
-            {createdUser.dni}
-          </p>
-        )}
-        {generatedPassword && createdUser && step !== 'resumen' && (
-          <MemberCredentialsCard
-            username={createdUser.email}
-            password={generatedPassword}
-          />
-        )}
+          <div className="max-h-[75vh] space-y-4 overflow-y-auto pr-1 lg:max-h-[80vh]">
+            {step === 'datos' && (
+              <>
+                <p className="text-sm text-text-muted">
+                  Solo el DNI, el nombre y el apellido son obligatorios.
+                </p>
+                <form
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleCreate();
+                    }
+                  }}
+                >
+                  <MemberDataStep
+                    form={form}
+                    onChange={setForm}
+                    disabled={isSaving}
+                  />
+                </form>
+                <FormAlert type="error" message={error} />
+              </>
+            )}
 
-        {step === 'datos' && (
-          <>
-            <MemberDataStep
-              form={form}
-              onChange={setForm}
-              disabled={isSaving}
-            />
-            <FormAlert type="error" message={error} />
-            <div className="flex justify-end gap-2">
+            {step === 'cobro' && createdUser && (
+              <>
+                <p className="text-sm text-text-muted">
+                  Elegí el plan y la duración. La suscripción se crea con el
+                  pago.
+                </p>
+                <MemberChargeForm
+                  selectedUser={createdUser}
+                  onCharged={(summary) => {
+                    setChargeSummary(summary);
+                    setStep(nextStepAfterCharge);
+                  }}
+                />
+              </>
+            )}
+
+            {step === 'clase' && createdUser && (
+              <>
+                <p className="text-sm text-text-muted">
+                  Opcional. Podés asignarla más tarde desde Usuarios.
+                </p>
+                <MemberClassStep
+                  userId={createdUser.id}
+                  maxClasses={chargeSummary?.plan.maxClasses ?? null}
+                  onAssigned={() => setStep('resumen')}
+                />
+              </>
+            )}
+
+            {step === 'resumen' && createdUser && (
+              <>
+                <p className="text-sm text-text-muted">
+                  Anotá los datos de acceso antes de cerrar.
+                </p>
+                <WizardSummaryStep user={createdUser} summary={chargeSummary} />
+              </>
+            )}
+          </div>
+
+          {step === 'datos' && (
+            <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" size="sm" onClick={onClose}>
                 Cancelar
               </Button>
               <Button
-                size="sm"
+                size="md"
                 onClick={() => void handleCreate()}
                 disabled={isSaving}
               >
                 {isSaving ? 'Creando...' : 'Crear socio'}
               </Button>
             </div>
-          </>
-        )}
+          )}
 
-        {step === 'cobro' && createdUser && (
-          <>
-            <MemberChargeForm
-              selectedUser={createdUser}
-              onCharged={(summary) => {
-                setChargeSummary(summary);
-                setStep(nextStepAfterCharge);
-              }}
-            />
-            <div className="flex justify-end">
+          {step === 'cobro' && createdUser && (
+            <div className="mt-4 flex justify-end gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -126,17 +161,10 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
                 Omitir cobro
               </Button>
             </div>
-          </>
-        )}
+          )}
 
-        {step === 'clase' && createdUser && (
-          <>
-            <MemberClassStep
-              userId={createdUser.id}
-              maxClasses={chargeSummary?.plan.maxClasses ?? null}
-              onAssigned={() => setStep('resumen')}
-            />
-            <div className="flex justify-end">
+          {step === 'clase' && createdUser && (
+            <div className="mt-4 flex justify-end gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -145,23 +173,22 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
                 Omitir clase
               </Button>
             </div>
-          </>
-        )}
+          )}
 
-        {step === 'resumen' && createdUser && (
-          <>
-            <WizardSummaryStep
-              user={createdUser}
-              summary={chargeSummary}
-              generatedPassword={generatedPassword}
-            />
-            <div className="flex justify-end">
-              <Button size="sm" onClick={onClose}>
+          {step === 'resumen' && createdUser && (
+            <div className="mt-4 flex justify-end gap-2">
+              <Button size="md" onClick={onClose}>
                 Finalizar
               </Button>
             </div>
-          </>
-        )}
+          )}
+        </div>
+
+        <WizardContextRail
+          user={createdUser}
+          summary={chargeSummary}
+          generatedPassword={generatedPassword}
+        />
       </div>
     </Modal>
   );
