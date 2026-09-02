@@ -13,7 +13,7 @@ import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { CompleteProfileDto } from '../../auth/dto/complete-profile-dto';
-import { placeholderEmailFor } from './user.rules';
+import { placeholderEmailFor, generateMemberPassword } from './user.rules';
 import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 
@@ -54,19 +54,28 @@ export class UserService {
       }
     }
 
+    // A blank password used to be saved as null, which made the account
+    // unreachable forever: login rejects a null password and this project has
+    // no reset flow. The generated one is returned in the clear exactly once,
+    // on this response, so the admin can write it on the member's slip.
+    const typedPassword = dto.password?.trim();
+    const generatedPassword = typedPassword ? null : generateMemberPassword();
+
     const newUser = this.usersRepository.create({
       dni: dto.dni,
       name: dto.name,
       surname: dto.surname,
       phone: dto.phone?.trim() || null,
       email: typedEmail || placeholderEmailFor(dto.dni),
-      password: dto.password ? await bcrypt.hash(dto.password, 10) : null,
+      password: await bcrypt.hash(typedPassword ?? generatedPassword!, 10),
+      mustChangePassword: generatedPassword !== null,
       role: Role.USER,
       deleted: false,
     });
     const saved = await this.usersRepository.save(newUser);
 
-    return this.findUser(saved.id);
+    const user = await this.findUser(saved.id);
+    return generatedPassword ? { ...user, generatedPassword } : user;
   }
 
   async findUser(id: number) {

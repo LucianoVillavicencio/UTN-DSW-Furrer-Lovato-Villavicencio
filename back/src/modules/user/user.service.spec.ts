@@ -137,3 +137,58 @@ describe('adminUpdateUser', () => {
     expect(saved.phone).toBe('341 555-1234');
   });
 });
+
+describe('adminCreateUser', () => {
+  const buildService = () => {
+    const create = jest.fn((row: Partial<Users>) => row as Users);
+    const save = jest.fn((row: Users) => Promise.resolve({ ...row, id: 7 }));
+    // findOne answers the duplicate checks (null = no duplicate) and then the
+    // closing findUser(saved.id).
+    const findOne = jest
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({ id: 7, dni: 40123456 });
+    const repository = { create, save, findOne };
+    const service = new UserService(
+      repository as unknown as ConstructorParameters<typeof UserService>[0],
+    );
+    return { service, create };
+  };
+
+  const walkIn = { dni: 40123456, name: 'Rosa', surname: 'Gomez' };
+
+  it('generates a password when none was typed and marks it temporary', async () => {
+    const { service, create } = buildService();
+
+    const result = await service.adminCreateUser(walkIn);
+
+    const [row] = create.mock.calls[0] as [Record<string, unknown>];
+    expect(row.mustChangePassword).toBe(true);
+    expect(row.password).toEqual(expect.any(String));
+    expect(result.generatedPassword).toMatch(/^[a-z]{4}\d{4}$/);
+  });
+
+  it('never stores the generated password in the clear', async () => {
+    const { service, create } = buildService();
+
+    const result = await service.adminCreateUser(walkIn);
+
+    const [row] = create.mock.calls[0] as [Record<string, unknown>];
+    expect(row.password).not.toBe(result.generatedPassword);
+  });
+
+  it('leaves a typed password alone and does not mark it temporary', async () => {
+    const { service, create } = buildService();
+
+    const result = await service.adminCreateUser({
+      ...walkIn,
+      email: 'rosa@gmail.com',
+      password: 'rosa1234',
+    });
+
+    const [row] = create.mock.calls[0] as [Record<string, unknown>];
+    expect(row.mustChangePassword).toBe(false);
+    expect(result).not.toHaveProperty('generatedPassword');
+  });
+});
