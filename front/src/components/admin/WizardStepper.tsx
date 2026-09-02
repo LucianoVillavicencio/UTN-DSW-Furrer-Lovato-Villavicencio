@@ -11,7 +11,7 @@ const WizardStepper = ({ current }: WizardStepperProps) => {
   return (
     <div className="mb-4">
       <div className="sm:hidden">
-        <p className="text-sm font-semibold text-text">
+        <p className="text-sm font-semibold text-text" aria-current="step">
           Paso {currentIndex + 1} de {WIZARD_STEPS.length} ·{' '}
           {WIZARD_STEPS[currentIndex]?.label}
         </p>
