@@ -4,7 +4,7 @@ import type { DurationMonths, Plan, PlanDuration } from '../../types/plan';
 export type ChargeMonths = 1 | DurationMonths;
 
 // Moved here from RegisterPaymentForm, which is again the only owner now that
-// the counter's own form offers all six of CHARGE_METHODS below. The backend's
+// the counter's own form offers CHARGE_METHODS below. The backend's
 // @IsIn on PlanCheckoutDto.payMethod is the list this must match.
 export const PAY_METHODS = [
   { value: 'efectivo', label: 'Efectivo' },
@@ -13,13 +13,12 @@ export const PAY_METHODS = [
   { value: 'transferencia', label: 'Transferencia' },
 ] as const;
 
-// The six methods the counter offers. 'point' and 'qr' are dispatched to
+// The four methods the counter offers. Débito/crédito aren't listed here —
+// card charges go through 'point' instead. 'point' and 'qr' are dispatched to
 // Mercado Pago and settle asynchronously through the webhook; the rest are
 // recorded immediately by plan-checkout.
 export const CHARGE_METHODS = [
   { value: 'efectivo', label: 'Efectivo' },
-  { value: 'debito', label: 'Débito' },
-  { value: 'credito', label: 'Crédito' },
   { value: 'transferencia', label: 'Transferencia' },
   { value: 'point', label: 'Tarjeta (Point)' },
   { value: 'qr', label: 'QR' },

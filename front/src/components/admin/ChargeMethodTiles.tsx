@@ -1,13 +1,10 @@
 import { Banknote, CreditCard, QrCode } from 'lucide-react';
 import { CHARGE_METHODS, type ChargeMethod } from './plan-charge';
 
-// The cash family (efectivo/debito/credito/transferencia) shares Banknote;
-// Point and QR each get their own icon — see ChargePanel.tsx's old METHODS
-// array, which this table replaces now that CHARGE_METHODS has six entries.
+// Efectivo/transferencia share Banknote; Point and QR each get their own
+// icon — see ChargePanel.tsx's old METHODS array, which this table replaces.
 const ICONS: Record<ChargeMethod, typeof Banknote> = {
   efectivo: Banknote,
-  debito: Banknote,
-  credito: Banknote,
   transferencia: Banknote,
   point: CreditCard,
   qr: QrCode,
