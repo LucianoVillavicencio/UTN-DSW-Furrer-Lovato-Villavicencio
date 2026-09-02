@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_NEW_MEMBER_FORM,
+  WIZARD_STEPS,
+  credentialsFor,
   findNewMemberFormError,
-  nextStepAfterPlanAssigned,
+  nextStepAfterCharge,
   toAdminCreateUserPayload,
   type NewMemberForm,
 } from './new-member-wizard';
@@ -49,12 +51,6 @@ describe('findNewMemberFormError', () => {
     );
   });
 
-  it('rejects a password with no email', () => {
-    expect(findNewMemberFormError({ ...valid, password: 'unaClave1' })).toBe(
-      'Para definir una contraseña el socio necesita un email.',
-    );
-  });
-
   it('rejects a password under eight characters', () => {
     expect(
       findNewMemberFormError({
@@ -94,14 +90,53 @@ describe('toAdminCreateUserPayload', () => {
   });
 });
 
-describe('nextStepAfterPlanAssigned', () => {
-  it('advances from plan to clase', () => {
-    expect(nextStepAfterPlanAssigned('plan')).toBe('clase');
+describe('WIZARD_STEPS', () => {
+  it('charges before assigning a class, because the class step needs the plan', () => {
+    expect(WIZARD_STEPS.map((s) => s.id)).toEqual([
+      'datos',
+      'cobro',
+      'clase',
+      'resumen',
+    ]);
+  });
+
+  it('has no plan step: the charge creates the subscription', () => {
+    expect(WIZARD_STEPS.map((s) => s.id)).not.toContain('plan');
+  });
+});
+
+describe('nextStepAfterCharge', () => {
+  it('advances from cobro to clase', () => {
+    expect(nextStepAfterCharge('cobro')).toBe('clase');
   });
 
   it('leaves any other step unchanged, so a stale callback cannot regress navigation', () => {
-    expect(nextStepAfterPlanAssigned('cobro')).toBe('cobro');
-    expect(nextStepAfterPlanAssigned('clase')).toBe('clase');
-    expect(nextStepAfterPlanAssigned('datos')).toBe('datos');
+    expect(nextStepAfterCharge('clase')).toBe('clase');
+    expect(nextStepAfterCharge('resumen')).toBe('resumen');
+    expect(nextStepAfterCharge('datos')).toBe('datos');
+  });
+});
+
+describe('credentialsFor', () => {
+  const created = {
+    id: 7,
+    dni: 40123456,
+    email: '40123456@presencial.flg',
+    name: 'Rosa',
+    surname: 'Gomez',
+    phone: '',
+    role: 'user' as const,
+  };
+
+  it('reveals the generated password against the login email', () => {
+    expect(credentialsFor({ ...created, generatedPassword: 'krtm4829' })).toEqual(
+      { username: '40123456@presencial.flg', password: 'krtm4829' },
+    );
+  });
+
+  // The admin typed the password with the member standing there; there is
+  // nothing for the wizard to reveal, and no slip to print.
+  it('reveals nothing when the admin chose the password', () => {
+    expect(credentialsFor(created)).toBeNull();
   });
 });

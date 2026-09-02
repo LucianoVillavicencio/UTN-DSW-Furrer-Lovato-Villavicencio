@@ -38,7 +38,7 @@ export interface AuthResponse {
   user: Pick<
     User,
     'id' | 'dni' | 'email' | 'name' | 'surname' | 'phone' | 'role'
-  > & { profileComplete: boolean };
+  > & { profileComplete: boolean; mustChangePassword: boolean };
 }
 
 // The signed-in profile AuthContext exposes, as carried in the JWT.
@@ -60,4 +60,10 @@ export interface UpdateProfilePayload {
 export interface CompleteProfilePayload {
   dni?: number;
   phone: string;
+}
+
+// Body of POST /auth/change-password.
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
 }

@@ -31,6 +31,29 @@ export type ChargeMethod = (typeof CHARGE_METHODS)[number]['value'];
 export const isOrderMethod = (method: string): method is 'point' | 'qr' =>
   method === 'point' || method === 'qr';
 
+// What the wizard needs from a completed charge: the plan and term it created
+// the subscription on, so the resumen step can show them without refetching.
+export interface ChargeSummary {
+  plan: Plan;
+  months: ChargeMonths;
+  amount: number;
+  method: ChargeMethod;
+  termLabel: string;
+}
+
+export const summarizeCharge = (
+  plan: Plan,
+  months: ChargeMonths,
+  amount: number,
+  method: ChargeMethod,
+): ChargeSummary => ({
+  plan,
+  months,
+  amount,
+  method,
+  termLabel: months === 1 ? '1 mes' : `${months} meses`,
+});
+
 export interface ChargeFormInput {
   planId: number | '';
   months: ChargeMonths;

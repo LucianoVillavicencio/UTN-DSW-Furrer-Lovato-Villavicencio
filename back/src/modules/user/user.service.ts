@@ -13,7 +13,7 @@ import { UpdateProfileDto } from './dto/update-profile-dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user-dto';
 import { AdminCreateUserDto } from './dto/admin-create-user-dto';
 import { CompleteProfileDto } from '../../auth/dto/complete-profile-dto';
-import { findAdminCreateUserError, placeholderEmailFor } from './user.rules';
+import { placeholderEmailFor, generateMemberPassword } from './user.rules';
 import { Role } from '../../common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 
@@ -37,11 +37,6 @@ export class UserService {
   // It returns through findUser() so the password column, which is select:false
   // on the entity but present on the object just saved, never leaves the API.
   async adminCreateUser(dto: AdminCreateUserDto) {
-    const ruleError = findAdminCreateUserError(dto);
-    if (ruleError) {
-      throw new BadRequestException(ruleError);
-    }
-
     const existingByDni = await this.findUserByDni(dto.dni);
     if (existingByDni) {
       throw new ConflictException(
@@ -59,19 +54,28 @@ export class UserService {
       }
     }
 
+    // A blank password used to be saved as null, which made the account
+    // unreachable forever: login rejects a null password and this project has
+    // no reset flow. The generated one is returned in the clear exactly once,
+    // on this response, so the admin can write it on the member's slip.
+    const typedPassword = dto.password?.trim();
+    const generatedPassword = typedPassword ? null : generateMemberPassword();
+
     const newUser = this.usersRepository.create({
       dni: dto.dni,
       name: dto.name,
       surname: dto.surname,
       phone: dto.phone?.trim() || null,
       email: typedEmail || placeholderEmailFor(dto.dni),
-      password: dto.password ? await bcrypt.hash(dto.password, 10) : null,
+      password: await bcrypt.hash(typedPassword ?? generatedPassword!, 10),
+      mustChangePassword: generatedPassword !== null,
       role: Role.USER,
       deleted: false,
     });
     const saved = await this.usersRepository.save(newUser);
 
-    return this.findUser(saved.id);
+    const user = await this.findUser(saved.id);
+    return generatedPassword ? { ...user, generatedPassword } : user;
   }
 
   async findUser(id: number) {
@@ -105,6 +109,7 @@ export class UserService {
         // TypeORM's object-form select only hydrates listed columns, so a
         // soft-deleted member could still log in.
         deleted: true,
+        mustChangePassword: true,
       },
     });
   }
@@ -195,6 +200,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
 
@@ -230,6 +236,9 @@ export class UserService {
         throw new UnauthorizedException('La contraseña actual es incorrecta.');
       }
       user.password = await bcrypt.hash(dto.newPassword, 10);
+      // Whichever screen the change came from, the member is no longer on the
+      // password the front desk generated for them.
+      user.mustChangePassword = false;
     }
 
     const saved = await this.usersRepository.save(user);
@@ -258,6 +267,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
     if (!user) {
@@ -425,6 +435,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
 

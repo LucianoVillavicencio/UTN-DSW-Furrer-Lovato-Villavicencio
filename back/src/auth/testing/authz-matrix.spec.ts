@@ -165,6 +165,7 @@ describe('AuthController authorization', () => {
           login: jest.fn().mockResolvedValue({}),
           googleLogin: jest.fn().mockResolvedValue({}),
           profile: jest.fn().mockResolvedValue({}),
+          changePassword: jest.fn().mockResolvedValue({}),
         },
       },
     ]);
@@ -188,6 +189,10 @@ describe('AuthController authorization', () => {
 
   it('requires a login for GET /auth/profile, any role', async () => {
     await anyLoggedIn(app, 'get', '/api/v1/auth/profile');
+  });
+
+  it('opens POST /auth/change-password to any logged-in caller', async () => {
+    await anyLoggedIn(app, 'post', '/api/v1/auth/change-password');
   });
 });
 

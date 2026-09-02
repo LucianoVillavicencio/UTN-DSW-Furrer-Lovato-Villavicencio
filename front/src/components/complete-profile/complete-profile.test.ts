@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_COMPLETE_PROFILE_FORM,
+  EMPTY_PASSWORD_CHANGE_FORM,
   findCompleteProfileFormError,
+  findPasswordChangeFormError,
+  toChangePasswordPayload,
   toCompleteProfilePayload,
   type CompleteProfileForm,
+  type PasswordChangeForm,
 } from './complete-profile';
 
 const valid: CompleteProfileForm = {
@@ -77,5 +81,59 @@ describe('toCompleteProfilePayload', () => {
     expect(
       toCompleteProfilePayload({ ...valid, phone: '  3411234567  ' }, true),
     ).toEqual({ phone: '3411234567' });
+  });
+});
+
+const validPassword: PasswordChangeForm = {
+  currentPassword: 'temporal123',
+  newPassword: 'newpassword1',
+  confirmPassword: 'newpassword1',
+};
+
+describe('findPasswordChangeFormError', () => {
+  it('accepts a filled, matching form', () => {
+    expect(findPasswordChangeFormError(validPassword)).toBeNull();
+  });
+
+  it('rejects a missing current password', () => {
+    expect(
+      findPasswordChangeFormError({ ...validPassword, currentPassword: '' }),
+    ).toBe('Ingresá tu contraseña actual.');
+  });
+
+  it('rejects a new password shorter than 8 characters', () => {
+    expect(
+      findPasswordChangeFormError({
+        ...validPassword,
+        newPassword: 'short',
+        confirmPassword: 'short',
+      }),
+    ).toBe('La nueva contraseña debe tener al menos 8 caracteres.');
+  });
+
+  it('rejects a confirmation that does not match', () => {
+    expect(
+      findPasswordChangeFormError({
+        ...validPassword,
+        confirmPassword: 'somethingelse1',
+      }),
+    ).toBe('Las contraseñas no coinciden.');
+  });
+
+  it('starts empty', () => {
+    expect(EMPTY_PASSWORD_CHANGE_FORM).toEqual({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+  });
+});
+
+describe('toChangePasswordPayload', () => {
+  it('sends the current and new password, dropping the confirmation', () => {
+    expect(toChangePasswordPayload(validPassword)).toEqual({
+      currentPassword: 'temporal123',
+      newPassword: 'newpassword1',
+    });
   });
 });

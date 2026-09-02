@@ -71,6 +71,7 @@ export function tokenFor(
   actor: 'member' | 'admin',
   sub = 40000001,
   profileComplete = true,
+  mustChangePassword = false,
 ): string {
   if (!jwtService) {
     throw new Error('tokenFor called before buildAuthzApp');
@@ -81,6 +82,7 @@ export function tokenFor(
     email: actor === 'admin' ? 'admin@flg.test' : 'member@flg.test',
     role: actor === 'admin' ? Role.ADMIN : Role.USER,
     profileComplete,
+    mustChangePassword,
   };
 
   return jwtService.sign(payload);

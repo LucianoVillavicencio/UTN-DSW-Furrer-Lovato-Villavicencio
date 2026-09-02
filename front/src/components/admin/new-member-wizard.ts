@@ -1,4 +1,4 @@
-import type { AdminCreateUserPayload } from '../../services/user.service';
+import type { AdminCreateUserPayload, AdminCreatedUser } from '../../services/user.service';
 
 // dni is a string because an empty number input reads back as NaN, which
 // cannot be told apart from a typo.
@@ -20,20 +20,24 @@ export const EMPTY_NEW_MEMBER_FORM: NewMemberForm = {
   password: '',
 };
 
-export type WizardStep = 'datos' | 'plan' | 'clase' | 'cobro';
+export type WizardStep = 'datos' | 'cobro' | 'clase' | 'resumen';
 
+// Cobro sits before clase on purpose: the plan is chosen inside the charge
+// now, and MemberClassStep needs that plan's maxClasses. It is also the real
+// counter order — pay, then pick a schedule.
 export const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
   { id: 'datos', label: 'Datos' },
-  { id: 'plan', label: 'Plan' },
-  { id: 'clase', label: 'Clase' },
   { id: 'cobro', label: 'Cobro' },
+  { id: 'clase', label: 'Clase' },
+  { id: 'resumen', label: 'Resumen' },
 ];
 
-// Guards against a stale async plan-assignment callback overriding navigation
-// that already happened while the request was in flight (see the Task 10 fix
-// this pins).
-export const nextStepAfterPlanAssigned = (current: WizardStep): WizardStep =>
-  current === 'plan' ? 'clase' : current;
+// Guards against a stale MemberChargeForm submission resolving after the
+// admin has already advanced past 'cobro' (the skip button, or simply
+// finishing fast) — same race class the old nextStepAfterPlanAssigned
+// guarded against for the deleted plan step.
+export const nextStepAfterCharge = (current: WizardStep): WizardStep =>
+  current === 'cobro' ? 'clase' : current;
 
 // Same checks the API runs, so the admin sees the problem without a round trip.
 export const findNewMemberFormError = (form: NewMemberForm): string | null => {
@@ -52,9 +56,6 @@ export const findNewMemberFormError = (form: NewMemberForm): string | null => {
   }
 
   const password = form.password.trim();
-  if (password && !email) {
-    return 'Para definir una contraseña el socio necesita un email.';
-  }
   if (password && password.length < 8) {
     return 'La contraseña tiene que tener al menos 8 caracteres.';
   }
@@ -80,3 +81,13 @@ export const toAdminCreateUserPayload = (
     ...(password ? { password } : {}),
   };
 };
+
+// The username is always the login email — a walk-in's is the
+// `<dni>@presencial.flg` placeholder the backend filled in. Null means the
+// admin typed the password themselves, so there is nothing to show or print.
+export const credentialsFor = (
+  user: AdminCreatedUser,
+): { username: string; password: string } | null =>
+  user.generatedPassword
+    ? { username: user.email, password: user.generatedPassword }
+    : null;

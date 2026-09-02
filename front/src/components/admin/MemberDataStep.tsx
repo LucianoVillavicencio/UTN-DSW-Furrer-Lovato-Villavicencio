@@ -15,6 +15,8 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
       placeholder="Ej: 40123456"
       value={form.dni}
       disabled={disabled}
+      autoFocus
+      size="md"
       onChange={(e) => onChange({ ...form, dni: e.target.value })}
     />
     <div className="grid gap-3 sm:grid-cols-2">
@@ -22,12 +24,14 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
         label="Nombre *"
         value={form.name}
         disabled={disabled}
+        size="md"
         onChange={(e) => onChange({ ...form, name: e.target.value })}
       />
       <InputField
         label="Apellido *"
         value={form.surname}
         disabled={disabled}
+        size="md"
         onChange={(e) => onChange({ ...form, surname: e.target.value })}
       />
     </div>
@@ -36,6 +40,7 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
       placeholder="Ej: 341 555-1234"
       value={form.phone}
       disabled={disabled}
+      size="md"
       onChange={(e) => onChange({ ...form, phone: e.target.value })}
     />
     <div>
@@ -45,10 +50,11 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
         placeholder="Opcional"
         value={form.email}
         disabled={disabled}
+        size="md"
         onChange={(e) => onChange({ ...form, email: e.target.value })}
       />
       <p className="mt-1 text-xs text-text-muted">
-        Sin email, el socio no puede iniciar sesión en la web.
+        Si lo dejás vacío, el socio inicia sesión con su DNI.
       </p>
     </div>
     <div>
@@ -59,10 +65,12 @@ const MemberDataStep = ({ form, onChange, disabled }: MemberDataStepProps) => (
         autoComplete="new-password"
         value={form.password}
         disabled={disabled}
+        size="md"
         onChange={(e) => onChange({ ...form, password: e.target.value })}
       />
       <p className="mt-1 text-xs text-text-muted">
-        Requiere email. Si la dejás vacía, el socio no inicia sesión.
+        Si la dejás vacía, el sistema genera una y te la muestra para
+        anotarla.
       </p>
     </div>
   </div>

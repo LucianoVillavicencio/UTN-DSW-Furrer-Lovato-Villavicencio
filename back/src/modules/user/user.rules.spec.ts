@@ -1,5 +1,5 @@
 import {
-  findAdminCreateUserError,
+  generateMemberPassword,
   isPlaceholderEmail,
   isProfileComplete,
   placeholderEmailFor,
@@ -31,37 +31,6 @@ describe('isPlaceholderEmail', () => {
   });
 });
 
-describe('findAdminCreateUserError', () => {
-  it('accepts a member with neither email nor password', () => {
-    expect(findAdminCreateUserError({})).toBeNull();
-  });
-
-  it('accepts a member with an email and no password', () => {
-    expect(findAdminCreateUserError({ email: 'rosa@gmail.com' })).toBeNull();
-  });
-
-  it('accepts a member with both', () => {
-    expect(
-      findAdminCreateUserError({
-        email: 'rosa@gmail.com',
-        password: 'unaClave1',
-      }),
-    ).toBeNull();
-  });
-
-  it('rejects a password with no email, because there is nothing to log in with', () => {
-    expect(findAdminCreateUserError({ password: 'unaClave1' })).toBe(
-      'Para definir una contraseña el socio necesita un email.',
-    );
-  });
-
-  it('treats a blank email as no email', () => {
-    expect(
-      findAdminCreateUserError({ email: '   ', password: 'unaClave1' }),
-    ).toBe('Para definir una contraseña el socio necesita un email.');
-  });
-});
-
 // A member is usable only once we hold the two things Google never gives us.
 // Derived on read rather than stored, so an admin filling in a missing phone
 // through the Users panel cannot leave a stale flag behind.
@@ -88,5 +57,29 @@ describe('isProfileComplete', () => {
     // `!user.dni` would call 0 absent. It is not a valid DNI, but rejecting it
     // is the DTO's job, not this function's — conflating the two hides bugs.
     expect(isProfileComplete({ dni: 0, phone: '3411234567' })).toBe(true);
+  });
+});
+
+describe('generateMemberPassword', () => {
+  it('satisfies the password policy: eight chars, a letter and a digit', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const password = generateMemberPassword();
+      expect(password).toHaveLength(8);
+      expect(password).toMatch(/(?=.*[A-Za-z])(?=.*\d)/);
+    }
+  });
+
+  // The slip is read off paper and typed back in by hand.
+  it('never emits a glyph that is misread on paper', () => {
+    for (let i = 0; i < 200; i += 1) {
+      expect(generateMemberPassword()).not.toMatch(/[ilo01ILO]/);
+    }
+  });
+
+  it('does not return the same password twice in a row', () => {
+    const draws = new Set(
+      Array.from({ length: 50 }, () => generateMemberPassword()),
+    );
+    expect(draws.size).toBeGreaterThan(45);
   });
 });
