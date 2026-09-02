@@ -8,6 +8,7 @@ import {
   isOrderMethod,
   type ChargeMethod,
   type ChargeMonths,
+  type ChargeSummary,
 } from './plan-charge';
 import { formatPriceDisplay, parsePriceInput } from '../../lib/currency';
 import type { User } from '../../types/user';
@@ -33,8 +34,8 @@ const UNAVAILABLE_METHODS: Partial<Record<ChargeMethod, string>> = {
 
 interface MemberChargeFormProps {
   selectedUser: User;
-  onCharged?: () => void;
-  onChangeMember: () => void;
+  onCharged?: (summary: ChargeSummary) => void;
+  onChangeMember?: () => void;
 }
 
 // Everything downstream of "a member is picked". It is mounted only while
@@ -82,7 +83,7 @@ const MemberChargeForm = ({
             DNI {selectedUser.dni ?? 'Sin DNI'} · {selectedUser.email}
           </p>
         </div>
-        {!isOrderPending && (
+        {!isOrderPending && onChangeMember && (
           <button
             type="button"
             onClick={onChangeMember}
