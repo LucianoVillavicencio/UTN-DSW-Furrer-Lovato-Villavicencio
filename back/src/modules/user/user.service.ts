@@ -109,6 +109,7 @@ export class UserService {
         // TypeORM's object-form select only hydrates listed columns, so a
         // soft-deleted member could still log in.
         deleted: true,
+        mustChangePassword: true,
       },
     });
   }
@@ -199,6 +200,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
 
@@ -262,6 +264,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
     if (!user) {
@@ -429,6 +432,7 @@ export class UserService {
         googleId: true,
         picture: true,
         deleted: true,
+        mustChangePassword: true,
       },
     });
 

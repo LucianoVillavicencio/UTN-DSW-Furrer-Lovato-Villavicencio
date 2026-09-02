@@ -159,13 +159,16 @@ export class AuthService {
     surname?: string | null;
     phone?: string | null;
     role: string;
+    mustChangePassword?: boolean;
   }) {
     const profileComplete = isProfileComplete(user);
+    const mustChangePassword = user.mustChangePassword === true;
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       profileComplete,
+      mustChangePassword,
     };
     const token = await this.jwtService.signAsync(payload);
 
@@ -180,6 +183,7 @@ export class AuthService {
         phone: user.phone,
         role: user.role,
         profileComplete,
+        mustChangePassword,
       },
     };
   }

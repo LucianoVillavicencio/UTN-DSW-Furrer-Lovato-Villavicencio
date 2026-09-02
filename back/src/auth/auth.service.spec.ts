@@ -224,3 +224,61 @@ describe('AuthService token claims', () => {
     expect(result.user).not.toHaveProperty('password');
   });
 });
+
+describe('the mustChangePassword claim', () => {
+  it('rides the token for a member with a generated password', async () => {
+    const jwtService = { signAsync: jest.fn().mockResolvedValue('signed') };
+    const service = new AuthService(
+      {} as never,
+      jwtService as unknown as ConstructorParameters<typeof AuthService>[1],
+    );
+
+    const response = await (
+      service as unknown as {
+        buildAuthResponse: (u: Record<string, unknown>) => Promise<{
+          user: { mustChangePassword: boolean };
+        }>;
+      }
+    ).buildAuthResponse({
+      id: 7,
+      dni: 40123456,
+      email: '40123456@presencial.flg',
+      name: 'Rosa',
+      surname: 'Gomez',
+      phone: '341555',
+      role: 'user',
+      mustChangePassword: true,
+    });
+
+    expect(jwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ mustChangePassword: true }),
+    );
+    expect(response.user.mustChangePassword).toBe(true);
+  });
+
+  it('defaults to false when the column is absent from the row', async () => {
+    const jwtService = { signAsync: jest.fn().mockResolvedValue('signed') };
+    const service = new AuthService(
+      {} as never,
+      jwtService as unknown as ConstructorParameters<typeof AuthService>[1],
+    );
+
+    await (
+      service as unknown as {
+        buildAuthResponse: (u: Record<string, unknown>) => Promise<unknown>;
+      }
+    ).buildAuthResponse({
+      id: 7,
+      dni: 40123456,
+      email: 'rosa@gmail.com',
+      name: 'Rosa',
+      surname: 'Gomez',
+      phone: '341555',
+      role: 'user',
+    });
+
+    expect(jwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ mustChangePassword: false }),
+    );
+  });
+});
