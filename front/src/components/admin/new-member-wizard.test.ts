@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_NEW_MEMBER_FORM,
+  credentialsFor,
   findNewMemberFormError,
   nextStepAfterPlanAssigned,
   toAdminCreateUserPayload,
@@ -97,5 +98,29 @@ describe('nextStepAfterPlanAssigned', () => {
     expect(nextStepAfterPlanAssigned('cobro')).toBe('cobro');
     expect(nextStepAfterPlanAssigned('clase')).toBe('clase');
     expect(nextStepAfterPlanAssigned('datos')).toBe('datos');
+  });
+});
+
+describe('credentialsFor', () => {
+  const created = {
+    id: 7,
+    dni: 40123456,
+    email: '40123456@presencial.flg',
+    name: 'Rosa',
+    surname: 'Gomez',
+    phone: '',
+    role: 'user' as const,
+  };
+
+  it('reveals the generated password against the login email', () => {
+    expect(credentialsFor({ ...created, generatedPassword: 'krtm4829' })).toEqual(
+      { username: '40123456@presencial.flg', password: 'krtm4829' },
+    );
+  });
+
+  // The admin typed the password with the member standing there; there is
+  // nothing for the wizard to reveal, and no slip to print.
+  it('reveals nothing when the admin chose the password', () => {
+    expect(credentialsFor(created)).toBeNull();
   });
 });

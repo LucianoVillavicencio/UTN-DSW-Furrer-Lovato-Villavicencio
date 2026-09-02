@@ -1,4 +1,4 @@
-import type { AdminCreateUserPayload } from '../../services/user.service';
+import type { AdminCreateUserPayload, AdminCreatedUser } from '../../services/user.service';
 
 // dni is a string because an empty number input reads back as NaN, which
 // cannot be told apart from a typo.
@@ -77,3 +77,13 @@ export const toAdminCreateUserPayload = (
     ...(password ? { password } : {}),
   };
 };
+
+// The username is always the login email — a walk-in's is the
+// `<dni>@presencial.flg` placeholder the backend filled in. Null means the
+// admin typed the password themselves, so there is nothing to show or print.
+export const credentialsFor = (
+  user: AdminCreatedUser,
+): { username: string; password: string } | null =>
+  user.generatedPassword
+    ? { username: user.email, password: user.generatedPassword }
+    : null;
