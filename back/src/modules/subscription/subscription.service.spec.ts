@@ -43,13 +43,19 @@ interface CreatedSubscriptionPayload {
   state?: string;
 }
 
+// The shape `find` is invoked with in findDueForRenewal, spelled out so
+// `.mock.calls[0][0]` reads back as something other than `any`.
+interface FindDueForRenewalQuery {
+  where: { state: SubscriptionState };
+}
+
 describe('subscriptionService', () => {
   let service: subscriptionService;
   let subscriptionRepository: {
     create: jest.Mock;
     save: jest.Mock;
     findOne: jest.Mock;
-    find: jest.Mock;
+    find: jest.Mock<Promise<unknown[]>, [FindDueForRenewalQuery]>;
   };
   let manager: {
     find: jest.Mock;
@@ -69,7 +75,9 @@ describe('subscriptionService', () => {
       create: jest.fn((entity: object) => entity),
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
-      find: jest.fn().mockResolvedValue([]),
+      find: jest
+        .fn<Promise<unknown[]>, [FindDueForRenewalQuery]>()
+        .mockResolvedValue([]),
     };
     manager = {
       find: jest.fn().mockResolvedValue([]),
@@ -578,9 +586,7 @@ describe('subscriptionService', () => {
     it('never selects a PAUSED subscription for charging', async () => {
       await service.findDueForRenewal(['2026-09-11']);
 
-      const call = subscriptionRepository.find.mock.calls[0][0] as {
-        where: { state: SubscriptionState };
-      };
+      const call = subscriptionRepository.find.mock.calls[0][0];
       expect(call.where.state).toBe(SubscriptionState.ACTIVE);
       expect(call.where.state).not.toBe(SubscriptionState.PAUSED);
     });

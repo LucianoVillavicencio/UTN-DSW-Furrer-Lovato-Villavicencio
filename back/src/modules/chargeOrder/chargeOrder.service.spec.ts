@@ -11,6 +11,13 @@ import { PlanService } from '../plan/plan.service';
 import { UserService } from '../user/user.service';
 import { ORDER_EXPIRATION_MS } from './chargeOrder.rules';
 
+// The shape manager.save is invoked with in createCharge, spelled out so
+// `.mock.calls[0][0]` reads back as something other than `any`.
+interface SavedChargeOrderPayload {
+  expiresAt: Date;
+  externalReference: string;
+}
+
 describe('ChargeOrderService.createCharge', () => {
   let service: ChargeOrderService;
   let repository: {
@@ -27,7 +34,10 @@ describe('ChargeOrderService.createCharge', () => {
   let manager: {
     createQueryBuilder: jest.Mock;
     create: jest.Mock;
-    save: jest.Mock;
+    save: jest.Mock<
+      Promise<{ id: number } & SavedChargeOrderPayload>,
+      [SavedChargeOrderPayload]
+    >;
   };
   let queryBuilder: {
     setLock: jest.Mock;
@@ -70,7 +80,9 @@ describe('ChargeOrderService.createCharge', () => {
     manager = {
       createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
       create: jest.fn((_entity: unknown, data: object) => data),
-      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+      save: jest.fn((entity: SavedChargeOrderPayload) =>
+        Promise.resolve({ id: 1, ...entity }),
+      ),
     };
     repository = {
       manager: {
@@ -266,7 +278,7 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    const savedArg = manager.save.mock.calls[0][0] as { expiresAt: Date };
+    const savedArg = manager.save.mock.calls[0][0];
     const after = Date.now();
     expect(savedArg.expiresAt.getTime()).toBeGreaterThanOrEqual(
       before + ORDER_EXPIRATION_MS,
@@ -343,9 +355,7 @@ describe('ChargeOrderService.createCharge', () => {
 
     await service.createCharge(params);
 
-    const savedArg = manager.save.mock.calls[0][0] as {
-      externalReference: string;
-    };
+    const savedArg = manager.save.mock.calls[0][0];
     expect(savedArg.externalReference).toMatch(/^flg-user-3-/);
   });
 

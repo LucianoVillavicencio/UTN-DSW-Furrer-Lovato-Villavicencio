@@ -223,7 +223,7 @@ export class MercadoPagoClient {
     const status = (err as { status?: unknown } | null)?.status;
     const causes = (err as { causes?: unknown } | null)?.causes;
     const extra = [
-      status ? `status=${String(status)}` : null,
+      status ? `status=${JSON.stringify(status)}` : null,
       causes && Array.isArray(causes) && causes.length > 0
         ? `causes=${JSON.stringify(causes)}`
         : null,
