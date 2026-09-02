@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_NEW_MEMBER_FORM,
+  WIZARD_STEPS,
   credentialsFor,
   findNewMemberFormError,
-  nextStepAfterPlanAssigned,
   toAdminCreateUserPayload,
   type NewMemberForm,
 } from './new-member-wizard';
@@ -89,15 +89,18 @@ describe('toAdminCreateUserPayload', () => {
   });
 });
 
-describe('nextStepAfterPlanAssigned', () => {
-  it('advances from plan to clase', () => {
-    expect(nextStepAfterPlanAssigned('plan')).toBe('clase');
+describe('WIZARD_STEPS', () => {
+  it('charges before assigning a class, because the class step needs the plan', () => {
+    expect(WIZARD_STEPS.map((s) => s.id)).toEqual([
+      'datos',
+      'cobro',
+      'clase',
+      'resumen',
+    ]);
   });
 
-  it('leaves any other step unchanged, so a stale callback cannot regress navigation', () => {
-    expect(nextStepAfterPlanAssigned('cobro')).toBe('cobro');
-    expect(nextStepAfterPlanAssigned('clase')).toBe('clase');
-    expect(nextStepAfterPlanAssigned('datos')).toBe('datos');
+  it('has no plan step: the charge creates the subscription', () => {
+    expect(WIZARD_STEPS.map((s) => s.id)).not.toContain('plan');
   });
 });
 

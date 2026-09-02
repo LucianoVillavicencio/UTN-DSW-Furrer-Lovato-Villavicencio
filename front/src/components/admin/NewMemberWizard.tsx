@@ -5,18 +5,18 @@ import Modal from './Modal';
 import WizardStepper from './WizardStepper';
 import MemberDataStep from './MemberDataStep';
 import MemberClassStep from './MemberClassStep';
-import AssignPlanForm from './AssignPlanForm';
-import RegisterPaymentForm from './RegisterPaymentForm';
+import MemberChargeForm from './MemberChargeForm';
+import MemberCredentialsCard from './MemberCredentialsCard';
+import WizardSummaryStep from './WizardSummaryStep';
 import {
   EMPTY_NEW_MEMBER_FORM,
   findNewMemberFormError,
-  nextStepAfterPlanAssigned,
   toAdminCreateUserPayload,
   type NewMemberForm,
   type WizardStep,
 } from './new-member-wizard';
+import type { ChargeSummary } from './plan-charge';
 import { adminCreateUser } from '../../services/user.service';
-import { getSubscriptionsByUser } from '../../services/subscription.service';
 import type { User } from '../../types/user';
 
 interface NewMemberWizardProps {
@@ -24,16 +24,20 @@ interface NewMemberWizardProps {
   onCreated: (user: User) => void;
 }
 
-// Front-desk onboarding: datos, plan, clase, cobro. Each step writes through
-// its own endpoint as the admin advances — there is no transaction spanning
-// the four, so a member abandoned halfway keeps whatever was already saved and
-// can be finished from the Usuarios tab.
+// Front-desk onboarding: datos, cobro, clase, resumen. Each step writes
+// through its own endpoint as the admin advances — there is no transaction
+// spanning the four, so a member abandoned halfway keeps whatever was already
+// saved and can be finished from the Usuarios tab.
 const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
   const [step, setStep] = useState<WizardStep>('datos');
   const [form, setForm] = useState<NewMemberForm>(EMPTY_NEW_MEMBER_FORM);
   const [createdUser, setCreatedUser] = useState<User | null>(null);
-  const [planMaxClasses, setPlanMaxClasses] = useState<number | null>(null);
-  const [hasSubscription, setHasSubscription] = useState(false);
+  const [chargeSummary, setChargeSummary] = useState<ChargeSummary | null>(
+    null,
+  );
+  const [generatedPassword, setGeneratedPassword] = useState<
+    string | undefined
+  >();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,8 +54,9 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
       // the type, so no cast is needed here.
       const user = await adminCreateUser(toAdminCreateUserPayload(form));
       setCreatedUser(user);
+      setGeneratedPassword(user.generatedPassword);
       onCreated(user);
-      setStep('plan');
+      setStep('cobro');
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'No se pudo crear el socio.',
@@ -59,28 +64,6 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  // The plan's class allowance decides what the Clase step can offer, and
-  // AssignPlanForm reports only that it succeeded, so it is read back here.
-  const handlePlanAssigned = async () => {
-    if (!createdUser) return;
-    setHasSubscription(true);
-    try {
-      const subs = await getSubscriptionsByUser(createdUser.id);
-      const active = subs.find((s) => s.state?.toLowerCase() === 'activa');
-      setPlanMaxClasses(active?.plan?.maxClasses ?? null);
-    } catch (err) {
-      // The subscription is already created; not knowing its class allowance
-      // only means the Clase step cannot pre-empt a rejection the backend
-      // would issue anyway.
-      console.warn('Could not read the assigned plan allowance', err);
-    }
-    // A stale AssignPlanForm call can resolve after the admin has already
-    // advanced past 'plan' (e.g. via "Omitir plan" then "Omitir clase"). Only
-    // advance from 'plan' — read through the functional updater so the check
-    // sees the current step, not whatever this closure captured at call time.
-    setStep(nextStepAfterPlanAssigned);
   };
 
   return (
@@ -93,6 +76,12 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
             Socio creado: {createdUser.name} {createdUser.surname} · DNI{' '}
             {createdUser.dni}
           </p>
+        )}
+        {generatedPassword && createdUser && (
+          <MemberCredentialsCard
+            username={createdUser.email}
+            password={generatedPassword}
+          />
         )}
 
         {step === 'datos' && (
@@ -118,11 +107,14 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
           </>
         )}
 
-        {step === 'plan' && createdUser && (
+        {step === 'cobro' && createdUser && (
           <>
-            <AssignPlanForm
-              userId={createdUser.id}
-              onAssigned={handlePlanAssigned}
+            <MemberChargeForm
+              selectedUser={createdUser}
+              onCharged={(summary) => {
+                setChargeSummary(summary);
+                setStep('clase');
+              }}
             />
             <div className="flex justify-end">
               <Button
@@ -130,7 +122,7 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
                 size="sm"
                 onClick={() => setStep('clase')}
               >
-                Omitir plan
+                Omitir cobro
               </Button>
             </div>
           </>
@@ -140,14 +132,14 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
           <>
             <MemberClassStep
               userId={createdUser.id}
-              maxClasses={planMaxClasses}
-              onAssigned={() => setStep('cobro')}
+              maxClasses={chargeSummary?.plan.maxClasses ?? null}
+              onAssigned={() => setStep('resumen')}
             />
             <div className="flex justify-end">
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setStep('cobro')}
+                onClick={() => setStep('resumen')}
               >
                 Omitir clase
               </Button>
@@ -155,16 +147,13 @@ const NewMemberWizard = ({ onClose, onCreated }: NewMemberWizardProps) => {
           </>
         )}
 
-        {step === 'cobro' && createdUser && (
+        {step === 'resumen' && createdUser && (
           <>
-            {hasSubscription ? (
-              <RegisterPaymentForm presetUser={createdUser} />
-            ) : (
-              <FormAlert
-                type="warning"
-                message="Un pago se registra contra una suscripción. Asigná un plan al socio para poder cobrarle."
-              />
-            )}
+            <WizardSummaryStep
+              user={createdUser}
+              summary={chargeSummary}
+              generatedPassword={generatedPassword}
+            />
             <div className="flex justify-end">
               <Button size="sm" onClick={onClose}>
                 Finalizar

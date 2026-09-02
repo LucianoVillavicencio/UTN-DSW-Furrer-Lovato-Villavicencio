@@ -20,20 +20,17 @@ export const EMPTY_NEW_MEMBER_FORM: NewMemberForm = {
   password: '',
 };
 
-export type WizardStep = 'datos' | 'plan' | 'clase' | 'cobro';
+export type WizardStep = 'datos' | 'cobro' | 'clase' | 'resumen';
 
+// Cobro sits before clase on purpose: the plan is chosen inside the charge
+// now, and MemberClassStep needs that plan's maxClasses. It is also the real
+// counter order — pay, then pick a schedule.
 export const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
   { id: 'datos', label: 'Datos' },
-  { id: 'plan', label: 'Plan' },
-  { id: 'clase', label: 'Clase' },
   { id: 'cobro', label: 'Cobro' },
+  { id: 'clase', label: 'Clase' },
+  { id: 'resumen', label: 'Resumen' },
 ];
-
-// Guards against a stale async plan-assignment callback overriding navigation
-// that already happened while the request was in flight (see the Task 10 fix
-// this pins).
-export const nextStepAfterPlanAssigned = (current: WizardStep): WizardStep =>
-  current === 'plan' ? 'clase' : current;
 
 // Same checks the API runs, so the admin sees the problem without a round trip.
 export const findNewMemberFormError = (form: NewMemberForm): string | null => {
