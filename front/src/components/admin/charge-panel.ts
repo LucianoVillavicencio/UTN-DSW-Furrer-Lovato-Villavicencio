@@ -44,7 +44,7 @@ export function statusLabel(
 }
 
 // Cash is a flat, immediate POST /Payment/manual with no charge order and no
-// planTermId — see the "term selector applies only to point/qr" ruling.
+// months selector — see the "term selector applies only to point/qr" ruling.
 // Point and QR both go through POST /charge-order.
 export function needsChargeOrder(method: 'point' | 'qr' | 'efectivo'): boolean {
   return method !== 'efectivo';

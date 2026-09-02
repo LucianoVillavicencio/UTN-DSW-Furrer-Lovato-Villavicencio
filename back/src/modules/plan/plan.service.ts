@@ -149,6 +149,13 @@ export class PlanService implements OnModuleInit {
   }
 
   async findPlan(id: number) {
+    return await this.planRepository.findOne({ where: { id, deleted: false } });
+  }
+
+  // GET /plan/:id is public, so findPlan filters deleted rows. Callers that
+  // genuinely need a retired plan — reading back what a historical
+  // subscription was sold at — ask for it explicitly.
+  async findPlanIncludingDeleted(id: number) {
     return await this.planRepository.findOne({ where: { id } });
   }
 
@@ -183,7 +190,7 @@ export class PlanService implements OnModuleInit {
   }
 
   async deletePlan(id: number) {
-    const exists = await this.findPlan(id);
+    const exists = await this.findPlanIncludingDeleted(id);
     if (!exists) {
       throw new NotFoundException(`El plan con ID: ${id} no existe.`);
     }
@@ -202,7 +209,7 @@ export class PlanService implements OnModuleInit {
   }
 
   async restorePlan(id: number) {
-    const exists = await this.findPlan(id);
+    const exists = await this.findPlanIncludingDeleted(id);
     if (!exists) {
       throw new NotFoundException(`El plan con ID: ${id} no existe.`);
     }

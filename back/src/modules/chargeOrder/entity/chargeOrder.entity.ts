@@ -6,13 +6,13 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Subscription } from '../../subscription/entity/subscription.entity';
-import { PlanTerm } from '../../planTerm/entity/planTerm.entity';
+import { PlanDuration } from '../../plan/entity/plan-duration.entity';
 import { decimalTransformer } from '../../../common/decimal.transformer';
 
 // A front-desk collection in progress: a card-terminal ("point") or QR charge
 // armed against one physical collection point. The amount is a snapshot of
-// the PlanTerm's price at creation time, so a price change mid-charge can
-// never alter what the member is asked to pay — see
+// the resolved term's price at creation time, so a price change mid-charge
+// can never alter what the member is asked to pay — see
 // ChargeOrderService.createCharge. externalReference/expiresAt follow the
 // rules in chargeOrder.rules.ts, shared with the Mercado Pago order this row
 // backs once Task 16 wires the actual MP calls.
@@ -21,19 +21,35 @@ export class ChargeOrder {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: Number, nullable: false })
-  subscriptionId!: number;
+  // Null until the charge is confirmed: the subscription this order produces
+  // does not exist while the order is still pending, and never exists at all
+  // if the charge is abandoned, expires or is declined.
+  @Column({ type: Number, nullable: true })
+  subscriptionId!: number | null;
 
-  @ManyToOne(() => Subscription, { eager: true, nullable: false })
+  @ManyToOne(() => Subscription, { eager: true, nullable: true })
   @JoinColumn({ name: 'subscriptionId' })
-  subscription!: Subscription;
+  subscription!: Subscription | null;
+
+  // What is being bought. Recorded on the order because the webhook needs it
+  // to build the subscription once the money lands.
+  @Column({ type: Number, nullable: false })
+  userId!: number;
 
   @Column({ type: Number, nullable: false })
-  planTermId!: number;
+  planId!: number;
 
-  @ManyToOne(() => PlanTerm, { eager: true, nullable: false })
-  @JoinColumn({ name: 'planTermId' })
-  planTerm!: PlanTerm;
+  @Column({ type: Number, nullable: false })
+  termMonths!: number;
+
+  // Null means the plan's own 1-month price — same convention as
+  // Subscription.planDurationId.
+  @Column({ type: Number, nullable: true })
+  planDurationId!: number | null;
+
+  @ManyToOne(() => PlanDuration, { eager: true, nullable: true })
+  @JoinColumn({ name: 'planDurationId' })
+  planDuration!: PlanDuration | null;
 
   // 'point' (card terminal) or 'qr' (shared printed code) — see
   // ChargeOrderMethod.
@@ -66,9 +82,9 @@ export class ChargeOrder {
   @Column({ type: 'varchar', length: 64, nullable: false })
   collectionPointId!: string;
 
-  // Snapshotted from PlanTerm.price at creation time. Never recompute this
-  // from the term later — a price change after the order was armed must not
-  // change what the member already agreed to pay.
+  // Snapshotted from the resolved term's price at creation time. Never
+  // recompute this from the term later — a price change after the order was
+  // armed must not change what the member already agreed to pay.
   @Column({
     type: 'decimal',
     precision: 10,

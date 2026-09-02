@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2, RotateCcw, Plus } from 'lucide-react';
+import { Pencil, Trash2, RotateCcw, Plus, Dumbbell } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
 import DataTable, { type DataTableColumn } from './DataTable';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import SectionHeader from './SectionHeader';
 import {
   getClass,
   getDeletedClasses,
@@ -41,6 +42,7 @@ const ClassesSection = () => {
   const [loadedFilter, setLoadedFilter] = useState<boolean | null>(null);
   const isLoading = loadedFilter !== showDeleted;
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Class | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,13 +59,21 @@ const ClassesSection = () => {
   const [typeError, setTypeError] = useState<string | null>(null);
   const [isSavingType, setIsSavingType] = useState(false);
 
+  const onOptionsFailure = (what: string) => (err: unknown) => {
+    console.warn(`Could not load ${what} for the classes form`, err);
+    setOptionsError(
+      'No se pudieron cargar tipos de clase o entrenadores. Los selectores van a estar vacíos.',
+    );
+    return [];
+  };
+
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
   const fetchClasses = (deleted: boolean) =>
     Promise.all([
       deleted ? getDeletedClasses() : getClass(),
-      getTypeClass().catch(() => []),
-      getTrainers().catch(() => []),
+      getTypeClass().catch(onOptionsFailure('type classes')),
+      getTrainers().catch(onOptionsFailure('trainers')),
     ])
       .then(([classesData, typesRes, trainersRes]) => {
         setClasses(classesData);
@@ -241,31 +251,32 @@ const ClassesSection = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-text">Clases</h3>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-primary"
-            />
-            Mostrar eliminadas
-          </label>
-          <Button
-            size="sm"
-            onClick={openCreate}
-            className="flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        </div>
-      </div>
+      <SectionHeader
+        title="Clases"
+        icon={Dumbbell}
+        description="Disciplinas que ofrece el gimnasio."
+      >
+        <label className="flex items-center gap-2 text-sm text-text-muted">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          Mostrar eliminadas
+        </label>
+        <Button
+          size="sm"
+          onClick={openCreate}
+          className="flex items-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </Button>
+      </SectionHeader>
 
-      <FormAlert type="error" message={loadError ?? listError} />
-      {!isLoading && noOptions && (
+      <FormAlert type="error" message={loadError ?? listError ?? optionsError} />
+      {!isLoading && !optionsError && noOptions && (
         <FormAlert
           type="warning"
           message="No hay tipos de clase o entrenadores cargados todavía — creá al menos uno de cada uno antes de agregar una clase."

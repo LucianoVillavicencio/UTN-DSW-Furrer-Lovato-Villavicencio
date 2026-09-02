@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardExpiryWarning, formatCardLabel, termSavings } from './saved-card';
+import { cardExpiryWarning, formatCardLabel } from './saved-card';
 
 describe('formatCardLabel', () => {
   it('capitalizes the payment method id and shows the last four digits', () => {
@@ -44,28 +44,5 @@ describe('cardExpiryWarning', () => {
     // expired, but the warning is not the chargeability check.
     const today = new Date(2026, 1, 1);
     expect(cardExpiryWarning(card, today)).not.toBeNull();
-  });
-});
-
-describe('termSavings', () => {
-  it('returns the savings when the term is cheaper than paying monthly', () => {
-    // 6 months at $1000/month = $6000; the term costs $5000 -> saves $1000.
-    expect(termSavings({ months: 6, price: 5000 }, 1000)).toBe(
-      'Ahorrás $1.000',
-    );
-  });
-
-  it('handles string DECIMAL values from MySQL', () => {
-    expect(termSavings({ months: 6, price: '5000.00' }, '1000.00')).toBe(
-      'Ahorrás $1.000',
-    );
-  });
-
-  it('returns null when the term costs the same as paying monthly', () => {
-    expect(termSavings({ months: 3, price: 3000 }, 1000)).toBeNull();
-  });
-
-  it('returns null when the term is more expensive than paying monthly', () => {
-    expect(termSavings({ months: 3, price: 4000 }, 1000)).toBeNull();
   });
 });

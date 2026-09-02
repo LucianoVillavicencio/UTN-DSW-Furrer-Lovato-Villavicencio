@@ -68,11 +68,11 @@ export interface UserSearchQuery {
 export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
   try {
     const params: Record<string, string> = {};
-    if (query.id) params.id = String(query.id);
-    if (query.dni) params.dni = String(query.dni);
-    if (query.email) params.email = query.email;
-    if (query.name) params.name = query.name;
-    if (query.surname) params.surname = query.surname;
+    if (Number.isFinite(query.id)) params.id = String(query.id);
+    if (Number.isFinite(query.dni)) params.dni = String(query.dni);
+    if (query.email?.trim()) params.email = query.email.trim();
+    if (query.name?.trim()) params.name = query.name.trim();
+    if (query.surname?.trim()) params.surname = query.surname.trim();
 
     const { data } = await api.get<User[]>('/user/search', { params });
     return data;

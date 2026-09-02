@@ -6,8 +6,17 @@ import { ChargeOrder } from './entity/chargeOrder.entity';
 import { ChargeOrderStatus } from './enum/chargeOrder-status.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
-import { PlanTermService } from '../planTerm/planTerm.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
+import { PlanService } from '../plan/plan.service';
+import { UserService } from '../user/user.service';
 import { ORDER_EXPIRATION_MS } from './chargeOrder.rules';
+
+// The shape manager.save is invoked with in createCharge, spelled out so
+// `.mock.calls[0][0]` reads back as something other than `any`.
+interface SavedChargeOrderPayload {
+  expiresAt: Date;
+  externalReference: string;
+}
 
 describe('ChargeOrderService.createCharge', () => {
   let service: ChargeOrderService;
@@ -15,15 +24,20 @@ describe('ChargeOrderService.createCharge', () => {
     manager: { transaction: jest.Mock };
     update: jest.Mock;
   };
-  let subscriptions: { findSubscription: jest.Mock };
-  let planTerms: { findTerm: jest.Mock };
+  let subscriptions: { findByUser: jest.Mock };
+  let planDurations: { findByPlan: jest.Mock };
+  let plans: { findPlan: jest.Mock };
+  let members: { findUser: jest.Mock };
   // The transaction's EntityManager, and the pessimistic-locked query
   // builder it hands back from createQueryBuilder — chainable, same shape
   // TypeORM's real one exposes for setLock/where/andWhere/getOne.
   let manager: {
     createQueryBuilder: jest.Mock;
     create: jest.Mock;
-    save: jest.Mock;
+    save: jest.Mock<
+      Promise<{ id: number } & SavedChargeOrderPayload>,
+      [SavedChargeOrderPayload]
+    >;
   };
   let queryBuilder: {
     setLock: jest.Mock;
@@ -32,26 +46,24 @@ describe('ChargeOrderService.createCharge', () => {
     getOne: jest.Mock;
   };
 
-  const subscription = {
-    id: 7,
-    userId: 3,
-    planId: 12,
-    state: SubscriptionState.ACTIVE,
-    deleted: false,
-    plan: { id: 12 },
-  };
+  const member = { id: 3, deleted: false };
 
-  const term = {
+  const plan = { id: 12, name: 'Plan Test', numDays: 30, price: 5000 };
+
+  const duration = {
     id: 55,
     planId: 12,
-    months: 1,
+    months: 3,
+    numDays: 90,
     price: 15000,
     deleted: false,
   };
 
   const params = {
-    subscriptionId: 7,
-    planTermId: 55,
+    userId: 3,
+    planId: 12,
+    months: 3,
+    amount: 14000, // discounted below the 15000 list price on purpose
     method: 'point' as const,
     collectionPointId: 'terminal-1',
     adminId: 30111222,
@@ -68,7 +80,9 @@ describe('ChargeOrderService.createCharge', () => {
     manager = {
       createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
       create: jest.fn((_entity: unknown, data: object) => data),
-      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+      save: jest.fn((entity: SavedChargeOrderPayload) =>
+        Promise.resolve({ id: 1, ...entity }),
+      ),
     };
     repository = {
       manager: {
@@ -84,7 +98,9 @@ describe('ChargeOrderService.createCharge', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: subscriptions },
-        { provide: PlanTermService, useValue: planTerms },
+        { provide: PlanDurationService, useValue: planDurations },
+        { provide: PlanService, useValue: plans },
+        { provide: UserService, useValue: members },
       ],
     }).compile();
 
@@ -93,18 +109,77 @@ describe('ChargeOrderService.createCharge', () => {
 
   beforeEach(() => {
     subscriptions = {
-      findSubscription: jest.fn().mockResolvedValue(subscription),
+      findByUser: jest.fn().mockResolvedValue([]),
     };
-    planTerms = { findTerm: jest.fn().mockResolvedValue(term) };
+    planDurations = {
+      findByPlan: jest.fn().mockResolvedValue([duration]),
+    };
+    plans = {
+      findPlan: jest.fn().mockResolvedValue(plan),
+    };
+    members = {
+      findUser: jest.fn().mockResolvedValue(member),
+    };
   });
 
-  it('snapshots the amount from the term, not the plan', async () => {
+  it('snapshots the admin amount, not the list price', async () => {
     await buildService();
 
     await service.createCharge(params);
 
-    expect(manager.save).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: term.price }),
+    expect(manager.create).toHaveBeenCalledWith(
+      ChargeOrder,
+      expect.objectContaining({
+        amount: 14000,
+        termMonths: 3,
+        planDurationId: 55,
+      }),
+    );
+  });
+
+  it('arms the order with no subscription', async () => {
+    await buildService();
+
+    await service.createCharge(params);
+
+    expect(manager.create).toHaveBeenCalledWith(
+      ChargeOrder,
+      expect.objectContaining({ userId: 3, planId: 12, subscriptionId: null }),
+    );
+  });
+
+  it('rejects a member whose membership is paused', async () => {
+    await buildService();
+    subscriptions.findByUser.mockResolvedValue([
+      { id: 9, userId: 3, state: SubscriptionState.PAUSED, deleted: false },
+    ]);
+
+    await expect(service.createCharge(params)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
+  // findByUser orders { id: 'DESC' }, so a stale PAUSED row that isn't the
+  // member's current subscription must not block a charge. Without this, a
+  // member who paused and was later re-sold a plan for cash (registerPlanPayment
+  // has no paused guard) would find every future Point/QR charge permanently
+  // refused by the old, already-superseded PAUSED row.
+  it('allows a charge when only an older, superseded subscription is paused', async () => {
+    await buildService();
+    subscriptions.findByUser.mockResolvedValue([
+      { id: 10, userId: 3, state: SubscriptionState.ACTIVE, deleted: false },
+      { id: 5, userId: 3, state: SubscriptionState.PAUSED, deleted: false },
+    ]);
+
+    await expect(service.createCharge(params)).resolves.toBeDefined();
+  });
+
+  it('rejects a plan that does not exist', async () => {
+    await buildService();
+    plans.findPlan.mockResolvedValue(null);
+
+    await expect(service.createCharge(params)).rejects.toBeInstanceOf(
+      NotFoundException,
     );
   });
 
@@ -142,13 +217,13 @@ describe('ChargeOrderService.createCharge', () => {
     expect(manager.save).toHaveBeenCalled();
   });
 
-  it('scopes the busy check by collectionPointId, not by subscriptionId', async () => {
-    // A future regression that scoped this check by subscriptionId instead
+  it('scopes the busy check by collectionPointId, not by userId', async () => {
+    // A future regression that scoped this check by userId instead
     // of collectionPointId would let two different members hold live orders
     // on the same physical point at once — exactly what this table exists
     // to prevent. Asserting the actual query args (not just the outcome)
     // catches that even though every other test in this file happens to
-    // reuse the same subscriptionId/collectionPointId pair.
+    // reuse the same userId/collectionPointId pair.
     await buildService();
 
     await service.createCharge(params);
@@ -162,20 +237,20 @@ describe('ChargeOrderService.createCharge', () => {
     ];
     const [andWhereClause, andWhereParams] = queryBuilder.andWhere.mock
       .calls[0] as [string, Record<string, unknown>];
-    expect(whereClause).not.toMatch(/subscriptionId/);
-    expect(andWhereClause).not.toMatch(/subscriptionId/);
-    expect(whereParams).not.toHaveProperty('subscriptionId');
-    expect(andWhereParams).not.toHaveProperty('subscriptionId');
+    expect(whereClause).not.toMatch(/userId/);
+    expect(andWhereClause).not.toMatch(/userId/);
+    expect(whereParams).not.toHaveProperty('userId');
+    expect(andWhereParams).not.toHaveProperty('userId');
   });
 
-  it('refuses a busy collection point even when the existing order belongs to a different subscription', async () => {
+  it('refuses a busy collection point even when the existing order belongs to a different member', async () => {
     // Same rule from the other direction: a busy order for a DIFFERENT
     // member on the SAME collectionPointId must still block — the code must
-    // not, say, additionally filter the found row by subscriptionId
-    // client-side before deciding whether to throw.
+    // not, say, additionally filter the found row by userId client-side
+    // before deciding whether to throw.
     await buildService({
       id: 1,
-      subscriptionId: 999,
+      userId: 999,
       collectionPointId: params.collectionPointId,
       status: ChargeOrderStatus.PENDING,
     });
@@ -197,28 +272,13 @@ describe('ChargeOrderService.createCharge', () => {
     expect(manager.save).toHaveBeenCalled();
   });
 
-  it('refuses a charge against a PAUSED subscription', async () => {
-    subscriptions = {
-      findSubscription: jest.fn().mockResolvedValue({
-        ...subscription,
-        state: SubscriptionState.PAUSED,
-      }),
-    };
-    await buildService();
-
-    await expect(service.createCharge(params)).rejects.toThrow(
-      new ConflictException('No se puede cobrar una membresía pausada.'),
-    );
-    expect(repository.manager.transaction).not.toHaveBeenCalled();
-  });
-
   it('sets expiresAt from ORDER_EXPIRATION_MS', async () => {
     await buildService();
     const before = Date.now();
 
     await service.createCharge(params);
 
-    const savedArg = manager.save.mock.calls[0][0] as { expiresAt: Date };
+    const savedArg = manager.save.mock.calls[0][0];
     const after = Date.now();
     expect(savedArg.expiresAt.getTime()).toBeGreaterThanOrEqual(
       before + ORDER_EXPIRATION_MS,
@@ -256,9 +316,9 @@ describe('ChargeOrderService.createCharge', () => {
     );
   });
 
-  it('refuses a charge when the subscription does not exist', async () => {
-    subscriptions = { findSubscription: jest.fn().mockResolvedValue(null) };
+  it('refuses a charge when the member does not exist', async () => {
     await buildService();
+    members.findUser.mockResolvedValue(null);
 
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -266,13 +326,9 @@ describe('ChargeOrderService.createCharge', () => {
     expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
-  it('refuses a charge when the subscription is soft-deleted', async () => {
-    subscriptions = {
-      findSubscription: jest
-        .fn()
-        .mockResolvedValue({ ...subscription, deleted: true }),
-    };
+  it('refuses a charge when the member is soft-deleted', async () => {
     await buildService();
+    members.findUser.mockResolvedValue({ ...member, deleted: true });
 
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -280,9 +336,13 @@ describe('ChargeOrderService.createCharge', () => {
     expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
-  it('refuses a term that does not exist', async () => {
-    planTerms = { findTerm: jest.fn().mockResolvedValue(null) };
+  it('refuses a months value with no matching duration for this plan', async () => {
+    // findByPlan is already scoped to the order's own planId, so a
+    // duration belonging to a different plan can no longer leak in here the
+    // way a bare id lookup used to have to guard against — an empty result is
+    // the only way "no match" happens now.
     await buildService();
+    planDurations.findByPlan.mockResolvedValue([]);
 
     await expect(service.createCharge(params)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -290,27 +350,13 @@ describe('ChargeOrderService.createCharge', () => {
     expect(repository.manager.transaction).not.toHaveBeenCalled();
   });
 
-  it('refuses a term that belongs to a different plan', async () => {
-    planTerms = {
-      findTerm: jest.fn().mockResolvedValue({ ...term, planId: 999 }),
-    };
-    await buildService();
-
-    await expect(service.createCharge(params)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(repository.manager.transaction).not.toHaveBeenCalled();
-  });
-
-  it('builds the external reference from the subscription id', async () => {
+  it('builds the external reference from the user id', async () => {
     await buildService();
 
     await service.createCharge(params);
 
-    const savedArg = manager.save.mock.calls[0][0] as {
-      externalReference: string;
-    };
-    expect(savedArg.externalReference).toMatch(/^flg-sub-7-/);
+    const savedArg = manager.save.mock.calls[0][0];
+    expect(savedArg.externalReference).toMatch(/^flg-user-3-/);
   });
 
   it('creates the order with pendiente status', async () => {
@@ -335,7 +381,9 @@ describe('ChargeOrderService.findByExternalReference', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -362,7 +410,9 @@ describe('ChargeOrderService.findById', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -400,7 +450,9 @@ describe('ChargeOrderService.setMpOrderId', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -468,7 +520,9 @@ describe('ChargeOrderService.closeAsPaid', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -522,7 +576,9 @@ describe('ChargeOrderService.closeAsError', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -566,7 +622,9 @@ describe('ChargeOrderService.cancel', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);
@@ -606,7 +664,9 @@ describe('ChargeOrderService.expireStale', () => {
         ChargeOrderService,
         { provide: getRepositoryToken(ChargeOrder), useValue: repository },
         { provide: subscriptionService, useValue: {} },
-        { provide: PlanTermService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: UserService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(ChargeOrderService);

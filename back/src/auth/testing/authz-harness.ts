@@ -20,12 +20,21 @@ let jwtService: JwtService | undefined;
  * Boots one controller with the real AuthGuard and RolesGuard and a real
  * JwtService, with the service layer mocked. No database and no AppModule, so
  * this runs under `npm test` next to the other unit specs.
+ *
+ * `guardOverrides` swaps out a route-level guard (one applied via
+ * `@UseGuards(SomeGuard)`, e.g. OwnerPasswordGuard) for a mock. Nest resolves
+ * such guards through its `injectables` map, a structure `providers` never
+ * touches — so a plain `{ provide: SomeGuard, useValue }` entry in
+ * `serviceMocks` is silently ignored and the real guard (with its real
+ * dependencies) still gets constructed. `overrideGuard(...).useValue(...)` is
+ * the API that actually reaches that map.
  */
 export async function buildAuthzApp(
   controller: Type<unknown>,
   serviceMocks: ServiceMock[],
+  guardOverrides: ServiceMock[] = [],
 ): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [
       JwtModule.register({
         global: true,
@@ -38,7 +47,13 @@ export async function buildAuthzApp(
       provide: mock.provide,
       useValue: mock.useValue,
     })),
-  }).compile();
+  });
+
+  for (const override of guardOverrides) {
+    builder.overrideGuard(override.provide).useValue(override.useValue);
+  }
+
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication();
   jwtService = moduleRef.get(JwtService);

@@ -4,7 +4,8 @@ import { ChargeOrder } from './entity/chargeOrder.entity';
 import { ChargeOrderService } from './chargeOrder.service';
 import { ChargeOrderController } from './chargeOrder.controller';
 import { SubscriptionModule } from '../subscription/subscription.module';
-import { PlanTermModule } from '../planTerm/planTerm.module';
+import { PlanModule } from '../plan/plan.module';
+import { UserModule } from '../user/user.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 import { PaymentModule } from '../payment/payment.module';
 
@@ -18,7 +19,8 @@ import { PaymentModule } from '../payment/payment.module';
   imports: [
     TypeOrmModule.forFeature([ChargeOrder]),
     SubscriptionModule,
-    PlanTermModule,
+    PlanModule,
+    UserModule,
     MercadoPagoModule,
     PaymentModule,
   ],

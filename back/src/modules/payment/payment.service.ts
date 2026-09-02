@@ -3,26 +3,161 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository, UpdateResult } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository, UpdateResult } from 'typeorm';
 import { Payment } from './entity/payment.entity';
 import { PaymentDto } from './dto/payment-dto';
 import { ManualPaymentDto } from './dto/manual-payment-dto';
 import { MercadoPagoPaymentDto } from './dto/mercadopago-payment-dto';
+import { PlanCheckoutDto } from './dto/plan-checkout-dto';
+import { PaymentQueryDto } from './dto/payment-query-dto';
 import { PaymentState } from './enum/payment-state.enum';
 import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { UserService } from '../user/user.service';
+import { PlanService } from '../plan/plan.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
+import { resolveTerm } from '../plan/plan-duration.rules';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly subscriptionService: subscriptionService,
+    private readonly planService: PlanService,
+    private readonly planDurationService: PlanDurationService,
     private readonly userService: UserService,
   ) {}
+
+  // One in-person sale, written atomically. The old path — assignPlanToMember,
+  // then POST /Payment/manual — was two independent requests with no unit of
+  // work between them: a failure after the first left the member with an
+  // active plan and no payment on record.
+  async registerPlanPayment(dto: PlanCheckoutDto, adminId: number) {
+    // Validation happens outside the transaction: it takes no locks, and a
+    // rejected sale should not have opened one.
+    const member = await this.userService.findUser(dto.userId);
+    if (!member || member.deleted) {
+      throw new NotFoundException(`El socio con ID: ${dto.userId} no existe.`);
+    }
+
+    const plan = await this.planService.findPlan(dto.planId);
+    if (!plan) {
+      throw new NotFoundException(`El plan con ID: ${dto.planId} no existe.`);
+    }
+
+    const durations = await this.planDurationService.findByPlan(dto.planId);
+    const term = resolveTerm(plan, dto.months, durations);
+
+    return this.dataSource.transaction(async (manager) => {
+      const subscription =
+        await this.subscriptionService.replaceActiveSubscription(manager, {
+          userId: dto.userId,
+          planId: dto.planId,
+          term,
+          soldPrice: dto.amount,
+        });
+
+      const payment = manager.create(Payment, {
+        subscriptionId: subscription.id,
+        amount: dto.amount,
+        payMethod: dto.payMethod,
+        date: new Date(),
+        state: PaymentState.COMPLETED,
+        registeredById: adminId,
+        // Without this the column default of 1 records every multi-month sale
+        // as a single month. Nothing reads it today, but the data is wrong
+        // the moment anything does.
+        termMonths: term.months,
+        // The plan's own monthly list price — same meaning the field already
+        // carries in createFromMercadoPago. Not the discounted amount: that
+        // is what `amount` and the subscription's soldPrice record.
+        monthlyPriceAtPurchase: plan.price,
+        deleted: false,
+      });
+
+      return manager.save(payment);
+    });
+  }
+
+  // The webhook's counterpart to registerPlanPayment: same unit of work, but
+  // triggered by Mercado Pago confirming an approved payment rather than by
+  // the admin's own request. The subscription is created HERE and nowhere
+  // earlier, so an abandoned or declined charge leaves the member's
+  // membership untouched.
+  async confirmPlanCharge(input: {
+    mpPaymentId: string;
+    userId: number;
+    planId: number;
+    months: number;
+    amount: number;
+    payMethod: string;
+    registeredById?: number | null;
+  }): Promise<{ payment: Payment; subscription: Subscription }> {
+    // Idempotency first: Mercado Pago retries a notification up to eight
+    // times over four days, and a retry must not sell the plan twice.
+    const existing = await this.findByMpPaymentId(input.mpPaymentId);
+    if (existing) {
+      return { payment: existing, subscription: existing.subscription };
+    }
+
+    const plan = await this.planService.findPlan(input.planId);
+    if (!plan) {
+      throw new NotFoundException(`El plan con ID: ${input.planId} no existe.`);
+    }
+
+    const durations = await this.planDurationService.findByPlan(input.planId);
+    const term = resolveTerm(plan, input.months, durations);
+
+    const { payment, subscription } = await this.dataSource.transaction(
+      async (manager) => {
+        const subscription =
+          await this.subscriptionService.replaceActiveSubscription(manager, {
+            userId: input.userId,
+            planId: input.planId,
+            term,
+            soldPrice: input.amount,
+          });
+
+        const payment = manager.create(Payment, {
+          subscriptionId: subscription.id,
+          mpPaymentId: input.mpPaymentId,
+          amount: input.amount,
+          payMethod: input.payMethod,
+          date: new Date(),
+          state: PaymentState.COMPLETED,
+          registeredById: input.registeredById ?? null,
+          termMonths: term.months,
+          // Same convention as createFromMercadoPago: the plan's monthly list
+          // price, not the discounted amount.
+          monthlyPriceAtPurchase: plan.price,
+          deleted: false,
+        });
+
+        return { payment: await manager.save(payment), subscription };
+      },
+    );
+
+    // replaceActiveSubscription returns manager.save(created) — a plain
+    // save(), which TypeORM never runs eager relations for (those only load
+    // on find/findOne). Subscription.user/plan are eager:true, so without
+    // this re-fetch the caller (WebhookService, for the receipt email) gets
+    // a subscription with user/plan undefined. Outside the transaction: the
+    // write already committed, so this read needs no lock.
+    const hydratedSubscription =
+      await this.subscriptionService.findSubscription(subscription.id);
+    if (!hydratedSubscription) {
+      throw new NotFoundException(
+        `La suscripción con ID: ${subscription.id} no existe.`,
+      );
+    }
+
+    return { payment, subscription: hydratedSubscription };
+  }
 
   // In-person payment recorded by an admin (see specs.md §3.5). Still the
   // only way a payment gets written until Mercado Pago exists.
@@ -333,12 +468,21 @@ export class PaymentService {
   // done by hand rather than through `relations`. One findUser() call per
   // distinct admin, not per payment: a front desk records many payments a
   // day under a handful of admins.
-  async findAll() {
-    const payments = await this.paymentRepository.find({
+  //
+  // Before this, every non-deleted payment came back with its member and
+  // plan joined and the client threw away everything past the 25th.
+  // Subscription's user and plan relations are eager, so each row carried a
+  // full user and a full plan including its features JSON — about a
+  // kilobyte a row, growing by one row per member per month, forever.
+  async findAll(query: PaymentQueryDto) {
+    const [payments, total] = await this.paymentRepository.findAndCount({
       where: { deleted: false },
       // Explicit relations down to 'user'/'plan': eager:true on the
       // Subscription entity cannot be assumed to cascade here.
       relations: { subscription: { user: true, plan: true } },
+      order: { date: 'DESC' },
+      take: query.limit,
+      skip: query.offset,
     });
 
     const adminIds = [
@@ -357,13 +501,16 @@ export class PaymentService {
       }
     }
 
-    return payments.map((p) => ({
-      ...p,
-      registeredByName:
-        p.registeredById != null
-          ? (adminNames.get(p.registeredById) ?? null)
-          : null,
-    }));
+    return {
+      items: payments.map((p) => ({
+        ...p,
+        registeredByName:
+          p.registeredById != null
+            ? (adminNames.get(p.registeredById) ?? null)
+            : null,
+      })),
+      total,
+    };
   }
 
   async findAllDeleted() {

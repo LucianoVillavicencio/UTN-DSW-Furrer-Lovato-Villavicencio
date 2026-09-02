@@ -216,8 +216,22 @@ export class MercadoPagoClient {
     err: unknown,
   ): MercadoPagoUnavailableError {
     const detail = err instanceof Error ? err.message : String(err);
+    // status/causes are MP's own HTTP status code and structured validation
+    // feedback about the REQUEST we sent — not secrets, and the only way to
+    // tell "invalid token" (401) apart from "bad request shape" (400) apart
+    // from "server outage" (5xx) from this message alone.
+    const status = (err as { status?: unknown } | null)?.status;
+    const causes = (err as { causes?: unknown } | null)?.causes;
+    const extra = [
+      status ? `status=${JSON.stringify(status)}` : null,
+      causes && Array.isArray(causes) && causes.length > 0
+        ? `causes=${JSON.stringify(causes)}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
     return new MercadoPagoUnavailableError(
-      `Mercado Pago request failed (${operation}): ${detail}`,
+      `Mercado Pago request failed (${operation}): ${detail}${extra ? ` [${extra}]` : ''}`,
     );
   }
 

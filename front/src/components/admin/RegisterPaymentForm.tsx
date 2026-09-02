@@ -1,22 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import FormAlert from '../common/FormAlert';
-import { searchUsers } from '../../services/user.service';
+import MemberSearchField from './MemberSearchField';
 import { getSubscriptionsByUser } from '../../services/subscription.service';
 import { createManualPayment } from '../../services/payment.service';
 import { parsePriceInput, formatPriceDisplay } from '../../lib/currency';
+import { PAY_METHODS } from './plan-charge';
 import type { User } from '../../types/user';
 import type { Subscription } from '../../types/subscription';
 import type { Payment } from '../../types/payment';
-
-const PAY_METHODS = [
-  { value: 'efectivo', label: 'Efectivo' },
-  { value: 'debito', label: 'Débito' },
-  { value: 'credito', label: 'Crédito' },
-  { value: 'transferencia', label: 'Transferencia' },
-];
 
 interface RegisterPaymentFormProps {
   presetUser?: User;
@@ -27,10 +20,6 @@ const RegisterPaymentForm = ({
   presetUser,
   onRegistered,
 }: RegisterPaymentFormProps) => {
-  const [searchMode, setSearchMode] = useState<'dni' | 'email' | 'name'>('dni');
-  const [searchValue, setSearchValue] = useState('');
-  const [results, setResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(
@@ -52,7 +41,7 @@ const RegisterPaymentForm = ({
 
   const [amount, setAmount] = useState('');
   const [termMonths, setTermMonths] = useState('1');
-  const [payMethod, setPayMethod] = useState(PAY_METHODS[0].value);
+  const [payMethod, setPayMethod] = useState<string>(PAY_METHODS[0].value);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -60,18 +49,24 @@ const RegisterPaymentForm = ({
   useEffect(() => {
     if (!selectedUser) return;
     const userId = selectedUser.id;
+    let isCurrent = true;
+
     void getSubscriptionsByUser(userId)
       .then((subs) => {
+        // A response for a member the admin has already moved off used to write
+        // state anyway: the spinner never cleared, and the amount field was
+        // overwritten with the previous member's price.
+        if (!isCurrent) return;
         setLoadedSubs({ userId, items: subs });
         const active = subs.find(
           (s) => s.state?.toLowerCase() === 'activa' && !s.deleted,
         );
         setSelectedSubId(active?.id ?? subs[0]?.id ?? '');
-        if (active?.plan?.price) {
-          setAmount(formatPriceDisplay(active.plan.price));
-        }
+        const price = active?.plan?.price;
+        setAmount(price != null ? formatPriceDisplay(price) : '');
       })
       .catch((err: unknown) => {
+        if (!isCurrent) return;
         setLoadedSubs({ userId, items: [] });
         setSearchError(
           err instanceof Error
@@ -79,35 +74,17 @@ const RegisterPaymentForm = ({
             : 'No se pudieron cargar las suscripciones.',
         );
       });
-  }, [selectedUser]);
 
-  const handleSearch = async () => {
-    if (!searchValue.trim()) return;
-    setIsSearching(true);
-    setSearchError(null);
-    setResults([]);
-    try {
-      const query = {
-        [searchMode]: searchMode === 'dni' ? Number(searchValue) : searchValue,
-      };
-      const data = await searchUsers(query);
-      setResults(data);
-      if (data.length === 0) {
-        setSearchError('No se encontraron usuarios con ese criterio.');
-      }
-    } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'No se pudo buscar.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedUser]);
 
   const handleSelectSub = (subId: number) => {
     setSelectedSubId(subId);
     const sub = subscriptions.find((s) => s.id === subId);
-    if (sub?.plan?.price) {
-      setAmount(formatPriceDisplay(sub.plan.price));
-    }
+    const price = sub?.plan?.price;
+    setAmount(price != null ? formatPriceDisplay(price) : '');
   };
 
   const handleSubmit = async () => {
@@ -161,68 +138,7 @@ const RegisterPaymentForm = ({
   return (
     <div className="space-y-4">
       {!presetUser && !selectedUser && (
-        <div className="space-y-3">
-          <div className="flex items-end gap-2">
-            <div className="w-28 shrink-0">
-              <label className="mb-1.5 block font-body text-xs sm:text-sm font-medium text-text">
-                Buscar por
-              </label>
-              <select
-                value={searchMode}
-                onChange={(e) =>
-                  setSearchMode(e.target.value as typeof searchMode)
-                }
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text focus:border-primary focus:outline-none"
-              >
-                <option value="dni">DNI</option>
-                <option value="email">Email</option>
-                <option value="name">Nombre</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <InputField
-                label="Buscar socio"
-                placeholder="Buscar socio..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button
-              onClick={handleSearch}
-              disabled={isSearching}
-              size="sm"
-              className="shrink-0"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-          <FormAlert type="error" message={searchError} />
-          {results.length > 0 && (
-            <ul className="divide-y divide-border rounded-xl border border-border">
-              {results.map((u) => (
-                <li key={u.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedUser(u);
-                      setResults([]);
-                      setSearchValue('');
-                    }}
-                    className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-text hover:bg-surface"
-                  >
-                    <span>
-                      {u.name} {u.surname} — {u.email}
-                    </span>
-                    <span className="text-text-muted">
-                      DNI {u.dni ?? 'Sin DNI'}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <MemberSearchField onSelect={setSelectedUser} />
       )}
 
       {selectedUser && (
@@ -246,6 +162,8 @@ const RegisterPaymentForm = ({
               </button>
             )}
           </div>
+
+          <FormAlert type="error" message={searchError} />
 
           {isLoadingSubs ? (
             <p className="mt-3 text-sm text-text-muted">

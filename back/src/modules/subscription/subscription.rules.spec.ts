@@ -1,4 +1,5 @@
 import {
+  dayAfter,
   isCurrentOn,
   subscriptionPeriod,
   toDateOnly,
@@ -113,5 +114,15 @@ describe('renewalDueDates', () => {
 
   it('crosses a month boundary', () => {
     expect(renewalDueDates('2026-08-30')).toEqual(['2026-09-02', '2026-09-01', '2026-08-31']);
+  });
+});
+
+describe('dayAfter', () => {
+  it('returns the calendar day after the given date-only string', () => {
+    expect(toDateOnly(dayAfter('2026-08-30'))).toBe('2026-08-31');
+  });
+
+  it('crosses a month boundary correctly', () => {
+    expect(toDateOnly(dayAfter('2026-08-31'))).toBe('2026-09-01');
   });
 });

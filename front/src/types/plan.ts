@@ -16,3 +16,17 @@ export interface Plan {
   highlighted?: boolean;
   deleted?: boolean;
 }
+
+// Only 3, 6 and 12 exist. One month is the Plan's own price and numDays and
+// never appears as a duration row.
+export type DurationMonths = 3 | 6 | 12;
+
+export interface PlanDuration {
+  id?: number;
+  planId: number;
+  months: DurationMonths;
+  numDays: number;
+  // DECIMAL arrives from the API as a string; see lib/currency.ts.
+  price: number | string;
+  deleted?: boolean;
+}

@@ -1,4 +1,9 @@
-import type { Payment, ManualPaymentPayload } from '../types/payment';
+import type {
+  Payment,
+  ManualPaymentPayload,
+  PaymentPage,
+  PlanCheckoutPayload,
+} from '../types/payment';
 import { AxiosError } from 'axios';
 import api from './api';
 
@@ -47,13 +52,33 @@ export const createManualPayment = async (
   }
 };
 
-// Admin-only: every payment, for the "Pagos presenciales" section.
-export const getPayments = async (): Promise<Payment[]> => {
+// Admin-only: every payment, for the "Pagos presenciales" section. Paginated
+// on the backend — ordering and slicing both happen in SQL.
+export const getPayments = async (
+  query: { limit?: number; offset?: number } = {},
+): Promise<PaymentPage> => {
   try {
-    const { data } = await api.get<Payment[]>('/Payment');
+    const { data } = await api.get<PaymentPage>('/Payment', {
+      params: { limit: query.limit ?? 25, offset: query.offset ?? 0 },
+    });
     return data;
   } catch (error) {
     throw new Error(getErrorMessage(error, 'Error al obtener lista de pagos'), {
+      cause: error,
+    });
+  }
+};
+
+// Admin-only: one in-person sale — plan, duration, amount and method — written
+// as a single transaction on the backend.
+export const registerPlanCheckout = async (
+  payload: PlanCheckoutPayload,
+): Promise<Payment> => {
+  try {
+    const { data } = await api.post<Payment>('/Payment/checkout', payload);
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'No se pudo registrar el cobro.'), {
       cause: error,
     });
   }

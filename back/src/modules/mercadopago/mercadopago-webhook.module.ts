@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MercadoPagoModule } from './mercadopago.module';
 import { PaymentModule } from '../payment/payment.module';
-import { SubscriptionModule } from '../subscription/subscription.module';
 import { MailModule } from '../../common/mail/mail.module';
 import { ChargeOrderModule } from '../chargeOrder/chargeOrder.module';
 import { ChargeOrderResolverAdapter } from '../chargeOrder/chargeOrder-resolver.adapter';
@@ -15,8 +14,10 @@ import { ORDER_RESOLVER, WebhookService } from './webhook.service';
  * only, `controllers: []`, never imports another feature module) precisely
  * so every feature that needs to talk to Mercado Pago can import it without
  * risk of a circular module graph. The webhook needs more than that leaf —
- * `PaymentService` to record a payment, `subscriptionService` to build the
- * receipt email, `MailService` to send it, and (since Task 16) `ChargeOrderModule`
+ * `PaymentService` to record a payment (its `confirmPlanCharge` re-hydrates
+ * the subscription's `user`/`plan` itself, so this module has no direct use
+ * for `SubscriptionModule`), `MailService` to send the receipt built from
+ * that hydrated subscription, and (since Task 16) `ChargeOrderModule`
  * to resolve/close front-desk card and QR orders. `ChargeOrderModule` itself
  * imports `MercadoPagoModule` (to create orders on MP from its own
  * controller), never this module — so the graph stays
@@ -30,13 +31,7 @@ import { ORDER_RESOLVER, WebhookService } from './webhook.service';
  * notification as a no-op, never a crash or a write.
  */
 @Module({
-  imports: [
-    MercadoPagoModule,
-    PaymentModule,
-    SubscriptionModule,
-    MailModule,
-    ChargeOrderModule,
-  ],
+  imports: [MercadoPagoModule, PaymentModule, MailModule, ChargeOrderModule],
   controllers: [WebhookController, WebhookRootController],
   providers: [
     WebhookService,

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { Payment } from './entity/payment.entity';
@@ -7,6 +7,8 @@ import { subscriptionService } from '../subscription/subscription.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
 import { UserService } from '../user/user.service';
 import { PaymentState } from './enum/payment-state.enum';
+import { PlanService } from '../plan/plan.service';
+import { PlanDurationService } from '../plan/plan-duration.service';
 
 describe('PaymentService.createManualPayment', () => {
   let service: PaymentService;
@@ -28,7 +30,10 @@ describe('PaymentService.createManualPayment', () => {
       providers: [
         PaymentService,
         { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
         { provide: UserService, useValue: users },
       ],
     }).compile();
@@ -111,7 +116,10 @@ describe('createManualPayment — advance payment', () => {
       providers: [
         PaymentService,
         { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
         { provide: UserService, useValue: users },
       ],
     }).compile();
@@ -342,7 +350,10 @@ describe('createFromMercadoPago', () => {
       providers: [
         PaymentService,
         { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
         { provide: UserService, useValue: users },
       ],
     }).compile();
@@ -623,15 +634,21 @@ describe('createFromMercadoPago', () => {
 
 describe('PaymentService.findAll', () => {
   let service: PaymentService;
-  let repository: { find: jest.Mock };
+  let paymentRepository: { findAndCount: jest.Mock };
   let users: { findUser: jest.Mock };
 
   const buildService = async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PaymentService,
-        { provide: getRepositoryToken(Payment), useValue: repository },
+        {
+          provide: getRepositoryToken(Payment),
+          useValue: paymentRepository,
+        },
+        { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: {} },
+        { provide: PlanService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
         { provide: UserService, useValue: users },
       ],
     }).compile();
@@ -640,8 +657,10 @@ describe('PaymentService.findAll', () => {
   };
 
   it('attaches the recording admin name to a payment with registeredById', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([{ id: 1, registeredById: 30111222 }]),
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: 30111222 }], 1]),
     };
     users = {
       findUser: jest
@@ -650,30 +669,35 @@ describe('PaymentService.findAll', () => {
     };
     await buildService();
 
-    const result = await service.findAll();
+    const result = await service.findAll({ limit: 25, offset: 0 });
 
-    expect(result[0].registeredByName).toBe('Ana Pérez');
+    expect(result.items[0].registeredByName).toBe('Ana Pérez');
     expect(users.findUser).toHaveBeenCalledWith(30111222);
   });
 
   it('leaves registeredByName null for a payment with no recording admin', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([{ id: 1, registeredById: null }]),
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: null }], 1]),
     };
     users = { findUser: jest.fn() };
     await buildService();
 
-    const result = await service.findAll();
+    const result = await service.findAll({ limit: 25, offset: 0 });
 
-    expect(result[0].registeredByName).toBeNull();
+    expect(result.items[0].registeredByName).toBeNull();
     expect(users.findUser).not.toHaveBeenCalled();
   });
 
   it('looks up each distinct admin only once', async () => {
-    repository = {
-      find: jest.fn().mockResolvedValue([
-        { id: 1, registeredById: 30111222 },
-        { id: 2, registeredById: 30111222 },
+    paymentRepository = {
+      findAndCount: jest.fn().mockResolvedValue([
+        [
+          { id: 1, registeredById: 30111222 },
+          { id: 2, registeredById: 30111222 },
+        ],
+        2,
       ]),
     };
     users = {
@@ -683,9 +707,392 @@ describe('PaymentService.findAll', () => {
     };
     await buildService();
 
-    await service.findAll();
+    await service.findAll({ limit: 25, offset: 0 });
 
     expect(users.findUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('orders by date descending in SQL and applies the window', async () => {
+    paymentRepository = {
+      findAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
+    users = { findUser: jest.fn() };
+    await buildService();
+
+    await service.findAll({ limit: 25, offset: 50 });
+    expect(paymentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { deleted: false },
+        order: { date: 'DESC' },
+        take: 25,
+        skip: 50,
+      }),
+    );
+  });
+
+  it('returns the total alongside the page', async () => {
+    paymentRepository = {
+      findAndCount: jest
+        .fn()
+        .mockResolvedValue([[{ id: 1, registeredById: null }], 137]),
+    };
+    users = { findUser: jest.fn() };
+    await buildService();
+
+    const result = await service.findAll({ limit: 25, offset: 0 });
+    expect(result.total).toBe(137);
+    expect(result.items).toHaveLength(1);
+  });
+});
+
+describe('PaymentService.registerPlanPayment', () => {
+  let service: PaymentService;
+  let repository: { create: jest.Mock; save: jest.Mock };
+  let dataSource: { transaction: jest.Mock };
+  let manager: { create: jest.Mock; save: jest.Mock; find: jest.Mock };
+  let subscriptions: { replaceActiveSubscription: jest.Mock };
+  let plans: { findPlan: jest.Mock };
+  let durations: { findByPlan: jest.Mock };
+  let users: { findUser: jest.Mock };
+
+  const dto = {
+    userId: 5,
+    planId: 2,
+    months: 6,
+    amount: 300,
+    payMethod: 'efectivo',
+  };
+
+  beforeEach(async () => {
+    repository = {
+      create: jest.fn((entity: object) => entity),
+      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+    };
+    manager = {
+      // Mirrors real TypeORM: manager.create(EntityClass, data) returns an
+      // actual instance of EntityClass, not a plain object. The rollback
+      // test below relies on `entity instanceof Payment` being true.
+      create: jest.fn((entityClass: new () => object, data: object) =>
+        Object.assign(new entityClass(), data),
+      ),
+      save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+      find: jest.fn().mockResolvedValue([]),
+    };
+    dataSource = {
+      // Actually invokes the callback with the mock manager and returns its
+      // promise as-is, so a callback rejection propagates out of
+      // dataSource.transaction(...) exactly like TypeORM's real rollback.
+      transaction: jest.fn((cb: (manager: unknown) => Promise<unknown>) =>
+        cb(manager),
+      ),
+    };
+    subscriptions = {
+      replaceActiveSubscription: jest.fn().mockResolvedValue({ id: 42 }),
+    };
+    plans = {
+      findPlan: jest.fn().mockResolvedValue({
+        id: 2,
+        name: 'Premium',
+        price: 100,
+        numDays: 30,
+        deleted: false,
+      }),
+    };
+    durations = {
+      findByPlan: jest.fn().mockResolvedValue([
+        {
+          id: 9,
+          planId: 2,
+          months: 6,
+          numDays: 180,
+          price: 300,
+          deleted: false,
+        },
+      ]),
+    };
+    users = {
+      findUser: jest.fn().mockResolvedValue({ id: 5, deleted: false }),
+    };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentService,
+        { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: getDataSourceToken(), useValue: dataSource },
+        { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: plans },
+        { provide: PlanDurationService, useValue: durations },
+        { provide: UserService, useValue: users },
+      ],
+    }).compile();
+
+    service = moduleRef.get(PaymentService);
+  });
+
+  it('writes the subscription and the payment together', async () => {
+    const payment = await service.registerPlanPayment(dto, 1);
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalled();
+    // Not just "called" — called with the SAME manager instance the
+    // transaction callback received, so the subscription write is genuinely
+    // inside dataSource.transaction(...) rather than issued against some
+    // other (non-transactional) manager that merely looks equivalent.
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.anything(),
+    );
+    expect(payment).toMatchObject({
+      subscriptionId: 42,
+      amount: 300,
+      payMethod: 'efectivo',
+      registeredById: 1,
+      state: 'completado',
+    });
+  });
+
+  it('leaves no subscription behind when the payment insert fails', async () => {
+    // The finding-6 regression. This is the only test that proves the
+    // transaction is real rather than decorative.
+    manager.save.mockImplementation((entity: unknown) => {
+      if (entity instanceof Payment) throw new Error('insert failed');
+      return Promise.resolve(entity);
+    });
+    await expect(service.registerPlanPayment(dto, 1)).rejects.toThrow(
+      'insert failed',
+    );
+    expect(dataSource.transaction).toHaveBeenCalled();
+    // dataSource.transaction rethrows after rolling back; the mock asserts
+    // the callback threw rather than swallowing.
+    //
+    // And critically: the subscription write went through the SAME manager
+    // instance the transaction callback received. Without this, a future
+    // regression that calls replaceActiveSubscription OUTSIDE
+    // dataSource.transaction(...) — breaking the atomicity this task exists
+    // to add — would still make every test in this file pass, since
+    // manager.save's mock throws purely on `entity instanceof Payment`,
+    // independent of which manager instance issued the subscription write.
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.anything(),
+    );
+  });
+
+  it('refuses a deleted member', async () => {
+    users.findUser.mockResolvedValue({ id: 5, deleted: true });
+    await expect(service.registerPlanPayment(dto, 1)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('refuses a deleted plan', async () => {
+    plans.findPlan.mockResolvedValue(null);
+    await expect(service.registerPlanPayment(dto, 1)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('refuses a duration the plan does not offer', async () => {
+    durations.findByPlan.mockResolvedValue([]);
+    await expect(service.registerPlanPayment(dto, 1)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('resolves the period itself and ignores anything the client sent', async () => {
+    await service.registerPlanPayment({ ...dto, months: 6 }, 1);
+    const [, input] = subscriptions.replaceActiveSubscription.mock.calls[0] as [
+      unknown,
+      { term: { numDays: number } },
+    ];
+    expect(input.term.numDays).toBe(180);
+  });
+
+  it('records the term it sold, not the column default', async () => {
+    await service.registerPlanPayment(
+      {
+        userId: 3,
+        planId: 12,
+        months: 6,
+        amount: 27000,
+        payMethod: 'efectivo',
+      },
+      30111222,
+    );
+
+    expect(manager.create).toHaveBeenCalledWith(
+      Payment,
+      expect.objectContaining({ termMonths: 6, amount: 27000 }),
+    );
+  });
+});
+
+describe('PaymentService.confirmPlanCharge', () => {
+  let service: PaymentService;
+  let paymentRepository: { findOne: jest.Mock };
+  let dataSource: { transaction: jest.Mock };
+  let manager: { create: jest.Mock; save: jest.Mock };
+  let subscriptions: {
+    replaceActiveSubscription: jest.Mock;
+    findSubscription: jest.Mock;
+  };
+  let plans: { findPlan: jest.Mock };
+  let durations: { findByPlan: jest.Mock };
+  let users: { findUser: jest.Mock };
+
+  // What replaceActiveSubscription's manager.save(created) actually returns:
+  // no user/plan, since TypeORM never runs eager relations for a plain
+  // save(). Distinct object identity from the hydrated version below, so a
+  // test asserting on the RETURNED subscription proves the hydrated one —
+  // not this one — is what came back.
+  const unhydratedSubscription = { id: 55 };
+  // What findSubscription (a real findOne, which DOES run eager relations)
+  // returns: the same row, now carrying user/plan.
+  const hydratedSubscription = {
+    id: 55,
+    user: { email: 'a@b.c', name: 'Ana' },
+    plan: { name: 'Trimestral' },
+  };
+
+  const input = {
+    mpPaymentId: 'mp-1',
+    userId: 3,
+    planId: 12,
+    months: 3,
+    amount: 14000,
+    payMethod: 'point',
+    registeredById: 30111222,
+  };
+
+  beforeEach(async () => {
+    paymentRepository = {
+      findOne: jest.fn().mockResolvedValue(null),
+    };
+    manager = {
+      create: jest.fn((entityClass: new () => object, data: object) =>
+        Object.assign(new entityClass(), data),
+      ),
+      save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+    };
+    dataSource = {
+      transaction: jest.fn((cb: (manager: unknown) => Promise<unknown>) =>
+        cb(manager),
+      ),
+    };
+    subscriptions = {
+      replaceActiveSubscription: jest
+        .fn()
+        .mockResolvedValue(unhydratedSubscription),
+      findSubscription: jest.fn().mockResolvedValue(hydratedSubscription),
+    };
+    plans = {
+      findPlan: jest.fn().mockResolvedValue({
+        id: 12,
+        name: 'Trimestral',
+        price: 5000,
+        numDays: 30,
+        deleted: false,
+      }),
+    };
+    durations = {
+      findByPlan: jest.fn().mockResolvedValue([
+        {
+          id: 20,
+          planId: 12,
+          months: 3,
+          numDays: 90,
+          price: 14000,
+          deleted: false,
+        },
+      ]),
+    };
+    users = { findUser: jest.fn() };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentService,
+        { provide: getRepositoryToken(Payment), useValue: paymentRepository },
+        { provide: getDataSourceToken(), useValue: dataSource },
+        { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: plans },
+        { provide: PlanDurationService, useValue: durations },
+        { provide: UserService, useValue: users },
+      ],
+    }).compile();
+
+    service = moduleRef.get(PaymentService);
+  });
+
+  it('creates the subscription and the payment in one transaction', async () => {
+    const result = await service.confirmPlanCharge(input);
+
+    expect(subscriptions.replaceActiveSubscription).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({ userId: 3, planId: 12, soldPrice: 14000 }),
+    );
+    expect(manager.create).toHaveBeenCalledWith(
+      Payment,
+      expect.objectContaining({
+        mpPaymentId: 'mp-1',
+        termMonths: 3,
+        amount: 14000,
+        payMethod: 'point',
+      }),
+    );
+    expect(result.subscription).toBeDefined();
+    expect(result.payment).toBeDefined();
+  });
+
+  // Regression guard for the receipt-email bug: replaceActiveSubscription
+  // returns a plain manager.save() result, which TypeORM never populates
+  // eager relations for. A test that merely mocks replaceActiveSubscription
+  // to already return a fully-hydrated { user, plan } object — as this file
+  // used to — would pass even if the real code never re-fetched anything, and
+  // that is exactly how this bug shipped. Asserting the DISTINCT hydrated
+  // object came back, and that findSubscription was actually called with the
+  // id the transaction produced, exercises the real hydration call rather
+  // than assuming it.
+  it("hydrates the returned subscription's user/plan after the transaction commits", async () => {
+    const result = await service.confirmPlanCharge(input);
+
+    expect(subscriptions.findSubscription).toHaveBeenCalledWith(55);
+    expect(result.subscription).toBe(hydratedSubscription);
+    expect(result.subscription).not.toBe(unhydratedSubscription);
+    expect(result.subscription.user).toEqual({
+      email: 'a@b.c',
+      name: 'Ana',
+    });
+    expect(result.subscription.plan).toEqual({ name: 'Trimestral' });
+  });
+
+  it('fails loudly if the just-created subscription cannot be re-fetched', async () => {
+    // Should never happen in practice — the row was written moments earlier
+    // in the same request — but a null here must not silently hand the
+    // caller an under-hydrated subscription; that is the exact bug this
+    // hydration step exists to close.
+    subscriptions.findSubscription.mockResolvedValue(null);
+
+    await expect(service.confirmPlanCharge(input)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('is idempotent on mpPaymentId', async () => {
+    paymentRepository.findOne.mockResolvedValue({
+      id: 99,
+      mpPaymentId: 'mp-1',
+    });
+
+    const result = await service.confirmPlanCharge(input);
+
+    expect(result.payment.id).toBe(99);
+    expect(subscriptions.replaceActiveSubscription).not.toHaveBeenCalled();
+  });
+
+  it('rejects a plan that does not exist', async () => {
+    plans.findPlan.mockResolvedValue(null);
+
+    await expect(service.confirmPlanCharge(input)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });
 
@@ -723,7 +1130,10 @@ describe('PaymentService.createFailedPayment', () => {
       providers: [
         PaymentService,
         { provide: getRepositoryToken(Payment), useValue: repository },
+        { provide: getDataSourceToken(), useValue: {} },
         { provide: subscriptionService, useValue: subscriptions },
+        { provide: PlanService, useValue: {} },
+        { provide: PlanDurationService, useValue: {} },
         { provide: UserService, useValue: users },
       ],
     }).compile();

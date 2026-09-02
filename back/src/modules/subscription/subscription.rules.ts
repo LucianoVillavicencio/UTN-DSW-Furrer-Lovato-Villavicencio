@@ -89,3 +89,13 @@ export function renewalDueDates(today: string): string[] {
   }
   return dates;
 }
+
+// The calendar day after `dateOnly`, parsed from its local YYYY-MM-DD parts —
+// not `new Date(dateOnly)`, which JS reads as UTC midnight and which shifts a
+// day in Argentina (UTC-3). This is the same trap audit finding 3 documents
+// for a `datetime` column; here it is a `date` column but the parsing rule
+// that avoids it is identical.
+export function dayAfter(dateOnly: string): Date {
+  const [year, month, day] = dateOnly.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day + 1);
+}

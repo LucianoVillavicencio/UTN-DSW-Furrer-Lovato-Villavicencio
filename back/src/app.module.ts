@@ -7,7 +7,6 @@ import { buildTypeOrmConfig } from './config/typeorm.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PlanModule } from './modules/plan/plan.module';
-import { PlanTermModule } from './modules/planTerm/planTerm.module';
 import { TrainerModule } from './modules/trainer/trainer.module';
 import { ClassModule } from './modules/class/class.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -20,6 +19,7 @@ import { RenewalModule } from './modules/renewal/renewal.module';
 import { RefundModule } from './modules/refund/refund.module';
 import { MercadoPagoWebhookModule } from './modules/mercadopago/mercadopago-webhook.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { REGISTERED_THROTTLERS } from './auth/auth.throttle';
 import { SecurityLogInterceptor } from './common/interceptors/security-log.interceptor';
@@ -39,7 +39,6 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     UserModule,
     TypeClassModule,
     PlanModule,
-    PlanTermModule,
     TrainerModule,
     ClassModule,
     ClassSessionModule,
@@ -51,6 +50,7 @@ import { SecurityLogFilter } from './common/filters/security-log.filter';
     MercadoPagoWebhookModule,
     classRegistrationModule,
     ContactModule,
+    AnalyticsModule,
     AuthModule,
   ],
   controllers: [],

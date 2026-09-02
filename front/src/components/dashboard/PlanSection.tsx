@@ -5,17 +5,13 @@ import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
 import PlanCard from '../plans/PlanCard';
 import { enrichBackendPlan, type MembershipPlan } from '../plans/plans.data';
-import { termSavings } from './saved-card';
 import { getPlans } from '../../services/plan.service';
-import { getPlanTermsForPlan } from '../../services/planTerm.service';
 import {
   getMySubscription,
   changePlan,
 } from '../../services/subscription.service';
 import type { Subscription } from '../../types/subscription';
-import type { PlanTerm } from '../../types/planTerm';
 import { formatDateOnly } from '../../lib/date';
-import { formatPriceDisplay } from '../../lib/currency';
 
 const stateBadge: Record<string, string> = {
   activa: 'bg-primary/10 text-primary border-primary/30',
@@ -34,9 +30,6 @@ const PlanSection = () => {
   const [isChanging, setIsChanging] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-
-  const [terms, setTerms] = useState<PlanTerm[]>([]);
-  const [selectedTermId, setSelectedTermId] = useState<number | null>(null);
 
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
@@ -71,37 +64,6 @@ const PlanSection = () => {
     void fetchPlans();
   }, []);
 
-  // Fetches the discounted terms for whichever plan is pending confirmation.
-  // A failed or empty fetch does not block the confirm flow — it just leaves
-  // `terms` empty, and confirmChange falls back to the 1-month default.
-  // Clearing `terms`/`selectedTermId` when the dialog closes or switches plans
-  // happens at the call sites below (handleSelect, the Cancel button,
-  // confirmChange) rather than here, so this effect never calls setState
-  // synchronously in its body — only from the fetch's own callbacks.
-  useEffect(() => {
-    if (!pendingPlan?.id) return;
-
-    let cancelled = false;
-    getPlanTermsForPlan(pendingPlan.id)
-      .then((fetched) => {
-        if (cancelled) return;
-        setTerms(fetched);
-        // No API-side notion of a "default" term, so the first one returned
-        // (typically the cheapest / shortest) is picked as a reasonable
-        // default rather than leaving the selection empty.
-        setSelectedTermId(fetched.length > 0 ? fetched[0].id : null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTerms([]);
-        setSelectedTermId(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pendingPlan?.id]);
-
   const reload = () => {
     setIsLoading(true);
     setLoadError(null);
@@ -111,8 +73,6 @@ const PlanSection = () => {
   const handleSelect = (plan: MembershipPlan) => {
     setActionError(null);
     setActionSuccess(null);
-    setTerms([]);
-    setSelectedTermId(null);
     setPendingPlan(plan);
   };
 
@@ -121,17 +81,12 @@ const PlanSection = () => {
     setIsChanging(true);
     setActionError(null);
     try {
-      const updated = await changePlan(
-        pendingPlan.id,
-        selectedTermId ?? undefined,
-      );
+      const updated = await changePlan(pendingPlan.id);
       setSubscription(updated);
       setActionSuccess(
         `Tu cambio de plan a "${pendingPlan.name}" quedó pendiente. Acercate al gimnasio para abonarlo: el plan se activa cuando registremos tu pago, y mientras tanto seguís con tu plan actual.`,
       );
       setPendingPlan(null);
-      setTerms([]);
-      setSelectedTermId(null);
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : 'No se pudo cambiar de plan.',
@@ -253,41 +208,6 @@ const PlanSection = () => {
               pago, y mientras tanto seguís con tu plan actual.
             </p>
 
-            {terms.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  Elegí un plazo
-                </p>
-                {terms.map((term) => {
-                  const savings = termSavings(term, pendingPlan.numericPrice);
-                  return (
-                    <button
-                      key={term.id}
-                      type="button"
-                      onClick={() => setSelectedTermId(term.id)}
-                      className={`w-full rounded-xl border p-3 text-left transition-colors ${
-                        selectedTermId === term.id
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-body text-sm font-semibold text-text">
-                          {term.months} {term.months === 1 ? 'mes' : 'meses'}
-                        </span>
-                        <span className="font-body text-sm text-text">
-                          ${formatPriceDisplay(term.price)}
-                        </span>
-                      </div>
-                      {savings && (
-                        <p className="mt-1 text-xs text-primary">{savings}</p>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
             <div className="mt-6 flex gap-3">
               <Button
                 onClick={confirmChange}
@@ -298,11 +218,7 @@ const PlanSection = () => {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  setPendingPlan(null);
-                  setTerms([]);
-                  setSelectedTermId(null);
-                }}
+                onClick={() => setPendingPlan(null)}
                 disabled={isChanging}
               >
                 Cancelar

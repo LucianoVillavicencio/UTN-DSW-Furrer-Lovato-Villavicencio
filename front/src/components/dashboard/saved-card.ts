@@ -1,6 +1,4 @@
-import { formatPriceDisplay } from '../../lib/currency';
 import type { SavedCard } from '../../types/savedCard';
-import type { PlanTerm } from '../../types/planTerm';
 
 // 'visa' -> 'Visa'. MP's payment method ids are already lowercase single
 // words (visa, master, amex), so a lookup table per issuer is not needed.
@@ -38,18 +36,4 @@ export function cardExpiryWarning(
   }
 
   return 'Tu tarjeta vence pronto. Actualizala para no perder la renovación automática.';
-}
-
-// "Ahorrás $X" when the term's total price beats paying monthlyPrice for
-// term.months separate months, else null.
-export function termSavings(
-  term: Pick<PlanTerm, 'months' | 'price'>,
-  monthlyPrice: number | string,
-): string | null {
-  const fullPrice = term.months * Number(monthlyPrice);
-  const termPrice = Number(term.price);
-  if (!(termPrice < fullPrice)) return null;
-
-  const savedAmount = fullPrice - termPrice;
-  return `Ahorrás $${formatPriceDisplay(savedAmount)}`;
 }
