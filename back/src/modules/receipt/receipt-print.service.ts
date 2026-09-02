@@ -34,6 +34,56 @@ export interface PrintPaymentReceiptResult {
   errorMessage?: string;
 }
 
+// A short blocking window, not the 30-60s a full "wait for finished" cycle
+// would take — this runs inside the HTTP request that created the Payment or
+// the Users row, and an admin is standing at the counter waiting on it.
+export const POLL_INTERVAL_MS = 2000;
+export const MAX_POLL_ATTEMPTS = 6;
+
+export type ActionQueueOutcome = 'left_queue' | 'stuck';
+
+export interface ActionQueuePollResult {
+  outcome: ActionQueueOutcome;
+  lastStatus?: string;
+}
+
+/**
+ * Polls a just-created terminal action until it leaves Mercado Pago's
+ * `created` state (accepted by the API, not yet fetched by the terminal) or
+ * the poll budget runs out. A terminal can silently fail to pick up a queued
+ * action — confirmed against a real Point Smart on 2026-09-02: the same
+ * image printed successfully once, then the identical content, sent again
+ * minutes later, sat in `created` forever and the terminal's own "Actualizar"
+ * button reported "no hay operaciones para procesar" — Mercado Pago Support
+ * calls this a terminal↔server sync issue, not a content/format problem. An
+ * action left in `created` blocks every later print with
+ * `already_queued_order_on_terminal` until it expires or is cancelled, so
+ * this polls briefly and cancels it rather than leaving that trap for the
+ * next print. `getStatus` and `sleep` are injected so the retry policy is
+ * testable without real timers.
+ */
+export async function waitForActionToLeaveQueue(
+  getStatus: () => Promise<string | undefined>,
+  sleep: (ms: number) => Promise<void>,
+  pollIntervalMs = POLL_INTERVAL_MS,
+  maxAttempts = MAX_POLL_ATTEMPTS,
+): Promise<ActionQueuePollResult> {
+  let lastStatus: string | undefined;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    lastStatus = await getStatus();
+    if (lastStatus && lastStatus !== 'created') {
+      return { outcome: 'left_queue', lastStatus };
+    }
+    if (attempt < maxAttempts - 1) {
+      await sleep(pollIntervalMs);
+    }
+  }
+  return { outcome: 'stuck', lastStatus };
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Renders and prints a document on a Point terminal — the informational
  * "cash/transferencia" payment ticket or a member's credentials slip — and
@@ -143,6 +193,45 @@ export class ReceiptPrintService {
         externalReference,
         idempotencyKey,
       );
+    }
+
+    if (actionId) {
+      const currentActionId = actionId;
+      const { outcome, lastStatus } = await waitForActionToLeaveQueue(
+        async () => {
+          try {
+            const action = await this.printerClient.getAction(currentActionId);
+            return action?.status;
+          } catch {
+            return undefined;
+          }
+        },
+        sleep,
+      );
+
+      if (outcome === 'stuck') {
+        await this.printerClient.cancelAction(currentActionId).catch(() => {});
+        const errorMessage =
+          'La terminal no confirmó la impresión a tiempo. Puede haber un problema de conexión — revisá el equipo e intentá de nuevo.';
+        this.logger.warn(
+          `Print action ${currentActionId} for ${documentType} ${documentId} stayed queued past the poll window; cancelled.`,
+        );
+        await this.persist({
+          documentType,
+          documentId,
+          terminalId,
+          externalReference,
+          idempotencyKey,
+          actionId: currentActionId,
+          actionStatus: lastStatus ?? 'created',
+          contentHash,
+          status: 'error',
+          errorMessage,
+        });
+        return { status: 'error', errorMessage };
+      }
+
+      actionStatus = lastStatus ?? actionStatus;
     }
 
     await this.persist({

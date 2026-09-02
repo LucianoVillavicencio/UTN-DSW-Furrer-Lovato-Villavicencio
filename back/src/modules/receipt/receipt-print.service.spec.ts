@@ -1,4 +1,9 @@
-import { ReceiptPrintService } from './receipt-print.service';
+import {
+  ReceiptPrintService,
+  waitForActionToLeaveQueue,
+  POLL_INTERVAL_MS,
+  MAX_POLL_ATTEMPTS,
+} from './receipt-print.service';
 import { MercadoPagoTerminalPrinterClient } from '../mercadopago/mercadopago-printer.client';
 import { renderReceiptToJpegBuffer } from './receipt.render';
 
@@ -14,7 +19,11 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     save: jest.Mock;
     findOne: jest.Mock;
   };
-  let printerClient: { printReceiptImage: jest.Mock };
+  let printerClient: {
+    printReceiptImage: jest.Mock;
+    getAction: jest.Mock;
+    cancelAction: jest.Mock;
+  };
   let service: ReceiptPrintService;
 
   const input = {
@@ -33,7 +42,14 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
     };
-    printerClient = { printReceiptImage: jest.fn() };
+    printerClient = {
+      printReceiptImage: jest.fn(),
+      // Defaults to "already left the queue" so the watchdog exits on its
+      // first check with no sleep — tests that don't care about the
+      // watchdog stay fast. Only the watchdog-specific tests override this.
+      getAction: jest.fn().mockResolvedValue({ status: 'processed' }),
+      cancelAction: jest.fn().mockResolvedValue(undefined),
+    };
     mockedRender.mockResolvedValue(Buffer.from('fake-jpeg-bytes'));
     service = new ReceiptPrintService(
       repository as never,
@@ -66,9 +82,10 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
         status: 'sent',
         externalReference: 'receipt-payment-42',
         actionId: 'action-1',
-        actionStatus: 'created',
+        actionStatus: 'processed',
       }),
     );
+    expect(printerClient.getAction).toHaveBeenCalledWith('action-1');
   });
 
   it('never sends PII in externalReference', async () => {
@@ -176,6 +193,95 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
 
     await expect(service.printPaymentReceipt(input)).resolves.toBeDefined();
   });
+
+  // Confirmed against a real Point Smart on 2026-09-02: an accepted print
+  // action can sit in `created` forever — the terminal never fetches it, and
+  // pressing its own "Actualizar" button reported nothing pending. Left
+  // alone, that action blocks every later print with
+  // `already_queued_order_on_terminal`.
+  it('cancels an action that never leaves the queue and persists an error, without throwing', async () => {
+    jest.useFakeTimers();
+    try {
+      printerClient.printReceiptImage.mockResolvedValue({
+        idempotencyKey: 'idem-1',
+        actionId: 'stuck-action',
+        status: 'created',
+        responseBody: {},
+      });
+      printerClient.getAction.mockResolvedValue({ status: 'created' });
+
+      const resultPromise = service.printPaymentReceipt(input);
+      for (let i = 0; i < MAX_POLL_ATTEMPTS - 1; i += 1) {
+        await jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+      }
+      const result = await resultPromise;
+
+      expect(result.status).toBe('error');
+      expect(printerClient.getAction).toHaveBeenCalledTimes(MAX_POLL_ATTEMPTS);
+      expect(printerClient.cancelAction).toHaveBeenCalledWith('stuck-action');
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentType: 'payment',
+          documentId: 42,
+          status: 'error',
+          actionId: 'stuck-action',
+          actionStatus: 'created',
+        }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('waitForActionToLeaveQueue (retry/cancel policy)', () => {
+  const instantSleep = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    instantSleep.mockClear();
+  });
+
+  it('returns immediately once the status leaves "created"', async () => {
+    const getStatus = jest.fn().mockResolvedValue('processed');
+
+    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 5);
+
+    expect(result).toEqual({ outcome: 'left_queue', lastStatus: 'processed' });
+    expect(getStatus).toHaveBeenCalledTimes(1);
+    expect(instantSleep).not.toHaveBeenCalled();
+  });
+
+  it('keeps polling while the status stays "created", then reports "stuck"', async () => {
+    const getStatus = jest.fn().mockResolvedValue('created');
+
+    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 4);
+
+    expect(result).toEqual({ outcome: 'stuck', lastStatus: 'created' });
+    expect(getStatus).toHaveBeenCalledTimes(4);
+    expect(instantSleep).toHaveBeenCalledTimes(3);
+  });
+
+  it('treats an undefined status (a failed lookup) the same as still-queued', async () => {
+    const getStatus = jest.fn().mockResolvedValue(undefined);
+
+    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 2);
+
+    expect(result).toEqual({ outcome: 'stuck', lastStatus: undefined });
+  });
+
+  it('stops polling as soon as the status changes, even mid-window', async () => {
+    const getStatus = jest
+      .fn()
+      .mockResolvedValueOnce('created')
+      .mockResolvedValueOnce('created')
+      .mockResolvedValueOnce('on_terminal');
+
+    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 6);
+
+    expect(result).toEqual({ outcome: 'left_queue', lastStatus: 'on_terminal' });
+    expect(getStatus).toHaveBeenCalledTimes(3);
+    expect(instantSleep).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('ReceiptPrintService.printCredentialsSlip', () => {
@@ -184,7 +290,11 @@ describe('ReceiptPrintService.printCredentialsSlip', () => {
     save: jest.Mock;
     findOne: jest.Mock;
   };
-  let printerClient: { printReceiptImage: jest.Mock };
+  let printerClient: {
+    printReceiptImage: jest.Mock;
+    getAction: jest.Mock;
+    cancelAction: jest.Mock;
+  };
   let service: ReceiptPrintService;
 
   const input = {
@@ -203,7 +313,14 @@ describe('ReceiptPrintService.printCredentialsSlip', () => {
       save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
       findOne: jest.fn().mockResolvedValue(null),
     };
-    printerClient = { printReceiptImage: jest.fn() };
+    printerClient = {
+      printReceiptImage: jest.fn(),
+      // Defaults to "already left the queue" so the watchdog exits on its
+      // first check with no sleep — tests that don't care about the
+      // watchdog stay fast. Only the watchdog-specific tests override this.
+      getAction: jest.fn().mockResolvedValue({ status: 'processed' }),
+      cancelAction: jest.fn().mockResolvedValue(undefined),
+    };
     mockedRender.mockResolvedValue(Buffer.from('fake-jpeg-bytes'));
     service = new ReceiptPrintService(
       repository as never,
