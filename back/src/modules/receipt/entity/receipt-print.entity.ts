@@ -1,16 +1,28 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-// One row per print attempt for a cash/transferencia payment's informational
-// ticket. No relation to Payment — same bare-column pattern as
+// One row per print attempt for a document printed on the Point terminal —
+// a payment's informational ticket, or a member's credentials slip. No
+// relation to the described row — same bare-column pattern as
 // ChargeOrder.paymentId — since nothing here ever needs to join back through
-// TypeORM, only to look up by paymentId + contentHash before retrying.
-@Entity('payment_receipt_prints')
-export class PaymentReceiptPrint {
+// TypeORM, only to look up by documentType + documentId + contentHash before
+// retrying.
+@Entity('receipt_prints')
+export class ReceiptPrint {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  // Which kind of document this print was: the informational payment
+  // ticket, or a member's credentials slip. Kept as a plain string, same
+  // convention as ChargeOrder.status.
+  @Column({ type: 'varchar', length: 20, nullable: false })
+  documentType!: string;
+
+  // The id of the row that document describes — a Payment for 'payment', a
+  // Users for 'credentials'. No relation, same bare-column pattern as
+  // before: nothing joins back through TypeORM, it is only looked up
+  // alongside documentType and contentHash before retrying.
   @Column({ type: Number, nullable: false })
-  paymentId!: number;
+  documentId!: number;
 
   @Column({ type: 'varchar', length: 64, nullable: false })
   terminalId!: string;
@@ -36,7 +48,7 @@ export class PaymentReceiptPrint {
   @Column({ type: 'varchar', length: 20, nullable: true })
   actionStatus!: string | null;
 
-  // sha256 of the rendered JPEG bytes — lets a retry of the same payment
+  // sha256 of the rendered JPEG bytes — lets a retry of the same document
   // recognize "this exact ticket already printed" and skip re-sending it to
   // the terminal, without needing to keep the image itself around.
   @Column({ type: 'varchar', length: 64, nullable: false })

@@ -1,4 +1,4 @@
-import { buildReceiptHtml } from './receipt.html';
+import { buildReceiptHtml, buildCredentialsHtml } from './receipt.html';
 
 describe('buildReceiptHtml', () => {
   const base = {
@@ -59,5 +59,51 @@ describe('buildReceiptHtml', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain('A &amp; B &quot;Gym&quot; &lt;Co&gt;');
+  });
+});
+
+describe('buildCredentialsHtml', () => {
+  const payload = {
+    memberName: 'Rosa Gomez',
+    dni: 40123456,
+    username: '40123456@presencial.flg',
+    password: 'krtm4829',
+    planName: 'Full',
+    termLabel: '3 meses',
+  };
+
+  it('prints both credentials', () => {
+    const html = buildCredentialsHtml(payload);
+    expect(html).toContain('40123456@presencial.flg');
+    expect(html).toContain('krtm4829');
+  });
+
+  it('prints the plan and the term when there was a charge', () => {
+    const html = buildCredentialsHtml(payload);
+    expect(html).toContain('Full');
+    expect(html).toContain('3 meses');
+  });
+
+  it('omits the plan block when there was no charge', () => {
+    const html = buildCredentialsHtml({
+      ...payload,
+      planName: undefined,
+      termLabel: undefined,
+    });
+    expect(html).not.toContain('Plan:');
+  });
+
+  it('escapes a name that contains markup', () => {
+    const html = buildCredentialsHtml({
+      ...payload,
+      memberName: '<script>x</script>',
+    });
+    expect(html).not.toContain('<script>');
+  });
+
+  // That disclaimer belongs to the payment ticket; this is a different
+  // document and must not claim to be a receipt.
+  it('is not labelled as a comprobante', () => {
+    expect(buildCredentialsHtml(payload)).not.toContain('factura');
   });
 });

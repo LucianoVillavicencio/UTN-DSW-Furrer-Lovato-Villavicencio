@@ -2,10 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHash, randomUUID } from 'crypto';
-import { PaymentReceiptPrint } from './entity/payment-receipt-print.entity';
-import { buildReceiptHtml, type ReceiptPayMethod } from './receipt.html';
+import { ReceiptPrint } from './entity/receipt-print.entity';
+import {
+  buildReceiptHtml,
+  buildCredentialsHtml,
+  type ReceiptPayMethod,
+  type CredentialsPayload,
+} from './receipt.html';
 import { renderReceiptToJpegBuffer } from './receipt.render';
 import { MercadoPagoTerminalPrinterClient } from '../mercadopago/mercadopago-printer.client';
+
+export type ReceiptDocumentType = 'payment' | 'credentials';
 
 export interface PrintPaymentReceiptInput {
   paymentId: number;
@@ -17,16 +24,22 @@ export interface PrintPaymentReceiptInput {
   storeName?: string;
 }
 
+export type PrintCredentialsSlipInput = CredentialsPayload & {
+  userId: number;
+  terminalId: string;
+};
+
 export interface PrintPaymentReceiptResult {
   status: 'sent' | 'error';
   errorMessage?: string;
 }
 
 /**
- * Renders and prints the informational "cash/transferencia" ticket on a
- * Point terminal, and logs the attempt for dedupe. Never throws — this is a
- * side effect of an already-persisted Payment, so a printing failure must
- * never look like the payment itself failed. Callers surface `status` to
+ * Renders and prints a document on a Point terminal — the informational
+ * "cash/transferencia" payment ticket or a member's credentials slip — and
+ * logs the attempt for dedupe. Never throws — this is a side effect of an
+ * already-persisted row (a Payment or a Users), so a printing failure must
+ * never look like that row's creation failed. Callers surface `status` to
  * the admin instead.
  */
 @Injectable()
@@ -34,8 +47,8 @@ export class ReceiptPrintService {
   private readonly logger = new Logger(ReceiptPrintService.name);
 
   constructor(
-    @InjectRepository(PaymentReceiptPrint)
-    private readonly repository: Repository<PaymentReceiptPrint>,
+    @InjectRepository(ReceiptPrint)
+    private readonly repository: Repository<ReceiptPrint>,
     private readonly printerClient: MercadoPagoTerminalPrinterClient,
   ) {}
 
@@ -51,34 +64,69 @@ export class ReceiptPrintService {
       storeName: input.storeName,
     });
 
+    return this.printDocument({
+      documentType: 'payment',
+      documentId: input.paymentId,
+      terminalId: input.terminalId,
+      html,
+    });
+  }
+
+  /**
+   * Prints a member's credentials slip. Same never-throws contract as
+   * printPaymentReceipt: the account already exists, so a printing failure
+   * must never look like the member was not created.
+   */
+  async printCredentialsSlip(
+    input: PrintCredentialsSlipInput,
+  ): Promise<PrintPaymentReceiptResult> {
+    return this.printDocument({
+      documentType: 'credentials',
+      documentId: input.userId,
+      terminalId: input.terminalId,
+      html: buildCredentialsHtml(input),
+    });
+  }
+
+  private async printDocument({
+    documentType,
+    documentId,
+    terminalId,
+    html,
+  }: {
+    documentType: ReceiptDocumentType;
+    documentId: number;
+    terminalId: string;
+    html: string;
+  }): Promise<PrintPaymentReceiptResult> {
     let buffer: Buffer;
     try {
       buffer = await renderReceiptToJpegBuffer(html);
     } catch (err) {
-      return this.fail(input, '', err);
+      return this.fail(documentType, documentId, terminalId, '', err);
     }
 
     const contentHash = createHash('sha256').update(buffer).digest('hex');
 
-    // A retry of the same payment (admin double-click, front-end retry)
+    // A retry of the same document (admin double-click, front-end retry)
     // that already produced this exact ticket must not print it twice.
     const alreadySent = await this.repository
       .findOne({
-        where: { paymentId: input.paymentId, contentHash, status: 'sent' },
+        where: { documentType, documentId, contentHash, status: 'sent' },
       })
       .catch(() => null);
     if (alreadySent) {
       return { status: 'sent' };
     }
 
-    const externalReference = `receipt-payment-${input.paymentId}`;
+    const externalReference = `receipt-${documentType}-${documentId}`;
     const idempotencyKey = randomUUID();
 
     let actionId: string | null = null;
     let actionStatus: string | null = null;
     try {
       const result = await this.printerClient.printReceiptImage({
-        terminalId: input.terminalId,
+        terminalId,
         externalReference,
         idempotencyKey,
         imageBuffer: buffer,
@@ -87,7 +135,9 @@ export class ReceiptPrintService {
       actionStatus = result.status ?? null;
     } catch (err) {
       return this.fail(
-        input,
+        documentType,
+        documentId,
+        terminalId,
         contentHash,
         err,
         externalReference,
@@ -96,8 +146,9 @@ export class ReceiptPrintService {
     }
 
     await this.persist({
-      paymentId: input.paymentId,
-      terminalId: input.terminalId,
+      documentType,
+      documentId,
+      terminalId,
       externalReference,
       idempotencyKey,
       actionId,
@@ -110,19 +161,22 @@ export class ReceiptPrintService {
   }
 
   private async fail(
-    input: PrintPaymentReceiptInput,
+    documentType: ReceiptDocumentType,
+    documentId: number,
+    terminalId: string,
     contentHash: string,
     err: unknown,
-    externalReference = `receipt-payment-${input.paymentId}`,
+    externalReference = `receipt-${documentType}-${documentId}`,
     idempotencyKey = randomUUID(),
   ): Promise<PrintPaymentReceiptResult> {
     const errorMessage = err instanceof Error ? err.message : String(err);
     this.logger.warn(
-      `Failed to print receipt for payment ${input.paymentId}: ${errorMessage}`,
+      `Failed to print receipt for ${documentType} ${documentId}: ${errorMessage}`,
     );
     await this.persist({
-      paymentId: input.paymentId,
-      terminalId: input.terminalId,
+      documentType,
+      documentId,
+      terminalId,
       externalReference,
       idempotencyKey,
       actionId: null,
@@ -135,7 +189,8 @@ export class ReceiptPrintService {
   }
 
   private async persist(row: {
-    paymentId: number;
+    documentType: ReceiptDocumentType;
+    documentId: number;
     terminalId: string;
     externalReference: string;
     idempotencyKey: string;
@@ -152,7 +207,7 @@ export class ReceiptPrintService {
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Failed to persist receipt print record for payment ${row.paymentId}: ${detail}`,
+        `Failed to persist receipt print record for ${row.documentType} ${row.documentId}: ${detail}`,
       );
     }
   }

@@ -61,7 +61,8 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     );
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        paymentId: 42,
+        documentType: 'payment',
+        documentId: 42,
         status: 'sent',
         externalReference: 'receipt-payment-42',
         actionId: 'action-1',
@@ -89,7 +90,8 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
   it('skips a re-print when the same ticket already printed successfully', async () => {
     repository.findOne.mockResolvedValue({
       id: 5,
-      paymentId: 42,
+      documentType: 'payment',
+      documentId: 42,
       status: 'sent',
     });
 
@@ -98,6 +100,30 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     expect(result).toEqual({ status: 'sent' });
     expect(printerClient.printReceiptImage).not.toHaveBeenCalled();
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('dedupes on the document identity, not the payment alone', async () => {
+    repository.findOne.mockResolvedValue({ id: 1, status: 'sent' });
+
+    await service.printPaymentReceipt(input);
+
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: {
+        documentType: 'payment',
+        documentId: 42,
+        contentHash: expect.any(String),
+        status: 'sent',
+      },
+    });
+  });
+
+  it('builds an external reference that carries no PII', async () => {
+    await service.printPaymentReceipt(input);
+
+    const [call] = printerClient.printReceiptImage.mock.calls as [
+      [{ externalReference: string }],
+    ];
+    expect(call[0].externalReference).toBe('receipt-payment-42');
   });
 
   it('persists an "error" row and returns it when rendering fails, without calling the printer', async () => {
@@ -112,7 +138,8 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     expect(printerClient.printReceiptImage).not.toHaveBeenCalled();
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        paymentId: 42,
+        documentType: 'payment',
+        documentId: 42,
         status: 'error',
         errorMessage: 'chromium crashed',
       }),
@@ -135,7 +162,8 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     });
     expect(repository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        paymentId: 42,
+        documentType: 'payment',
+        documentId: 42,
         status: 'error',
         actionId: null,
       }),
@@ -147,5 +175,60 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
     repository.save.mockRejectedValue(new Error('db down'));
 
     await expect(service.printPaymentReceipt(input)).resolves.toBeDefined();
+  });
+});
+
+describe('ReceiptPrintService.printCredentialsSlip', () => {
+  let repository: {
+    create: jest.Mock;
+    save: jest.Mock;
+    findOne: jest.Mock;
+  };
+  let printerClient: { printReceiptImage: jest.Mock };
+  let service: ReceiptPrintService;
+
+  const input = {
+    userId: 7,
+    memberName: 'Rosa Gomez',
+    dni: 40123456,
+    username: '40123456@presencial.flg',
+    password: 'krtm4829',
+    terminalId: 'terminal-1',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    repository = {
+      create: jest.fn((entity: object) => entity),
+      save: jest.fn((entity: object) => Promise.resolve({ id: 1, ...entity })),
+      findOne: jest.fn().mockResolvedValue(null),
+    };
+    printerClient = { printReceiptImage: jest.fn() };
+    mockedRender.mockResolvedValue(Buffer.from('fake-jpeg-bytes'));
+    service = new ReceiptPrintService(
+      repository as never,
+      printerClient as unknown as MercadoPagoTerminalPrinterClient,
+    );
+  });
+
+  it('builds an external reference keyed on the user, not the payment', async () => {
+    printerClient.printReceiptImage.mockResolvedValue({
+      idempotencyKey: 'idem-1',
+      responseBody: {},
+    });
+
+    const result = await service.printCredentialsSlip(input);
+
+    expect(result).toEqual({ status: 'sent' });
+    expect(printerClient.printReceiptImage).toHaveBeenCalledWith(
+      expect.objectContaining({ externalReference: 'receipt-credentials-7' }),
+    );
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentType: 'credentials',
+        documentId: 7,
+        status: 'sent',
+      }),
+    );
   });
 });
