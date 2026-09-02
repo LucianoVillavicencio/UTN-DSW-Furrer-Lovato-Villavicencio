@@ -1,5 +1,6 @@
 import {
   findAdminCreateUserError,
+  generateMemberPassword,
   isPlaceholderEmail,
   isProfileComplete,
   placeholderEmailFor,
@@ -88,5 +89,29 @@ describe('isProfileComplete', () => {
     // `!user.dni` would call 0 absent. It is not a valid DNI, but rejecting it
     // is the DTO's job, not this function's — conflating the two hides bugs.
     expect(isProfileComplete({ dni: 0, phone: '3411234567' })).toBe(true);
+  });
+});
+
+describe('generateMemberPassword', () => {
+  it('satisfies the password policy: eight chars, a letter and a digit', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const password = generateMemberPassword();
+      expect(password).toHaveLength(8);
+      expect(password).toMatch(/(?=.*[A-Za-z])(?=.*\d)/);
+    }
+  });
+
+  // The slip is read off paper and typed back in by hand.
+  it('never emits a glyph that is misread on paper', () => {
+    for (let i = 0; i < 200; i += 1) {
+      expect(generateMemberPassword()).not.toMatch(/[ilo01ILO]/);
+    }
+  });
+
+  it('does not return the same password twice in a row', () => {
+    const draws = new Set(
+      Array.from({ length: 50 }, () => generateMemberPassword()),
+    );
+    expect(draws.size).toBeGreaterThan(45);
   });
 });
