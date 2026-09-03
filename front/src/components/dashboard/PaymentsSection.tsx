@@ -25,6 +25,8 @@ const stateBadge: Record<string, string> = {
   reembolsado: 'bg-text-muted/10 text-text-muted border-border',
 };
 
+const PAGE_SIZE = 5;
+
 const PaymentsSection = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [card, setCard] = useState<SavedCard | null>(null);
@@ -39,6 +41,7 @@ const PaymentsSection = () => {
   const [cardSuccess, setCardSuccess] = useState<string | null>(null);
   const [isTogglingAutoRenew, setIsTogglingAutoRenew] = useState(false);
   const [autoRenewError, setAutoRenewError] = useState<string | null>(null);
+  const [pageOffset, setPageOffset] = useState(0);
 
   // Every setState below lives in an async callback, so this effect only
   // starts the requests; Promise.allSettled lets one failing source leave the
@@ -113,64 +116,14 @@ const PaymentsSection = () => {
 
   const expiryWarning = card ? cardExpiryWarning(card, new Date()) : null;
 
+  const pagedPayments = payments.slice(pageOffset, pageOffset + PAGE_SIZE);
+  const paymentsFrom = payments.length === 0 ? 0 : pageOffset + 1;
+  const paymentsTo = Math.min(pageOffset + PAGE_SIZE, payments.length);
+  const hasPreviousPage = pageOffset > 0;
+  const hasNextPage = pageOffset + PAGE_SIZE < payments.length;
+
   return (
     <div className="space-y-6">
-      {isLoading ? (
-        <div className="flex h-32 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : error ? (
-        <Card className="text-center hover:translate-y-0 hover:shadow-lg">
-          <p className="text-sm text-red-400">{error}</p>
-        </Card>
-      ) : payments.length === 0 ? (
-        <Card className="text-center hover:translate-y-0 hover:shadow-lg">
-          <Receipt className="mx-auto h-10 w-10 text-text-muted" />
-          <p className="mt-3 font-body text-sm text-text-muted">
-            Todavía no tenés pagos registrados. Los pagos presenciales que
-            registre el gimnasio van a aparecer acá.
-          </p>
-        </Card>
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full min-w-max text-left text-sm">
-            <thead className="bg-surface">
-              <tr>
-                {['Fecha', 'Monto', 'Método', 'Estado'].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 font-body text-xs font-semibold uppercase tracking-wide text-text-muted"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {payments.map((p) => (
-                <tr key={p.id} className="bg-background font-body text-text">
-                  <td className="px-4 py-3">
-                    {formatDateOnly(p.date.slice(0, 10))}
-                  </td>
-                  <td className="px-4 py-3">${formatPriceDisplay(p.amount)}</td>
-                  <td className="px-4 py-3 capitalize">{p.payMethod}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${
-                        stateBadge[p.state?.toLowerCase() ?? ''] ??
-                        stateBadge.completado
-                      }`}
-                    >
-                      {p.state}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       <Card className="hover:translate-y-0 hover:shadow-lg">
         <h3 className="font-display text-lg font-semibold text-text">
           Forma de pago
@@ -252,6 +205,103 @@ const PaymentsSection = () => {
           </div>
         )}
       </Card>
+
+      <div>
+        <h3 className="font-display text-lg font-semibold text-text">
+          Historial de pagos
+        </h3>
+
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <Card className="mt-4 text-center hover:translate-y-0 hover:shadow-lg">
+            <p className="text-sm text-red-400">{error}</p>
+          </Card>
+        ) : payments.length === 0 ? (
+          <Card className="mt-4 text-center hover:translate-y-0 hover:shadow-lg">
+            <Receipt className="mx-auto h-10 w-10 text-text-muted" />
+            <p className="mt-3 font-body text-sm text-text-muted">
+              Todavía no tenés pagos registrados. Los pagos presenciales que
+              registre el gimnasio van a aparecer acá.
+            </p>
+          </Card>
+        ) : (
+          <>
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+              <table className="w-full min-w-max text-left text-sm">
+                <thead className="bg-surface">
+                  <tr>
+                    {['Fecha', 'Monto', 'Método', 'Estado'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 font-body text-xs font-semibold uppercase tracking-wide text-text-muted"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pagedPayments.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="bg-background font-body text-text"
+                    >
+                      <td className="px-4 py-3">
+                        {formatDateOnly(p.date.slice(0, 10))}
+                      </td>
+                      <td className="px-4 py-3">
+                        ${formatPriceDisplay(p.amount)}
+                      </td>
+                      <td className="px-4 py-3 capitalize">{p.payMethod}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${
+                            stateBadge[p.state?.toLowerCase() ?? ''] ??
+                            stateBadge.completado
+                          }`}
+                        >
+                          {p.state}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {payments.length > PAGE_SIZE && (
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-text-muted">
+                  Mostrando {paymentsFrom}-{paymentsTo} de {payments.length}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!hasPreviousPage}
+                    onClick={() =>
+                      setPageOffset(Math.max(0, pageOffset - PAGE_SIZE))
+                    }
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!hasNextPage}
+                    onClick={() => setPageOffset(pageOffset + PAGE_SIZE)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {confirmingDelete && (
         <ConfirmDialog
