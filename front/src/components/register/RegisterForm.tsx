@@ -38,8 +38,13 @@ const RegisterForm = () => {
     if (!cleanDni) {
       newErrors.dni = 'El DNI es requerido.';
       isValid = false;
-    } else if (isNaN(numericDni) || numericDni <= 0 || cleanDni.length < 6) {
-      newErrors.dni = 'Ingresa un número de DNI válido.';
+    } else if (
+      isNaN(numericDni) ||
+      numericDni <= 0 ||
+      cleanDni.length < 7 ||
+      cleanDni.length > 8
+    ) {
+      newErrors.dni = 'El DNI tiene que tener 7 u 8 dígitos.';
       isValid = false;
     }
 
