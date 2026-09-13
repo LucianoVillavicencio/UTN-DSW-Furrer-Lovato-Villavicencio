@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ALLOW_INCOMPLETE_PROFILE } from '../decorators/allow-incomplete-profile.decorator';
 import type { AuthenticatedRequest } from '../../common/interfaces/user-active.interface';

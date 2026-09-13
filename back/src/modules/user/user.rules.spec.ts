@@ -36,7 +36,9 @@ describe('isPlaceholderEmail', () => {
 // through the Users panel cannot leave a stale flag behind.
 describe('isProfileComplete', () => {
   it('accepts a member with both dni and phone', () => {
-    expect(isProfileComplete({ dni: 40123456, phone: '3411234567' })).toBe(true);
+    expect(isProfileComplete({ dni: 40123456, phone: '3411234567' })).toBe(
+      true,
+    );
   });
 
   it('rejects a member with no dni', () => {

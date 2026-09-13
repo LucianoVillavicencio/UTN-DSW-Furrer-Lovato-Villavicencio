@@ -52,7 +52,10 @@ function parseDate(dateStr: string): Date {
  * @param today - The current date (Date | string)
  * @returns Number of whole days frozen, clamped at 0
  */
-export function daysOwedBack(pausedAt: Date | string, today: Date | string): number {
+export function daysOwedBack(
+  pausedAt: Date | string,
+  today: Date | string,
+): number {
   const pausedStr = normalize(pausedAt);
   const todayStr = normalize(today);
 
@@ -75,7 +78,10 @@ export function daysOwedBack(pausedAt: Date | string, today: Date | string): num
  * @param today - The current date (Date | string)
  * @returns true if the pause duration exceeds MAX_PAUSE_DAYS
  */
-export function exceedsPauseCap(pausedAt: Date | string, today: Date | string): boolean {
+export function exceedsPauseCap(
+  pausedAt: Date | string,
+  today: Date | string,
+): boolean {
   const days = daysOwedBack(pausedAt, today);
   return days > MAX_PAUSE_DAYS;
 }

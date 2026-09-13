@@ -704,7 +704,12 @@ describe('subscriptionService', () => {
     it('keeps the end date it is given instead of opening a fresh term', async () => {
       const manager = {
         find: jest.fn().mockResolvedValue([
-          { id: 10, state: 'activa', endDate: '2026-03-31', scheduledPlanId: 5 },
+          {
+            id: 10,
+            state: 'activa',
+            endDate: '2026-03-31',
+            scheduledPlanId: 5,
+          },
         ]),
         create: jest.fn(
           (_entity: unknown, data: CreatedSubscriptionPayload) => data,
@@ -732,7 +737,10 @@ describe('subscriptionService', () => {
       // The member paid to upgrade; a downgrade they scheduled earlier must not
       // survive onto the plan they just bought.
       const cancelled = {
-        id: 10, state: 'activa', endDate: '2026-03-31', scheduledPlanId: 5,
+        id: 10,
+        state: 'activa',
+        endDate: '2026-03-31',
+        scheduledPlanId: 5,
       };
       const manager = {
         find: jest.fn().mockResolvedValue([cancelled]),

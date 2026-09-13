@@ -119,8 +119,15 @@ export interface CredentialsPayload {
  * framing and no factura disclaimer.
  */
 export function buildCredentialsHtml(payload: CredentialsPayload): string {
-  const { memberName, dni, username, password, planName, termLabel, storeName } =
-    payload;
+  const {
+    memberName,
+    dni,
+    username,
+    password,
+    planName,
+    termLabel,
+    storeName,
+  } = payload;
 
   const planRows =
     planName && termLabel

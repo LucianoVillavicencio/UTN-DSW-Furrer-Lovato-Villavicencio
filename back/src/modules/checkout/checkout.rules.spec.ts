@@ -33,7 +33,14 @@ describe('buildSummary', () => {
 
   it('never reports a negative discount', () => {
     const overpriced = [
-      { id: 4, planId: 12, months: 3, numDays: 90, price: 99999, deleted: false },
+      {
+        id: 4,
+        planId: 12,
+        months: 3,
+        numDays: 90,
+        price: 99999,
+        deleted: false,
+      },
     ] as PlanDuration[];
 
     expect(buildSummary(plan, 3, overpriced).discount).toBe(0);

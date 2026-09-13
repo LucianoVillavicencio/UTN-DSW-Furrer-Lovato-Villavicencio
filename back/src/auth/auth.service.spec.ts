@@ -186,9 +186,7 @@ describe('AuthService token claims', () => {
   it('signs the id as sub, not the dni', async () => {
     const { signAsync } = await loginWith(completeUser);
 
-    expect(signAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ sub: 7 }),
-    );
+    expect(signAsync).toHaveBeenCalledWith(expect.objectContaining({ sub: 7 }));
   });
 
   it('signs profileComplete true for a member with dni and phone', async () => {
@@ -297,7 +295,9 @@ describe('changePassword', () => {
     });
     const jwtService = { signAsync: jest.fn().mockResolvedValue('fresh') };
     const service = new AuthService(
-      { updateProfile } as unknown as ConstructorParameters<typeof AuthService>[0],
+      { updateProfile } as unknown as ConstructorParameters<
+        typeof AuthService
+      >[0],
       jwtService as unknown as ConstructorParameters<typeof AuthService>[1],
     );
     return { service, updateProfile, jwtService };

@@ -234,8 +234,12 @@ describe('blockMessage', () => {
 
   it('has a message for every reason', () => {
     const reasons = [
-      'no_active_subscription', 'not_current', 'locked',
-      'already_changed', 'same_plan', 'too_close_to_end',
+      'no_active_subscription',
+      'not_current',
+      'locked',
+      'already_changed',
+      'same_plan',
+      'too_close_to_end',
     ] as const;
     for (const reason of reasons) {
       expect(blockMessage(reason, {})).not.toBe('');

@@ -32,25 +32,49 @@ describe('refundAmount', () => {
   const regular = 10000;
 
   it('returns everything when nothing was used', () => {
-    expect(refundAmount({ totalPaid: 100000, monthsUsed: 0, regularMonthlyPrice: regular })).toBe(100000);
+    expect(
+      refundAmount({
+        totalPaid: 100000,
+        monthsUsed: 0,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(100000);
   });
 
   it('charges consumed months at the regular rate, revoking the discount', () => {
     // A year bought for 100000 (regular would be 120000), cancelled after 3
     // months: 100000 - 3*10000 = 70000. The discount is not honoured on the
     // months consumed, which is the whole point of the policy.
-    expect(refundAmount({ totalPaid: 100000, monthsUsed: 3, regularMonthlyPrice: regular })).toBe(70000);
+    expect(
+      refundAmount({
+        totalPaid: 100000,
+        monthsUsed: 3,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(70000);
   });
 
   it('clamps to zero rather than going negative', () => {
     // Reachable, not defensive: a deeply discounted year cancelled at month 11
     // consumed more at the regular rate than was ever paid. The gym does not
     // then invoice the member for the difference.
-    expect(refundAmount({ totalPaid: 100000, monthsUsed: 11, regularMonthlyPrice: regular })).toBe(0);
+    expect(
+      refundAmount({
+        totalPaid: 100000,
+        monthsUsed: 11,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(0);
   });
 
   it('returns exactly zero at the break-even point', () => {
-    expect(refundAmount({ totalPaid: 100000, monthsUsed: 10, regularMonthlyPrice: regular })).toBe(0);
+    expect(
+      refundAmount({
+        totalPaid: 100000,
+        monthsUsed: 10,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(0);
   });
 
   it('rounds to two decimals', () => {
@@ -61,7 +85,19 @@ describe('refundAmount', () => {
     // 100.005 * 100 is 10012.499..., so any round-half-up implementation
     // returns 100.00 and a test asserting 100.01 would fail against correct
     // code. Half-cent behaviour is not a rule this feature needs to pin down.
-    expect(refundAmount({ totalPaid: 100.126, monthsUsed: 0, regularMonthlyPrice: regular })).toBe(100.13);
-    expect(refundAmount({ totalPaid: 100.124, monthsUsed: 0, regularMonthlyPrice: regular })).toBe(100.12);
+    expect(
+      refundAmount({
+        totalPaid: 100.126,
+        monthsUsed: 0,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(100.13);
+    expect(
+      refundAmount({
+        totalPaid: 100.124,
+        monthsUsed: 0,
+        regularMonthlyPrice: regular,
+      }),
+    ).toBe(100.12);
   });
 });

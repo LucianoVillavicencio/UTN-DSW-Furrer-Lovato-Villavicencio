@@ -13,7 +13,9 @@ describe('buildExternalReference', () => {
   });
 
   it('stays within Mercado Pago 64-character limit', () => {
-    expect(buildExternalReference(999999999, 'a1b2c3d4').length).toBeLessThanOrEqual(64);
+    expect(
+      buildExternalReference(999999999, 'a1b2c3d4').length,
+    ).toBeLessThanOrEqual(64);
   });
 
   it('uses only characters Mercado Pago accepts', () => {
@@ -25,12 +27,27 @@ describe('isExpired', () => {
   const at = (iso: string) => new Date(iso);
 
   it('is false before expiresAt', () => {
-    expect(isExpired({ expiresAt: at('2026-08-26T10:05:00Z') }, at('2026-08-26T10:04:59Z'))).toBe(false);
+    expect(
+      isExpired(
+        { expiresAt: at('2026-08-26T10:05:00Z') },
+        at('2026-08-26T10:04:59Z'),
+      ),
+    ).toBe(false);
   });
 
   it('is true at and after expiresAt', () => {
-    expect(isExpired({ expiresAt: at('2026-08-26T10:05:00Z') }, at('2026-08-26T10:05:00Z'))).toBe(true);
-    expect(isExpired({ expiresAt: at('2026-08-26T10:05:00Z') }, at('2026-08-26T10:06:00Z'))).toBe(true);
+    expect(
+      isExpired(
+        { expiresAt: at('2026-08-26T10:05:00Z') },
+        at('2026-08-26T10:05:00Z'),
+      ),
+    ).toBe(true);
+    expect(
+      isExpired(
+        { expiresAt: at('2026-08-26T10:05:00Z') },
+        at('2026-08-26T10:06:00Z'),
+      ),
+    ).toBe(true);
   });
 });
 

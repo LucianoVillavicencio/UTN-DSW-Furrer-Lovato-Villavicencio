@@ -7,7 +7,11 @@ import { ReceiptModule } from '../receipt/receipt.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Users]), ReceiptModule, MercadoPagoModule],
+  imports: [
+    TypeOrmModule.forFeature([Users]),
+    ReceiptModule,
+    MercadoPagoModule,
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],

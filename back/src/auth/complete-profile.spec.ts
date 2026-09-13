@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserService } from '../modules/user/user.service';
 import { Users } from '../modules/user/entity/users.entity';
 
@@ -66,7 +70,7 @@ describe('UserService.completeProfile', () => {
     // dni field is sent read-only; refusing the whole request would strand
     // them, so the value is dropped instead.
     const { service, save } = buildService({
-      user: { ...incomplete, dni: 40123456 } as Users,
+      user: { ...incomplete, dni: 40123456 },
     });
 
     const result = await service.completeProfile(7, {

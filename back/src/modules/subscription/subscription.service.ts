@@ -211,7 +211,10 @@ export class subscriptionService {
     // supplies an endDate (a prorated plan change), in which case the new row
     // inherits the replaced term's end instead of opening a fresh one.
     const period = input.endDate
-      ? { startDate: toDateOnly(new Date()) as unknown as Date, endDate: input.endDate }
+      ? {
+          startDate: toDateOnly(new Date()) as unknown as Date,
+          endDate: input.endDate,
+        }
       : subscriptionPeriod(input.term.numDays, from);
 
     const created = manager.create(Subscription, {

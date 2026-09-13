@@ -78,7 +78,9 @@ describe('buildPreferenceBody', () => {
       frontendUrl: 'http://localhost:5173',
     });
     expect(body.auto_return).toBeUndefined();
-    expect(body.back_urls.success).toBe('http://localhost:5173/checkout/return');
+    expect(body.back_urls.success).toBe(
+      'http://localhost:5173/checkout/return',
+    );
   });
 
   it('omits auto_return against a bare 127.0.0.1 frontend URL, with or without a port', () => {

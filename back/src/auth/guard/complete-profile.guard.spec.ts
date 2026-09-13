@@ -63,7 +63,11 @@ describe('CompleteProfileGuard', () => {
 
   it('refuses a token minted before the claim existed', () => {
     // An old token has no profileComplete at all. Absent must not read as true.
-    const stale = { sub: 7, email: 'x@y.z', role: Role.USER } as UserActiveInterface;
+    const stale = {
+      sub: 7,
+      email: 'x@y.z',
+      role: Role.USER,
+    } as UserActiveInterface;
     expect(() => guardWith(false).canActivate(contextFor(stale))).toThrow(
       ForbiddenException,
     );

@@ -161,7 +161,10 @@ export class MailService {
         });
       }
     } catch (error) {
-      this.logger.error(`Error al enviar el aviso de renovación fallida`, error);
+      this.logger.error(
+        `Error al enviar el aviso de renovación fallida`,
+        error,
+      );
     }
   }
 

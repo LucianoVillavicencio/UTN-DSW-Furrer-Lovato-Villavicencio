@@ -57,7 +57,9 @@ function toDateOnly(date: Date | string): string {
 // Local (not UTC) midnight for both dates, same reasoning as monthsUsed in
 // refund.rules.ts: avoids a day shifting across a timezone boundary.
 function daysBetween(from: Date | string, to: Date | string): number {
-  const [fromYear, fromMonth, fromDay] = toDateOnly(from).split('-').map(Number);
+  const [fromYear, fromMonth, fromDay] = toDateOnly(from)
+    .split('-')
+    .map(Number);
   const [toYear, toMonth, toDay] = toDateOnly(to).split('-').map(Number);
 
   const fromJs = new Date(fromYear, fromMonth - 1, fromDay);

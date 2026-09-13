@@ -38,9 +38,6 @@ export function buildExternalReference(userId: number, random: string): string {
  * @param now - The current time to check against (Date)
  * @returns true if now >= expiresAt, false otherwise
  */
-export function isExpired(
-  order: { expiresAt: Date },
-  now: Date,
-): boolean {
+export function isExpired(order: { expiresAt: Date }, now: Date): boolean {
   return now.getTime() >= order.expiresAt.getTime();
 }

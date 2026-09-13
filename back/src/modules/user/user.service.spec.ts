@@ -219,7 +219,7 @@ describe('updateProfile and the temporary-password flag', () => {
       newPassword: 'rosa1234',
     });
 
-    const [row] = save.mock.calls[0] as [Users];
+    const [row] = save.mock.calls[0];
     expect(row.mustChangePassword).toBe(false);
   });
 
@@ -233,7 +233,7 @@ describe('updateProfile and the temporary-password flag', () => {
 
     await service.updateProfile(7, { phone: '341555' });
 
-    const [row] = save.mock.calls[0] as [Users];
+    const [row] = save.mock.calls[0];
     expect(row.mustChangePassword).toBe(true);
   });
 });

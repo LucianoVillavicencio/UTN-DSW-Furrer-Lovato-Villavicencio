@@ -1110,10 +1110,10 @@ describe('completion gate', () => {
       { provide: ReceiptPrintService, useValue: {} },
       {
         provide: MercadoPagoConfig,
-        useValue: { enabled: false, pointTerminalId: undefined } as unknown as Record<
-          string,
-          jest.Mock
-        >,
+        useValue: {
+          enabled: false,
+          pointTerminalId: undefined,
+        } as unknown as Record<string, jest.Mock>,
       },
     ]);
 
@@ -1157,10 +1157,10 @@ describe('completion gate', () => {
       { provide: ReceiptPrintService, useValue: {} },
       {
         provide: MercadoPagoConfig,
-        useValue: { enabled: false, pointTerminalId: undefined } as unknown as Record<
-          string,
-          jest.Mock
-        >,
+        useValue: {
+          enabled: false,
+          pointTerminalId: undefined,
+        } as unknown as Record<string, jest.Mock>,
       },
     ]);
 

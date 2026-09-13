@@ -84,7 +84,9 @@ describe('renewalPeriod', () => {
   it('accepts a Date as well as a string', () => {
     // MySQL 'date' columns come back as strings, but subscriptionPeriod writes
     // strings cast to Date — both forms occur, as isCurrentOn already notes.
-    expect(renewalPeriod(new Date(2026, 8, 30), 30)).toEqual({ endDate: '2026-10-30' });
+    expect(renewalPeriod(new Date(2026, 8, 30), 30)).toEqual({
+      endDate: '2026-10-30',
+    });
   });
 
   it('extends by a multi-month term', () => {
@@ -106,7 +108,11 @@ describe('renewalDueDates', () => {
   it('returns the three days a charge may be attempted on', () => {
     // Attempts sit BEFORE endDate so a success costs no access, and a total
     // failure needs no grace period — the normal expiry sweep takes over.
-    expect(renewalDueDates('2026-09-10')).toEqual(['2026-09-13', '2026-09-12', '2026-09-11']);
+    expect(renewalDueDates('2026-09-10')).toEqual([
+      '2026-09-13',
+      '2026-09-12',
+      '2026-09-11',
+    ]);
   });
 
   it('has one entry per lead day', () => {
@@ -114,7 +120,11 @@ describe('renewalDueDates', () => {
   });
 
   it('crosses a month boundary', () => {
-    expect(renewalDueDates('2026-08-30')).toEqual(['2026-09-02', '2026-09-01', '2026-08-31']);
+    expect(renewalDueDates('2026-08-30')).toEqual([
+      '2026-09-02',
+      '2026-09-01',
+      '2026-08-31',
+    ]);
   });
 });
 

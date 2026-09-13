@@ -37,7 +37,9 @@ describe('MercadoPagoConfig', () => {
   it.each(['MP_ACCESS_TOKEN', 'MP_PUBLIC_KEY', 'MP_WEBHOOK_SECRET'])(
     'refuses to start enabled without %s',
     (missing) => {
-      expect(() => configOf({ ...full, [missing]: undefined })).toThrow(/MP_ENABLED/);
+      expect(() => configOf({ ...full, [missing]: undefined })).toThrow(
+        /MP_ENABLED/,
+      );
     },
   );
 
