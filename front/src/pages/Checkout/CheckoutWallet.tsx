@@ -306,125 +306,138 @@ function CheckoutWallet() {
     );
   }
 
+  // Only the very first load — before there's anything to show at all —
+  // blanks the whole card. A duration change re-fetches the summary and
+  // preference for the new months, but the card stays mounted with its
+  // previous (still valid to look at) contents; only the payment form area
+  // below falls back to an inline spinner while that finishes, so picking a
+  // duration doesn't blank the whole page.
+  // `error` is checked here too: the plan-change quote fetch
+  // (getPlanChangeQuote) can reject — the member's term got locked, or moved
+  // too close to its end, between the dashboard's quote and reaching
+  // checkout, which is a real gap a bookmarked/shared URL, a second tab, or
+  // plain elapsed time can all open. That leaves `summary` null forever, and
+  // until this check existed the FormAlert below (inside the
+  // `summary`-present branch) never rendered, so the member sat on this
+  // spinner with no way out (final-review Important finding).
+  if (!summary) {
+    return (
+      <CheckoutLayout
+        title="Pagá tu membresía"
+        subtitle="Ingresá los datos de tu tarjeta. El cobro se procesa a través de Mercado Pago."
+        summary={summary}
+      >
+        {error ? (
+          <Card className="hover:translate-y-0 hover:shadow-lg">
+            <div className="space-y-4">
+              <FormAlert type="error" message={error} />
+              <Button
+                href="/membership"
+                variant="secondary"
+                className="w-full"
+              >
+                Volver a mi plan
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+      </CheckoutLayout>
+    );
+  }
+
   return (
     <CheckoutLayout
       title="Pagá tu membresía"
       subtitle="Ingresá los datos de tu tarjeta. El cobro se procesa a través de Mercado Pago."
       summary={summary}
     >
-      {/* Only the very first load — before there's anything to show at all —
-          blanks the whole card. A duration change re-fetches the summary
-          and preference for the new months, but the card stays mounted with
-          its previous (still valid to look at) contents; only the payment
-          form area below falls back to an inline spinner while that finishes,
-          so picking a duration doesn't blank the whole page.
-          `error` is checked here too: the plan-change quote fetch
-          (getPlanChangeQuote) can reject — the member's term got locked, or
-          moved too close to its end, between the dashboard's quote and
-          reaching checkout, which is a real gap a bookmarked/shared URL, a
-          second tab, or plain elapsed time can all open. That leaves
-          `summary` null forever, and until this check existed the FormAlert
-          below (inside the `summary`-present branch) never rendered, so the
-          member sat on this spinner with no way out (final-review Important
-          finding). */}
-      {!summary && !error ? (
-        <div className="flex h-48 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : !summary && error ? (
-        <Card className="hover:translate-y-0 hover:shadow-lg">
-          <div className="space-y-4">
-            <FormAlert type="error" message={error} />
-            <Button href="/membership" variant="secondary" className="w-full">
-              Volver a mi plan
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <Card className="hover:translate-y-0 hover:shadow-lg">
-          <div className="space-y-5">
-            {/* A plan change never buys a term — offering 3/6/12 months here
-                would offer something the backend refuses (@ValidateIf skips
-                `months` entirely in plan-change mode), so the selector is
-                hidden outright rather than disabled. */}
-            {mode === 'term' && (
-              <DurationSelector
-                summary={summary}
-                selectedMonths={months}
-                onChange={handleMonthsChange}
-                disabled={isPaying || isLoading}
+      <Card className="hover:translate-y-0 hover:shadow-lg">
+        <div className="space-y-5">
+          {/* A plan change never buys a term — offering 3/6/12 months here
+              would offer something the backend refuses (@ValidateIf skips
+              `months` entirely in plan-change mode), so the selector is
+              hidden outright rather than disabled. */}
+          {mode === 'term' && (
+            <DurationSelector
+              summary={summary}
+              selectedMonths={months}
+              onChange={handleMonthsChange}
+              disabled={isPaying || isLoading}
+            />
+          )}
+
+          <FormAlert type="error" message={error} />
+
+          {/* The 'approved' case already returned above, so anything
+              reaching here is a decline or an in-process payment. */}
+          {result && <DeclineBanner result={result} />}
+
+          <PaymentMethodChoice
+            card={card}
+            useSavedCard={useSavedCard}
+            onChange={setUseSavedCard}
+            disabled={isPaying || isLoading}
+          />
+
+          {/* The Brick stays visible and fillable before the checkboxes
+              below are accepted — submitBlockedMessage makes it reject its
+              own submission instead of clearing the card fields, and
+              pay()/handleWalletSubmit refuse the actual charge/redirect as
+              a second guard for the paths that don't go through the Brick
+              at all (the saved-card button below). */}
+          {!useSavedCard &&
+            (isLoading ? (
+              <div className="flex h-40 items-center justify-center rounded-xl border border-border bg-background">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <PaymentForm
+                // Remounts when the price or the preference changes: a
+                // Brick left mounted across a duration switch would
+                // tokenize against the amount it was initialized with.
+                key={`${summary.total}-${preference?.preferenceId ?? 'cards'}`}
+                amount={summary.total}
+                preferenceId={preference?.preferenceId}
+                onCardToken={(card) => void pay(card)}
+                onWalletSubmit={handleWalletSubmit}
+                onError={setError}
+                isBusy={isPaying}
+                submitBlockedMessage={
+                  termsAccepted ? undefined : TERMS_REQUIRED_MESSAGE
+                }
               />
-            )}
+            ))}
 
-            <FormAlert type="error" message={error} />
+          <TermsAcceptance
+            acceptedTerms={acceptedTerms}
+            acceptedRules={acceptedRules}
+            saveCard={saveCard}
+            onChange={handleChange}
+            disabled={isPaying || isLoading}
+          />
 
-            {/* The 'approved' case already returned above, so anything
-                reaching here is a decline or an in-process payment. */}
-            {result && <DeclineBanner result={result} />}
+          {useSavedCard && (
+            <Button
+              className="w-full"
+              disabled={!canPay || isLoading}
+              title={canPay ? undefined : TERMS_REQUIRED_MESSAGE}
+              onClick={() => void pay()}
+            >
+              {isPaying
+                ? 'Procesando tu pago...'
+                : `Pagar $${formatPriceDisplay(summary.total)}`}
+            </Button>
+          )}
 
-            <PaymentMethodChoice
-              card={card}
-              useSavedCard={useSavedCard}
-              onChange={setUseSavedCard}
-              disabled={isPaying || isLoading}
-            />
-
-            {/* The Brick stays visible and fillable before the checkboxes
-                below are accepted — submitBlockedMessage makes it reject its
-                own submission instead of clearing the card fields, and
-                pay()/handleWalletSubmit refuse the actual charge/redirect as
-                a second guard for the paths that don't go through the Brick
-                at all (the saved-card button below). */}
-            {!useSavedCard &&
-              (isLoading ? (
-                <div className="flex h-40 items-center justify-center rounded-xl border border-border bg-background">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (
-                <PaymentForm
-                  // Remounts when the price or the preference changes: a
-                  // Brick left mounted across a duration switch would
-                  // tokenize against the amount it was initialized with.
-                  key={`${summary.total}-${preference?.preferenceId ?? 'cards'}`}
-                  amount={summary.total}
-                  preferenceId={preference?.preferenceId}
-                  onCardToken={(card) => void pay(card)}
-                  onWalletSubmit={handleWalletSubmit}
-                  onError={setError}
-                  isBusy={isPaying}
-                  submitBlockedMessage={
-                    termsAccepted ? undefined : TERMS_REQUIRED_MESSAGE
-                  }
-                />
-              ))}
-
-            <TermsAcceptance
-              acceptedTerms={acceptedTerms}
-              acceptedRules={acceptedRules}
-              saveCard={saveCard}
-              onChange={handleChange}
-              disabled={isPaying || isLoading}
-            />
-
-            {useSavedCard && (
-              <Button
-                className="w-full"
-                disabled={!canPay || isLoading}
-                title={canPay ? undefined : TERMS_REQUIRED_MESSAGE}
-                onClick={() => void pay()}
-              >
-                {isPaying
-                  ? 'Procesando tu pago...'
-                  : `Pagar $${formatPriceDisplay(summary.total)}`}
-              </Button>
-            )}
-
-            {!termsAccepted && (
-              <p className="text-xs text-text-muted">{TERMS_REQUIRED_MESSAGE}</p>
-            )}
-          </div>
-        </Card>
-      )}
+          {!termsAccepted && (
+            <p className="text-xs text-text-muted">{TERMS_REQUIRED_MESSAGE}</p>
+          )}
+        </div>
+      </Card>
     </CheckoutLayout>
   );
 }
