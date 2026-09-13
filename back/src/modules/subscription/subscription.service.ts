@@ -471,6 +471,9 @@ export class subscriptionService {
       );
     }
 
+    // Not null: an eligible assessment (checked above) is only ever returned
+    // for a non-null `current`, which assessChange derives from
+    // `context?.current` — so eligible implies context is set too.
     const live = context!.subscription;
 
     if (assessment.direction === 'lateral') {

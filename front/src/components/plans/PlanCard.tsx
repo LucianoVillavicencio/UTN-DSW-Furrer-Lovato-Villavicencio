@@ -19,11 +19,14 @@ interface PlanCardProps {
 // generic message — it is the difference between "why can't I" and silence.
 const changeLabel = (quote: PlanChangeQuote): string => {
   if (!quote.eligible) return quote.message ?? '';
-  if (quote.direction === 'upgrade') {
-    return `Mejorá por $${formatPriceDisplay(quote.amount)} — mantenés el vencimiento del ${formatDateOnly(quote.effectiveEndDate!)}`;
+  // effectiveEndDate is only null when there is no current subscription, in
+  // which case assessChange never returns an upgrade/downgrade direction —
+  // this check just lets TypeScript see that instead of asserting it.
+  if (quote.direction === 'upgrade' && quote.effectiveEndDate) {
+    return `Mejorá por $${formatPriceDisplay(quote.amount)} — mantenés el vencimiento del ${formatDateOnly(quote.effectiveEndDate)}`;
   }
-  if (quote.direction === 'downgrade') {
-    return `Cambiá sin costo a partir del ${formatDateOnly(quote.effectiveEndDate!)}`;
+  if (quote.direction === 'downgrade' && quote.effectiveEndDate) {
+    return `Cambiá sin costo a partir del ${formatDateOnly(quote.effectiveEndDate)}`;
   }
   return 'Cambiá sin costo ahora';
 };

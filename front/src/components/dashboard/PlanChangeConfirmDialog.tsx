@@ -47,7 +47,7 @@ const PlanChangeConfirmDialog = ({
               {pendingPlan.period}). Te llevamos al checkout para completar el
               pago.
             </>
-          ) : quote?.direction === 'upgrade' ? (
+          ) : quote?.direction === 'upgrade' && quote.effectiveEndDate ? (
             <>
               Vas a pasar a{' '}
               <span className="font-semibold text-text">
@@ -58,13 +58,13 @@ const PlanChangeConfirmDialog = ({
                 ${formatPriceDisplay(quote.amount)}
               </span>
               , y mantenés tu vencimiento del{' '}
-              {formatDateOnly(quote.effectiveEndDate!)}. Te llevamos al checkout
+              {formatDateOnly(quote.effectiveEndDate)}. Te llevamos al checkout
               para completar el pago.
             </>
-          ) : quote?.direction === 'downgrade' ? (
+          ) : quote?.direction === 'downgrade' && quote.effectiveEndDate ? (
             <>
               Seguís con "{subscription?.plan?.name}" hasta el{' '}
-              {formatDateOnly(quote.effectiveEndDate!)}. A partir del día
+              {formatDateOnly(quote.effectiveEndDate)}. A partir del día
               siguiente pasás a{' '}
               <span className="font-semibold text-text">
                 "{pendingPlan.name}"
