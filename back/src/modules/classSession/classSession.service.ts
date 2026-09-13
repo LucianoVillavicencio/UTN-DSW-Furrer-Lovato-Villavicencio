@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository, UpdateResult } from 'typeorm';
+import { EntityManager, In, Not, Repository, UpdateResult } from 'typeorm';
 import { ClassSession } from './entity/classSession.entity';
 import { ClassRegistration } from '../classRegistration/entity/classRegistration.entity';
 import { ClassRegistrationState } from '../classRegistration/enum/classRegistration-state.enum';
@@ -213,17 +213,62 @@ export class ClassSessionService implements OnModuleInit {
   // Moves the remaining-spots counter as people enroll and cancel. Without
   // this the column never changes, so a session can never fill up and the
   // capacity check on enrollment can never fire.
-  async adjustAvailableSpots(id: number, delta: number) {
-    const session = await this.findClassSession(id);
-    if (!session) {
-      throw new NotFoundException(`El turno de clase con ID: ${id} no existe.`);
+  //
+  // This is a single atomic UPDATE rather than a read-then-write: two
+  // concurrent decrements (two members enrolling in the last spot at once)
+  // must not both read the same stale availableSpots and both write the same
+  // "one less" value, which is exactly how a slot used to end up overbooked.
+  // The WHERE guard re-checks capacity in the same statement as the write, so
+  // a decrement that would go below 0 simply matches no row instead of
+  // racing another one past the check — the caller gets `null` back and
+  // decides what to tell the member. An increment (delta >= 0, e.g. a
+  // cancellation freeing a spot) can never fail this way, so it is clamped
+  // to maxCapacity with SQL's LEAST() instead of a WHERE guard.
+  //
+  // `manager` defaults to this repository's own manager so every existing
+  // caller keeps working unchanged; a caller that also writes other rows in
+  // the same unit of work (see ClassRegistrationService.enroll) passes the
+  // manager of its own transaction so a lost race rolls back everything.
+  async adjustAvailableSpots(
+    id: number,
+    delta: number,
+    manager: EntityManager = this.classSessionRepository.manager,
+  ): Promise<number | null> {
+    const repo = manager.getRepository(ClassSession);
+    const qb = repo
+      .createQueryBuilder()
+      .update(ClassSession)
+      .where('id = :id', { id });
+
+    const result =
+      delta >= 0
+        ? await qb
+            .set({
+              availableSpots: () =>
+                'LEAST(maxCapacity, availableSpots + :delta)',
+            })
+            .setParameter('delta', delta)
+            .execute()
+        : await qb
+            .set({ availableSpots: () => 'availableSpots + :delta' })
+            .setParameter('delta', delta)
+            .andWhere('availableSpots + :delta >= 0', { delta })
+            .execute();
+
+    if (!result.affected) {
+      const exists = await repo.findOne({ where: { id } });
+      if (!exists) {
+        throw new NotFoundException(
+          `El turno de clase con ID: ${id} no existe.`,
+        );
+      }
+      // The session exists but the capacity guard refused the decrement:
+      // no spots were left the instant this statement ran.
+      return null;
     }
-    const next = Math.min(
-      session.maxCapacity,
-      Math.max(0, session.availableSpots + delta),
-    );
-    await this.classSessionRepository.update({ id }, { availableSpots: next });
-    return next;
+
+    const updated = await repo.findOne({ where: { id } });
+    return updated ? updated.availableSpots : null;
   }
 
   async findAll() {
@@ -282,12 +327,27 @@ export class ClassSessionService implements OnModuleInit {
       );
     }
 
+    // Moving a slot keeps the spots already TAKEN, not the spots already
+    // FREE: occupied = maxCapacity - availableSpots is the number of members
+    // actually holding this slot, and that is what survives a capacity
+    // change. Re-deriving availableSpots from it (rather than carrying the
+    // old value over unchanged) is what keeps a maxCapacity edit honest in
+    // both directions — shrinking it below current occupancy correctly
+    // floors availableSpots at 0 instead of the stale, too-generous number
+    // the old capacity implied, and growing it correctly frees up the extra
+    // room instead of leaving availableSpots stuck at the old ceiling.
+    const occupied = exists.maxCapacity - exists.availableSpots;
+    const requestedAvailableSpots =
+      classSessionDto.availableSpots ?? classSessionDto.maxCapacity - occupied;
+    const availableSpots = Math.min(
+      classSessionDto.maxCapacity,
+      Math.max(0, requestedAvailableSpots),
+    );
+
     return await this.classSessionRepository.save({
       ...classSessionDto,
       startTime,
-      // Moving a slot keeps the spots already taken: capacity changes, the
-      // enrolled members do not disappear.
-      availableSpots: classSessionDto.availableSpots ?? exists.availableSpots,
+      availableSpots,
       dateTime: null,
     });
   }

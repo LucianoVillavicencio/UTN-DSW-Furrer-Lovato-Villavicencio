@@ -292,7 +292,10 @@ export class ClassRegistrationService implements OnModuleInit {
     }
 
     // One enrollment books every weekday of that hour, so a single full day
-    // blocks it: the member cannot hold half a schedule.
+    // blocks it: the member cannot hold half a schedule. This is a cheap
+    // early rejection on the `slots` snapshot already in hand — the
+    // authoritative check is the atomic reservation below, since this read
+    // can be stale by the time that runs.
     const full = slots.find((slot) => slot.availableSpots <= 0);
     if (full) {
       throw new ConflictException(
@@ -302,20 +305,40 @@ export class ClassRegistrationService implements OnModuleInit {
 
     const group = randomUUID();
     const now = new Date();
-    for (const slot of slots) {
-      await this.classRegistrationRepository.save(
-        this.classRegistrationRepository.create({
-          userId,
-          classSessionId: slot.id,
-          enrollmentGroup: group,
-          isChange,
-          date: now,
-          state: ClassRegistrationState.CONFIRMED,
-          deleted: false,
-        }),
-      );
-      await this.classSessionService.adjustAvailableSpots(slot.id, -1);
-    }
+    // Reserving a spot and creating its registration row run in the SAME
+    // transaction, one slot at a time, so a slot that loses the race (another
+    // request took the last spot between the check above and here) rolls
+    // back every slot already reserved for this enrollment instead of
+    // leaving the member half-booked.
+    await this.classRegistrationRepository.manager.transaction(
+      async (manager) => {
+        for (const slot of slots) {
+          const remainingSpots =
+            await this.classSessionService.adjustAvailableSpots(
+              slot.id,
+              -1,
+              manager,
+            );
+          if (remainingSpots === null) {
+            throw new ConflictException(
+              `No hay cupos el ${WEEKDAYS[slot.weekday] ?? 'ese día'} a las ${startTime.slice(0, 5)} hs.`,
+            );
+          }
+          const registrationRepo = manager.getRepository(ClassRegistration);
+          await registrationRepo.save(
+            registrationRepo.create({
+              userId,
+              classSessionId: slot.id,
+              enrollmentGroup: group,
+              isChange,
+              date: now,
+              state: ClassRegistrationState.CONFIRMED,
+              deleted: false,
+            }),
+          );
+        }
+      },
+    );
 
     return this.findMyEnrollments(userId);
   }
@@ -479,28 +502,44 @@ export class ClassRegistrationService implements OnModuleInit {
       throw new ConflictException('Ya estás inscripto en este turno.');
     }
 
+    // Cheap early rejection on the `session` snapshot already in hand — the
+    // authoritative check is the atomic reservation below, in the same
+    // transaction as the registration row, since this read can be stale by
+    // the time that runs.
     if (session.availableSpots <= 0) {
       throw new ConflictException(
         'No hay cupos disponibles para este horario.',
       );
     }
 
-    await this.classSessionService.adjustAvailableSpots(
-      classRegistration.classSessionId,
-      -1,
-    );
+    return await this.classRegistrationRepository.manager.transaction(
+      async (manager) => {
+        const remainingSpots =
+          await this.classSessionService.adjustAvailableSpots(
+            classRegistration.classSessionId,
+            -1,
+            manager,
+          );
+        if (remainingSpots === null) {
+          throw new ConflictException(
+            'No hay cupos disponibles para este horario.',
+          );
+        }
 
-    const newRegistration = this.classRegistrationRepository.create({
-      ...classRegistration,
-      // A row created one turno at a time is an enrollment of its own.
-      enrollmentGroup: randomUUID(),
-      date: classRegistration.date
-        ? new Date(classRegistration.date)
-        : new Date(),
-      state: classRegistration.state ?? ClassRegistrationState.CONFIRMED,
-      deleted: classRegistration.deleted ?? false,
-    });
-    return await this.classRegistrationRepository.save(newRegistration);
+        const registrationRepo = manager.getRepository(ClassRegistration);
+        const newRegistration = registrationRepo.create({
+          ...classRegistration,
+          // A row created one turno at a time is an enrollment of its own.
+          enrollmentGroup: randomUUID(),
+          date: classRegistration.date
+            ? new Date(classRegistration.date)
+            : new Date(),
+          state: classRegistration.state ?? ClassRegistrationState.CONFIRMED,
+          deleted: classRegistration.deleted ?? false,
+        });
+        return await registrationRepo.save(newRegistration);
+      },
+    );
   }
 
   async findClassRegistration(id: number) {

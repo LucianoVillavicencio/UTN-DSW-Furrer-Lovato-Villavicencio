@@ -55,8 +55,15 @@ export async function verifyAndDispatchWebhook(
     verifyWebhookSignature(
       {
         signatureHeader: input.signatureHeader ?? '',
-        requestId: input.requestId ?? '',
-        dataId: input.dataId ?? '',
+        // Passed through exactly as received — undefined when MP genuinely
+        // omits one — never coerced to ''. buildSignatureManifest must skip
+        // an absent field entirely rather than hash it as an empty segment,
+        // since that segment is not part of what MP actually signed; a ''
+        // here would defeat that and make a notification missing dataId or
+        // requestId impossible to ever verify, not just this once but on
+        // every one of MP's retries.
+        requestId: input.requestId,
+        dataId: input.dataId,
       },
       secret,
       new Date(),
@@ -68,11 +75,13 @@ export async function verifyAndDispatchWebhook(
     );
   }
 
-  // dataId is guaranteed non-empty here: an empty dataId could only have
-  // produced a verified signature if the secret itself were compromised,
-  // in which case the whole scheme is already broken — this is not a
-  // realistic branch to defend against separately.
-  await webhookService.handleNotification(input.dataId as string, input.type);
+  // Only past verification is a missing dataId coerced to '': fetchPaymentLike
+  // (WebhookService) only ever reads dataId for the 'order'/'payment' topics,
+  // which always carry one in practice — every other topic (merchant_order,
+  // chargebacks, ...) is a no-op before dataId is ever touched, so an empty
+  // placeholder here is harmless for exactly the notifications that can
+  // legitimately lack one.
+  await webhookService.handleNotification(input.dataId ?? '', input.type);
 
   return { received: true };
 }

@@ -10,6 +10,12 @@ import { Role } from '../common/enum/role.enum';
 // Mocking the whole module up front avoids that.
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
+  // AuthService computes a constant dummy hash at module load, via
+  // hashSync, to compare against when an account doesn't exist/have a
+  // password — see login()'s timing-safety comment. The real value never
+  // matters here since `compare` above is what every test actually asserts
+  // on.
+  hashSync: jest.fn().mockReturnValue('mocked-dummy-hash'),
 }));
 
 const mockedCompare = bcrypt.compare as unknown as jest.Mock;

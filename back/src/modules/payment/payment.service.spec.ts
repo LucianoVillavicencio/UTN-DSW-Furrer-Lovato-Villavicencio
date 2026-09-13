@@ -1245,6 +1245,41 @@ describe('PaymentService.confirmPlanCharge', () => {
     );
   });
 
+  // Regression guard: the findByMpPaymentId check above is a fast path, not
+  // a lock. Two near-simultaneous deliveries for the same mpPaymentId (a
+  // webhook retry racing CheckoutService.settle(), or two overlapping
+  // webhook retries) can both see null and both enter the transaction; the
+  // loser's manager.save hits the DB's UNIQUE constraint on mpPaymentId.
+  // This used to propagate as an unhandled 500 instead of recovering the way
+  // createFromMercadoPago's identical race already does.
+  it('recovers with the winning row when two deliveries race past the idempotency check', async () => {
+    const winningPayment = {
+      id: 99,
+      mpPaymentId: 'mp-1',
+      subscription: hydratedSubscription,
+    };
+    paymentRepository.findOne
+      .mockResolvedValueOnce(null) // idempotency fast path: not there yet
+      .mockResolvedValueOnce(winningPayment); // recovery lookup after the race
+    const duplicateKeyError = Object.assign(new Error('Duplicate entry'), {
+      code: 'ER_DUP_ENTRY',
+    });
+    manager.save = jest.fn().mockRejectedValue(duplicateKeyError);
+
+    const result = await service.confirmPlanCharge(input);
+
+    expect(result.payment).toBe(winningPayment);
+    expect(result.subscription).toBe(hydratedSubscription);
+  });
+
+  it('lets a non-duplicate-key transaction failure propagate', async () => {
+    manager.save = jest.fn().mockRejectedValue(new Error('db exploded'));
+
+    await expect(service.confirmPlanCharge(input)).rejects.toThrow(
+      'db exploded',
+    );
+  });
+
   it('persists mpOrderId on the payment when the caller supplies one', async () => {
     // (Reuse whatever plan/duration/subscription mocks the surrounding
     // describe block's beforeEach already sets up for a successful charge —

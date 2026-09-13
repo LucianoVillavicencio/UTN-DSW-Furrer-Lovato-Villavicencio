@@ -10,6 +10,7 @@ import {
   EntityManager,
   In,
   LessThan,
+  Not,
   Repository,
   UpdateResult,
 } from 'typeorm';
@@ -496,6 +497,19 @@ export class subscriptionService {
       live.scheduledPlanId = planId;
     }
 
+    // Marks this row as already changed for the rest of the term — see
+    // findChangeContext's `alreadyChanged` and assessChange's
+    // 'already_changed' block, which is the only thing standing between a
+    // member and an unlimited number of free changes in one term. Points at
+    // itself, not at some other row: applyPlanChange mutates the live
+    // subscription in place rather than replacing it (unlike a paid
+    // upgrade, which opens a new row via replaceActiveSubscription), so
+    // there is no other row to record — and findChangeContext's one-hop
+    // lookup of a self-reference resolves back to this same row's own
+    // (unchanged) startDate, exactly the termStartDate a lateral move or a
+    // scheduled downgrade leaves in place.
+    live.changedFromSubscriptionId = live.id;
+
     await this.subscriptionRepository.save(live);
     return {
       direction: assessment.direction,
@@ -568,14 +582,51 @@ export class subscriptionService {
   }
 
   async createSubscription(subscriptionDto: SubscriptionDto) {
+    const state = subscriptionDto.state ?? SubscriptionState.ACTIVE;
+    // `state` is a plain string (SubscriptionDto.state), so the enum member
+    // is widened to its value before comparing — same pattern as
+    // ChargeOrderService.createCharge.
+    const activeState: string = SubscriptionState.ACTIVE;
+    if (state === activeState) {
+      await this.assertNoOtherActiveSubscription(subscriptionDto.userId);
+    }
+
     const newSubscription = this.subscriptionRepository.create({
       ...subscriptionDto,
       startDate: new Date(subscriptionDto.startDate),
       endDate: new Date(subscriptionDto.endDate),
-      state: subscriptionDto.state ?? SubscriptionState.ACTIVE,
+      state,
       deleted: subscriptionDto.deleted ?? false,
     });
     return await this.subscriptionRepository.save(newSubscription);
+  }
+
+  // At most one ACTIVE, non-deleted subscription per user is an invariant
+  // every other write path in this file (activate, renew,
+  // replaceActiveSubscription, changePlan) goes out of its way to preserve —
+  // cancelling or superseding whatever the member already had before
+  // opening a new ACTIVE row. createSubscription/updateSubscription are the
+  // one pair of admin routes that write a Subscription straight from the
+  // DTO with none of that machinery, so they are the one path that could
+  // otherwise leave a user with two ACTIVE rows — which findActiveForUser
+  // and everything downstream of it assumes can never happen.
+  private async assertNoOtherActiveSubscription(
+    userId: number,
+    excludingId?: number,
+  ): Promise<void> {
+    const other = await this.subscriptionRepository.findOne({
+      where: {
+        userId,
+        state: SubscriptionState.ACTIVE,
+        deleted: false,
+        ...(excludingId ? { id: Not(excludingId) } : {}),
+      },
+    });
+    if (other) {
+      throw new ConflictException(
+        `El socio ya tiene una suscripción activa (ID: ${other.id}).`,
+      );
+    }
   }
 
   // Thin passthrough so pause.service.ts — which lives in PauseModule, not
@@ -622,6 +673,17 @@ export class subscriptionService {
         `La suscripción con ID: ${subscriptionDto.id} no existe.`,
       );
     }
+
+    const state = subscriptionDto.state ?? exists.state;
+    // Same widening as createSubscription: `state` here is a plain string.
+    const activeState: string = SubscriptionState.ACTIVE;
+    if (state === activeState) {
+      await this.assertNoOtherActiveSubscription(
+        subscriptionDto.userId,
+        exists.id,
+      );
+    }
+
     const updatedsubscription = {
       ...subscriptionDto,
       startDate: subscriptionDto.startDate

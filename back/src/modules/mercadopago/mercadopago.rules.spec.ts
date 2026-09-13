@@ -106,6 +106,27 @@ describe('verifyWebhookSignature', () => {
     );
   });
 
+  // Regression guard: the caller (WebhookController) used to normalize a
+  // missing dataId/requestId to '' before calling in here, which defeated
+  // buildSignatureManifest's "omit an absent field" behavior (it only
+  // triggers on undefined, never on '') and made a notification genuinely
+  // missing one of these fields impossible to ever verify — not just once,
+  // but on every one of MP's retries of that same notification.
+  it('accepts a notification that genuinely omits dataId, when undefined reaches here', () => {
+    const noDataIdManifest = `request-id:req-1;ts:${ts};`;
+    expect(
+      verifyWebhookSignature(
+        {
+          ...valid,
+          dataId: undefined,
+          signatureHeader: `ts=${ts},v1=${sign(noDataIdManifest)}`,
+        },
+        SECRET,
+        new Date(),
+      ),
+    ).toBe(true);
+  });
+
   it('rejects a malformed header instead of throwing', () => {
     expect(
       verifyWebhookSignature(
