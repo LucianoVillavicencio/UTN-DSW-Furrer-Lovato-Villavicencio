@@ -108,7 +108,7 @@ export class ClassRegistrationService implements OnModuleInit {
     }
   }
 
-  // ---------------------------------------------------------------- members
+  // Members
 
   private async activeRegistrationsOf(userId: number) {
     return this.classRegistrationRepository.find({
@@ -445,8 +445,6 @@ export class ClassRegistrationService implements OnModuleInit {
       );
     }
   }
-
-  // ------------------------------------------------------------------ admin
 
   // Admin-only from here down: the member-facing flow above is what the
   // classes page uses.

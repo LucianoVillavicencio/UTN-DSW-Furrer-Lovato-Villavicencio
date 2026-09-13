@@ -10,9 +10,8 @@ import { getApiErrorMessage } from './api-error';
 // every call here used to fail once the guard was added. It also keeps the base
 // URL in one place instead of hardcoding localhost.
 
-// ---------------------------------------------------------------- members
-// The member's own enrollments. The DNI travels in the JWT, never in the body
-// or the URL, so one member can never read or touch another's.
+// Members: the member's own enrollments. The DNI travels in the JWT, never in
+// the body or the URL, so one member can never read or touch another's.
 
 export const getMyEnrollments = async (): Promise<MyEnrollments> => {
   try {
@@ -81,7 +80,7 @@ export const cancelEnrollment = async (
   }
 };
 
-// ------------------------------------------------------------------ admin
+// Admin-only from here down.
 
 // What a member holds, viewed from the admin panel — same shape as
 // getMyEnrollments, but for a member picked by an admin, not the caller.
