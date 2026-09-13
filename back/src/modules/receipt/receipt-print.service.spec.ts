@@ -128,7 +128,7 @@ describe('ReceiptPrintService.printPaymentReceipt', () => {
       where: {
         documentType: 'payment',
         documentId: 42,
-        contentHash: expect.any(String),
+        contentHash: expect.any(String) as string,
         status: 'sent',
       },
     });
@@ -244,7 +244,12 @@ describe('waitForActionToLeaveQueue (retry/cancel policy)', () => {
   it('returns immediately once the status leaves "created"', async () => {
     const getStatus = jest.fn().mockResolvedValue('processed');
 
-    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 5);
+    const result = await waitForActionToLeaveQueue(
+      getStatus,
+      instantSleep,
+      10,
+      5,
+    );
 
     expect(result).toEqual({ outcome: 'left_queue', lastStatus: 'processed' });
     expect(getStatus).toHaveBeenCalledTimes(1);
@@ -254,7 +259,12 @@ describe('waitForActionToLeaveQueue (retry/cancel policy)', () => {
   it('keeps polling while the status stays "created", then reports "stuck"', async () => {
     const getStatus = jest.fn().mockResolvedValue('created');
 
-    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 4);
+    const result = await waitForActionToLeaveQueue(
+      getStatus,
+      instantSleep,
+      10,
+      4,
+    );
 
     expect(result).toEqual({ outcome: 'stuck', lastStatus: 'created' });
     expect(getStatus).toHaveBeenCalledTimes(4);
@@ -264,7 +274,12 @@ describe('waitForActionToLeaveQueue (retry/cancel policy)', () => {
   it('treats an undefined status (a failed lookup) the same as still-queued', async () => {
     const getStatus = jest.fn().mockResolvedValue(undefined);
 
-    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 2);
+    const result = await waitForActionToLeaveQueue(
+      getStatus,
+      instantSleep,
+      10,
+      2,
+    );
 
     expect(result).toEqual({ outcome: 'stuck', lastStatus: undefined });
   });
@@ -276,9 +291,17 @@ describe('waitForActionToLeaveQueue (retry/cancel policy)', () => {
       .mockResolvedValueOnce('created')
       .mockResolvedValueOnce('on_terminal');
 
-    const result = await waitForActionToLeaveQueue(getStatus, instantSleep, 10, 6);
+    const result = await waitForActionToLeaveQueue(
+      getStatus,
+      instantSleep,
+      10,
+      6,
+    );
 
-    expect(result).toEqual({ outcome: 'left_queue', lastStatus: 'on_terminal' });
+    expect(result).toEqual({
+      outcome: 'left_queue',
+      lastStatus: 'on_terminal',
+    });
     expect(getStatus).toHaveBeenCalledTimes(3);
     expect(instantSleep).toHaveBeenCalledTimes(2);
   });

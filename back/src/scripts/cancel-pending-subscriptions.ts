@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { AppModule } from '../app.module';
 import { Subscription } from '../modules/subscription/entity/subscription.entity';
 import { SubscriptionState } from '../modules/subscription/enum/subscription-state.enum';
@@ -32,7 +33,9 @@ async function main(): Promise<void> {
   const logger = new Logger('cancel-pending-subscriptions');
   const app = await NestFactory.createApplicationContext(AppModule);
   try {
-    const repository = app.get(getRepositoryToken(Subscription));
+    const repository = app.get<Repository<Subscription>>(
+      getRepositoryToken(Subscription),
+    );
     const affected = await cancelPendingSubscriptions(repository);
     logger.log(`Cancelled ${affected} pending subscription(s).`);
   } finally {

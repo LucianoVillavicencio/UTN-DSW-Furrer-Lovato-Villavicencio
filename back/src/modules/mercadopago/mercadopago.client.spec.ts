@@ -140,11 +140,11 @@ describe('MercadoPagoClient', () => {
         status,
         json: () => Promise.resolve(body),
       });
-      global.fetch = fetchMock as unknown as typeof fetch;
+      global.fetch = fetchMock;
     }
 
     function sentBody(): Record<string, unknown> {
-      const init = fetchMock.mock.calls[0][1] as RequestInit;
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       return JSON.parse(init.body as string) as Record<string, unknown>;
     }
 
@@ -252,9 +252,7 @@ describe('MercadoPagoClient', () => {
     });
 
     it('wraps a network failure as MercadoPagoUnavailableError', async () => {
-      global.fetch = jest
-        .fn()
-        .mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
+      global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
 
       await expect(
         client.chargeCardToken({
@@ -454,11 +452,11 @@ describe('MercadoPagoClient', () => {
         status,
         json: () => Promise.resolve(body),
       });
-      global.fetch = fetchMock as unknown as typeof fetch;
+      global.fetch = fetchMock;
     }
 
     function sentBody(): Record<string, unknown> {
-      const init = fetchMock.mock.calls[0][1] as RequestInit;
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       return JSON.parse(init.body as string) as Record<string, unknown>;
     }
 

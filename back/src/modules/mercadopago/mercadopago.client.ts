@@ -611,15 +611,21 @@ export class MercadoPagoClient {
         code?: string;
         message?: string;
       }
-      const responseBody: SdkOrderResponse & { errors?: RawOrderErrorItem[] } =
-        await response.json().catch(() => ({}) as SdkOrderResponse);
+      const responseBody = (await response
+        .json()
+        .catch(() => ({}) as SdkOrderResponse)) as SdkOrderResponse & {
+        errors?: RawOrderErrorItem[];
+      };
       if (!response.ok) {
         const errors = Array.isArray(responseBody.errors)
           ? responseBody.errors
           : [];
         const message =
           errors.length > 0
-            ? errors.map((e) => e.message).filter(Boolean).join('; ')
+            ? errors
+                .map((e) => e.message)
+                .filter(Boolean)
+                .join('; ')
             : undefined;
         // wrapError only reads `.message` off an actual Error instance (it
         // falls back to String(err) for a plain object, which stringifies
