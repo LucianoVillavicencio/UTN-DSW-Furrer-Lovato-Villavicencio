@@ -45,7 +45,6 @@ const DashboardTabs = ({ tabs, activeTab, onChange }: DashboardTabsProps) => {
         })}
       </nav>
 
-      {/* Mobile: strip horizontal scrolleable */}
       <nav
         className="flex gap-2 overflow-x-auto pb-2 md:hidden"
         aria-label="Secciones"

@@ -77,7 +77,7 @@ const Navbar = () => {
   }
 
   const handleLogout = () => {
-    logout(); // Borra accessToken y user
+    logout();
     setIsOpen(false);
     navigate('/');
   };
@@ -85,13 +85,10 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg-terciary/60 backdrop-blur-sm">
       <Container className="flex h-20 items-center justify-between">
-        {/* Logo  */}
         <Link to="/" className="flex items-center gap-2">
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="font-display text-xl font-bold text-text">FLG</span>
         </Link>
-
-        {/* Links desktop */}
 
         <nav className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) =>
@@ -116,7 +113,6 @@ const Navbar = () => {
             ),
           )}
 
-          {/* NAVBAR ADMIN */}
           {isAdmin && (
             <Link
               to="/admin"
@@ -128,7 +124,6 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* CTA desktop */}
         <div className="hidden lg:block">
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
@@ -170,13 +165,11 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Three-line button (mobile) */}
         <button
-          onClick={() => setIsOpen((prev) => !prev)} // When you click on the three lines, the state changes from false to true and vice versa.
+          onClick={() => setIsOpen((prev) => !prev)}
           className="text-text lg:hidden"
           aria-label={isOpen ? 'Cerrar menu' : 'Abrir menu'}
         >
-          {/* If it's open, display X; otherwise, display the three-line button */}
           {isOpen ? (
             <X className="h-7 w-7 " />
           ) : (
@@ -185,8 +178,7 @@ const Navbar = () => {
         </button>
       </Container>
 
-      {/* Menu mobile */}
-      {isOpen && ( // && is conditional rendering. If isOpen = true, it displays; if isOpen = false, it displays nothing.
+      {isOpen && (
         <div className="border-t border-border bg-background lg:hidden">
           <Container className="flex flex-col gap-4 py-6">
             {navLinks.map((link) =>

@@ -489,8 +489,7 @@ export class subscriptionService {
       // estimatedMrr divides soldPrice by planDuration?.months, falling back
       // to 1 when planDurationId is null, so a null planDurationId paired
       // with a leftover multi-month soldPrice total would overstate MRR by
-      // that many months (final review, Important finding — an earlier
-      // version of this fix left soldPrice alone, which was wrong).
+      // that many months.
       live.planDurationId = null;
       live.soldPrice = Number(plan.price);
     } else {

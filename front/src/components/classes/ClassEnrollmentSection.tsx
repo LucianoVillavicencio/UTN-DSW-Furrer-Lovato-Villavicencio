@@ -40,7 +40,6 @@ const ClassEnrollmentSection = () => {
   return (
     <section id="clases-programacion" className="bg-background py-12">
       <Container>
-        {/* Filter Bar Component */}
         <ClassFilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -49,14 +48,12 @@ const ClassEnrollmentSection = () => {
           classTypes={classTypes}
         />
 
-        {/* Catalogue request failed */}
         {loadError && (
           <div className="mb-8">
             <FormAlert type="error" message={loadError} />
           </div>
         )}
 
-        {/* STAGE 1: INITIAL CLASS CARDS GRID */}
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="flex flex-col items-center gap-3">
@@ -108,7 +105,6 @@ const ClassEnrollmentSection = () => {
           </div>
         )}
 
-        {/* STAGE 2: EXPANDED MODAL VIEW ON PRESSING A CLASS */}
         <ClassExpandedModal
           activeExpandedClass={activeExpandedClass}
           onClose={() => {

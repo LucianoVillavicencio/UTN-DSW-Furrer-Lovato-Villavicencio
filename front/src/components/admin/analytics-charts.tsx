@@ -19,7 +19,7 @@ const TOOLTIP_HEIGHT = 36;
 // Fixed headroom above the baseline, reserved unconditionally so the
 // tooltip always fits above ANY bar — including the tallest one, whose top
 // sits flush at TOP_MARGIN with no bar-height-dependent room to spare.
-const TOP_MARGIN = TOOLTIP_HEIGHT + 12; // 48
+const TOP_MARGIN = TOOLTIP_HEIGHT + 12;
 // Room below the baseline for the period-label row, unchanged from before
 // the TOP_MARGIN shift — only where the baseline itself sits moved.
 const BOTTOM_MARGIN = 28;

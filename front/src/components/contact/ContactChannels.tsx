@@ -48,7 +48,6 @@ const WhatsAppIcon = ({ className = 'w-6 h-6' }: { className?: string }) => (
 const ContactChannels = () => {
   return (
     <div className="space-y-6">
-      {/* Contact channels card */}
       <div className="bg-surface/90 border border-border/80 rounded-2xl p-6 shadow-xl backdrop-blur-md">
         <h2 className="font-display text-xl font-bold text-text mb-2 flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-primary" />
@@ -60,7 +59,6 @@ const ContactChannels = () => {
         </p>
 
         <div className="space-y-4">
-          {/* WhatsApp Option */}
           <a
             href={WHATSAPP_HREF}
             target="_blank"
@@ -89,7 +87,6 @@ const ContactChannels = () => {
             <ArrowUpRight className="h-5 w-5 text-emerald-400 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
           </a>
 
-          {/* Instagram Option */}
           <a
             href="https://instagram.com/flg_gym"
             target="_blank"
@@ -120,7 +117,6 @@ const ContactChannels = () => {
         </div>
       </div>
 
-      {/* Info Card */}
       <div className="bg-surface/90 border border-border/80 rounded-2xl p-6 shadow-xl space-y-4 backdrop-blur-md">
         <h3 className="font-display text-base font-bold text-text border-b border-border pb-3 flex items-center justify-between">
           <span>Información de FLG Gym</span>

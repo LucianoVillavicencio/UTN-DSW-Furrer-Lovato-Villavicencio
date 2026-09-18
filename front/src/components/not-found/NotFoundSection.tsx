@@ -5,7 +5,6 @@ import Button from '../common/Button';
 const NotFoundSection = () => {
   return (
     <Container className="flex flex-col items-center justify-center text-center py-12">
-      {/* Visual Badge / Icon */}
       <div className="relative mb-8 flex items-center justify-center">
         <div className="absolute -inset-4 rounded-full bg-primary/10 blur-xl"></div>
         <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border border-border bg-surface shadow-2xl">
@@ -13,12 +12,10 @@ const NotFoundSection = () => {
         </div>
       </div>
 
-      {/* 404 Big Display Text */}
       <h1 className="font-display text-8xl font-extrabold tracking-tight text-text sm:text-9xl">
         4<span className="text-primary">0</span>4
       </h1>
 
-      {/* Title & Description */}
       <h2 className="mt-4 font-display text-2xl font-bold text-text sm:text-3xl">
         ¡Uy! Te has salido de la rutina
       </h2>
@@ -27,7 +24,6 @@ const NotFoundSection = () => {
         de entrenamiento.
       </p>
 
-      {/* Action Buttons */}
       <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xs sm:max-w-none">
         <Button href="/" variant="primary" size="md">
           <Home className="mr-2 h-5 w-5" />
@@ -39,7 +35,6 @@ const NotFoundSection = () => {
         </Button>
       </div>
 
-      {/* Quick Navigation Cards */}
       <div className="mt-14 grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
         <a
           href="/class"

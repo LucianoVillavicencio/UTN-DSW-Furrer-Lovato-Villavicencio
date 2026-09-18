@@ -18,17 +18,15 @@ export class MailService {
   }
 
   /**
-   * Format a Date or YYYY-MM-DD string as DD/MM/YYYY.
-   * If input is a string already in YYYY-MM-DD format, just reformat directly
-   * to avoid timezone shifts. If it's a Date, use local getters.
+   * Formats a Date or 'YYYY-MM-DD' string as DD/MM/YYYY. String input is
+   * reformatted directly rather than parsed into a Date, to avoid a
+   * timezone shift that could push the day backward.
    */
   private formatDateDDMMYYYY(date: Date | string): string {
     if (typeof date === 'string') {
-      // Assume YYYY-MM-DD format
       const [year, month, day] = date.split('-');
       return `${day}/${month}/${year}`;
     }
-    // Date object: use local date parts
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -121,7 +119,6 @@ export class MailService {
       const formattedEndDate = this.formatDateDDMMYYYY(data.endDate);
 
       if (!data.isFinalAttempt) {
-        // Retry attempt
         const text = `Hola ${data.name},\n\nNo pudimos procesar el pago de tu membresía. Tu tarjeta fue rechazada.\n\nNo te preocupes, reintentaremos procesar tu pago en los próximos días. Si lo prefieres, puedes actualizar tu método de pago aquí: ${frontendUrl}/mi-cuenta/pagos\n\nGracias por tu confianza en FLG.`;
 
         const html = `
@@ -140,7 +137,6 @@ export class MailService {
           html,
         });
       } else {
-        // Final attempt
         const text = `Hola ${data.name},\n\nTu membresía vence mañana.\n\nEsta fue nuestra última semana intentando procesar el pago automático. Si no actualizas tu método de pago o realizas un pago en persona antes del ${formattedEndDate}, tu acceso se cancelará.\n\nActualiza tu método de pago aquí: ${frontendUrl}/mi-cuenta/pagos\n\nGracias por tu confianza en FLG.`;
 
         const html = `

@@ -40,13 +40,11 @@ const RegisterFieldsGroup = ({
   disabled = false,
   errors = {},
 }: RegisterFieldsGroupProps) => {
-  // Real-time password match calculation
   const isPasswordMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
     <div className="space-y-3">
-      {/* DNI */}
       <InputField
         id="reg-dni"
         name="dni"
@@ -63,7 +61,6 @@ const RegisterFieldsGroup = ({
         icon={<IdCard className="h-4 w-4" />}
       />
 
-      {/* Name and Surname Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <InputField
           id="reg-name"
@@ -126,7 +123,6 @@ const RegisterFieldsGroup = ({
         icon={<Phone className="h-4 w-4" />}
       />
 
-      {/* Password Fields Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <PasswordField
           id="reg-password"
@@ -153,7 +149,6 @@ const RegisterFieldsGroup = ({
         />
       </div>
 
-      {/* Password Strength Indicator */}
       <PasswordStrengthMeter password={password} />
     </div>
   );

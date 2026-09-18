@@ -119,8 +119,7 @@ export class RefundService {
     // subscription save then failed, the payment would read "refunded, all
     // good" while the subscription stayed ACTIVE with autoRenew possibly
     // still true, risking the renewal cron charging an already-refunded
-    // member again. See task-18-report.md's fix entry for the full
-    // reasoning.
+    // member again.
     const refundedAt = new Date();
     subscription.state = SubscriptionState.CANCELLED;
     subscription.autoRenew = false;

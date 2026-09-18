@@ -27,7 +27,6 @@ const Footer = () => {
     <footer className="border-t border-border bg-bg-terciary">
       <Container className="py-16">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Logo + tagline */}
           <div>
             <Link to="/" className="flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-primary" strokeWidth={2.5} />
@@ -43,7 +42,6 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Columna class */}
           <div>
             <h4 className="font-display text-sm font-semibold text-text">
               Clases
@@ -62,7 +60,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Columna Company */}
           <div>
             <h4 className="font-display text-sm font-semibold text-text">
               Compañía
@@ -81,7 +78,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Columna Legales */}
           <div>
             <h4 className="font-display text-sm font-semibold text-text">
               Legales
@@ -101,7 +97,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Copyright */}
         <div className="mt-12 border-t border-border pt-6 text-center">
           <p className="mb-3 font-body text-xs text-text-muted">
             Aceptamos Mercado Pago, tarjetas de crédito y débito.

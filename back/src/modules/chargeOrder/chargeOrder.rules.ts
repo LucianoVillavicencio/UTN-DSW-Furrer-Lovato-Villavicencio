@@ -28,15 +28,9 @@ export function buildExternalReference(userId: number, random: string): string {
 }
 
 /**
- * Checks whether a charge order has expired.
- *
  * An order is considered expired at or after its expiresAt time (inclusive).
  * An order expiring exactly at the check time should read as expired, not
  * still-valid for one more instant.
- *
- * @param order - Object with an expiresAt field (Date)
- * @param now - The current time to check against (Date)
- * @returns true if now >= expiresAt, false otherwise
  */
 export function isExpired(order: { expiresAt: Date }, now: Date): boolean {
   return now.getTime() >= order.expiresAt.getTime();

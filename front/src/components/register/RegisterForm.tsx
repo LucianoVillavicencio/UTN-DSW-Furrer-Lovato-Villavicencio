@@ -45,7 +45,6 @@ const RegisterForm = ({
     let isValid = true;
     setError(null);
 
-    // DNI check
     const cleanDni = dni.trim();
     const numericDni = Number(cleanDni);
     if (!cleanDni) {
@@ -61,19 +60,16 @@ const RegisterForm = ({
       isValid = false;
     }
 
-    // Name check
     if (!name.trim()) {
       newErrors.name = 'El nombre es requerido.';
       isValid = false;
     }
 
-    // Surname check
     if (!surname.trim()) {
       newErrors.surname = 'El apellido es requerido.';
       isValid = false;
     }
 
-    // Email check
     const cleanEmail = email.trim();
     if (!cleanEmail) {
       newErrors.email = 'El correo electrónico es requerido.';
@@ -84,7 +80,6 @@ const RegisterForm = ({
       isValid = false;
     }
 
-    // Phone check
     const cleanPhone = phone.trim();
     if (!cleanPhone) {
       newErrors.phone = 'El teléfono es requerido.';
@@ -103,13 +98,11 @@ const RegisterForm = ({
       isValid = false;
     }
 
-    // Confirm password check
     if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden.';
       isValid = false;
     }
 
-    // Terms & Conditions check
     if (!acceptTerms) {
       setError(
         'Debes aceptar los términos y condiciones para crear tu cuenta.',

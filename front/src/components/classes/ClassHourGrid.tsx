@@ -41,7 +41,6 @@ const ClassHourGrid = ({
             const isSelected = selectedHour?.startTime === hour.startTime;
             const isEnrolled = isEnrolledInHour(hour);
 
-            // Dynamic badge color logic
             let badgeClass =
               'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
             let statusText = `${hour.freeSpots} libres`;

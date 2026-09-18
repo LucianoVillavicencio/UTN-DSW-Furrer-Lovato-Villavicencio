@@ -113,14 +113,12 @@ const facilityList: FacilityItem[] = [
   },
 ];
 
-// Fallback SVG image data URI generator
 const getFallbackImage = (title: string) => {
   const encodedTitle = encodeURIComponent(title);
   return `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e293b'/%3E%3Cstop offset='100%25' stop-color='%230f172a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='400' fill='url(%23bg)'/%3E%3Crect x='40' y='40' width='520' height='320' rx='20' fill='%236366f1' fill-opacity='0.08' stroke='%236366f1' stroke-opacity='0.2' stroke-width='2'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23f8fafc' font-family='sans-serif' font-size='22' font-weight='bold'%3E${encodedTitle}%3C/text%3E%3C/svg%3E`;
 };
 
 const AboutFacilitiesSection = () => {
-  // Track broken images by facility ID to display SVG fallbacks seamlessly
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const handleImageError = (id: string) => {
@@ -165,7 +163,6 @@ const AboutFacilitiesSection = () => {
                 className="group overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 flex flex-col justify-between"
               >
                 <div>
-                  {/* Facility Card Thumbnail Header */}
                   <div className="relative aspect-16/10 w-full overflow-hidden bg-background">
                     <img
                       src={imageSrc}
@@ -178,18 +175,15 @@ const AboutFacilitiesSection = () => {
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-surface via-surface/20 to-transparent pointer-events-none" />
 
-                    {/* Floating Badge */}
                     <div className="absolute top-4 right-4 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-md shadow-md">
                       {facility.badge}
                     </div>
 
-                    {/* Icon Badge */}
                     <div className="absolute bottom-4 left-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-background shadow-lg transition-transform duration-300 group-hover:scale-110">
                       <Icon className="h-6 w-6" />
                     </div>
                   </div>
 
-                  {/* Card Content Body */}
                   <div className="p-6">
                     <h3 className="text-xl font-bold text-text group-hover:text-primary transition-colors duration-300">
                       {facility.title}
@@ -199,7 +193,6 @@ const AboutFacilitiesSection = () => {
                       {facility.description}
                     </p>
 
-                    {/* Feature Highlights List */}
                     <ul className="mt-6 space-y-2 border-t border-border/60 pt-4">
                       {facility.features.map((feat, idx) => (
                         <li

@@ -37,11 +37,9 @@ export const useClassEnrollment = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Filters state
   const [selectedTypeId, setSelectedTypeId] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // EXPANDED VIEW STATE
   const [activeExpandedClass, setActiveExpandedClass] =
     useState<MasterClassData | null>(null);
   // A member picks an hour, not a date: the enrollment covers every weekday
@@ -54,7 +52,6 @@ export const useClassEnrollment = () => {
     message: string;
   } | null>(null);
 
-  // Fetch initial data on mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -125,7 +122,6 @@ export const useClassEnrollment = () => {
     fetchData();
   }, [isAuthenticated]);
 
-  // Filter class cards with accent-normalization
   const filteredMasterClasses = useMemo(() => {
     return masterClasses.filter((cls) => {
       if (selectedTypeId !== 'ALL' && cls.typeClassId !== selectedTypeId)

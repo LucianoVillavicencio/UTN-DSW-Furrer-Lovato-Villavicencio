@@ -81,7 +81,6 @@ const SelectedHourSummary = ({
         {daysStr} · todas las semanas
       </p>
 
-      {/* STATS METRICS GRID */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-center">
         <div className="rounded-xl border border-border bg-background/80 p-3.5">
           <span className="block text-2xl font-extrabold text-primary">
@@ -106,7 +105,6 @@ const SelectedHourSummary = ({
         </div>
       </div>
 
-      {/* OCCUPANCY BAR */}
       <div className="mt-4 space-y-1.5">
         <div className="flex justify-between text-[11px] text-text-muted font-medium">
           <span>Ocupación de la clase</span>
@@ -126,7 +124,6 @@ const SelectedHourSummary = ({
         </div>
       </div>
 
-      {/* ACTION BUTTON */}
       <div className="mt-6">
         {currentUser ? (
           isEnrolled ? (

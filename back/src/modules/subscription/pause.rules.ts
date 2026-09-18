@@ -34,8 +34,9 @@ function normalize(date: Date | string): string {
 }
 
 /**
- * Parses a 'YYYY-MM-DD' string into a JavaScript Date at midnight local time.
- * Used to calculate the number of days between two dates.
+ * Built from local Y/M/D components rather than `new Date(dateStr)`, which
+ * parses as UTC and could shift the day backward in negative-offset
+ * timezones before daysOwedBack() diffs the result.
  */
 function parseDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -47,10 +48,6 @@ function parseDate(dateStr: string): Date {
  * Accepts both Date objects and 'YYYY-MM-DD' strings for pausedAt and today.
  * Clamps at zero: if today is somehow before pausedAt (clock skew or hand-edited
  * row), returns 0 rather than a negative number, to never shorten the membership.
- *
- * @param pausedAt - The date the subscription was paused (Date | string)
- * @param today - The current date (Date | string)
- * @returns Number of whole days frozen, clamped at 0
  */
 export function daysOwedBack(
   pausedAt: Date | string,
@@ -73,10 +70,6 @@ export function daysOwedBack(
  * This is a reporting function only, not an enforcement mechanism. When true,
  * an admin should investigate the pause; daysOwedBack() will still return the
  * full count of frozen days without truncation.
- *
- * @param pausedAt - The date the subscription was paused (Date | string)
- * @param today - The current date (Date | string)
- * @returns true if the pause duration exceeds MAX_PAUSE_DAYS
  */
 export function exceedsPauseCap(
   pausedAt: Date | string,

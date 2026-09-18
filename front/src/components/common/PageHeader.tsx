@@ -21,7 +21,6 @@ const PageHeader = ({
       aria-labelledby="page-header-heading"
       className="relative overflow-hidden bg-bg-secondary py-16 lg:py-24"
     >
-      {/* Subtle Background Glow Accent */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl"

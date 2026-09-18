@@ -23,7 +23,6 @@ function Plan() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Synchronously initialize currentUser from localStorage
   const [currentUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('user');
     if (!stored) return null;
@@ -34,7 +33,6 @@ function Plan() {
     }
   });
 
-  // The current user's active subscription (self-service; see Dashboard).
   const [activeSubscription, setActiveSubscription] =
     useState<Subscription | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
@@ -42,7 +40,6 @@ function Plan() {
     message: string;
   } | null>(null);
 
-  // Fetch plans from backend on mount
   useEffect(() => {
     const fetchPlanData = async () => {
       setIsLoading(true);
@@ -85,7 +82,6 @@ function Plan() {
     fetchPlanData();
   }, [currentUser]);
 
-  // Check if current user has an active subscription to a given plan
   const hasActiveSubscriptionToPlan = (planId?: number) => {
     if (!planId || !activeSubscription) return false;
     return (
@@ -130,7 +126,6 @@ function Plan() {
 
         <section className="bg-background py-20">
           <Container>
-            {/* Feedback Alert */}
             {actionFeedback && (
               <div
                 className={`mx-auto mb-10 max-w-2xl rounded-2xl border p-4 text-center transition-all ${
@@ -145,7 +140,6 @@ function Plan() {
               </div>
             )}
 
-            {/* Badges Bar */}
             <div className="mx-auto mb-12 flex max-w-3xl flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
               {[
                 'Sin contratos de permanencia',
@@ -162,7 +156,6 @@ function Plan() {
               ))}
             </div>
 
-            {/* Stage: Loading, Error, or Plans Grid */}
             {isLoading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />

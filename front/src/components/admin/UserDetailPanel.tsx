@@ -194,7 +194,6 @@ const UserDetailPanel = ({
   return (
     <Modal title={`${user.name} ${user.surname}`} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
-        {/* Profile */}
         <section>
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Datos
@@ -271,7 +270,6 @@ const UserDetailPanel = ({
           </div>
         </section>
 
-        {/* Subscription */}
         <section className="border-t border-border pt-4">
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Suscripciones
@@ -355,7 +353,6 @@ const UserDetailPanel = ({
 
         <UserClassSection userId={user.id} />
 
-        {/* Payments */}
         <section className="border-t border-border pt-4">
           <h4 className="font-display text-sm font-semibold uppercase tracking-wide text-text-muted">
             Pagos
@@ -402,7 +399,6 @@ const UserDetailPanel = ({
           </div>
         </section>
 
-        {/* Danger zone */}
         <section className="rounded-xl border border-red-500/30 p-4">
           <div className="flex items-center gap-2 text-red-400">
             <ShieldAlert className="h-4 w-4" />

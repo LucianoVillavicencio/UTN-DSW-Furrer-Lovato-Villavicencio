@@ -8,9 +8,7 @@ const RegisterSection = () => {
     <Container className="py-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <Card className="grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden p-0 sm:p-2 border-border/80 bg-surface shadow-xl">
-          {/* Left Side: Brand Perks Highlight (Desktop) */}
           <div className="relative hidden lg:flex lg:col-span-5 flex-col justify-between rounded-2xl bg-surface p-8 border-r border-border/50 overflow-hidden">
-            {/* Header / Logo */}
             <div className="relative z-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30 shadow-inner">
@@ -29,7 +27,6 @@ const RegisterSection = () => {
               </p>
             </div>
 
-            {/* Bullet Perks */}
             <div className="relative z-10 my-6 space-y-4">
               <div className="flex items-start gap-3 group">
                 <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-background transition-all duration-300">
@@ -74,7 +71,6 @@ const RegisterSection = () => {
               </div>
             </div>
 
-            {/* Motivational Footer Note */}
             <div className="relative z-10 border-t border-border/50 pt-4">
               <p className="font-body text-xs italic text-text-muted">
                 "El primer paso no te lleva a donde quieres ir, pero te saca de
@@ -83,9 +79,7 @@ const RegisterSection = () => {
             </div>
           </div>
 
-          {/* Right Side: Register Form */}
           <div className="lg:col-span-7 flex flex-col justify-center p-6 sm:p-8 md:p-10">
-            {/* Header */}
             <div className="mb-5 lg:mb-6 text-center lg:text-left">
               <div className="flex justify-center lg:justify-start items-center gap-2 mb-2 lg:hidden">
                 <Dumbbell className="h-7 w-7 text-primary" />
@@ -101,7 +95,6 @@ const RegisterSection = () => {
               </p>
             </div>
 
-            {/* Form */}
             <RegisterForm />
           </div>
         </Card>

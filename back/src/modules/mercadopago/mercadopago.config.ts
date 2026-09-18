@@ -37,7 +37,6 @@ export class MercadoPagoConfig {
       this._webhookSecret = webhookSecret;
     }
 
-    // Optional fields
     this._pointTerminalId = config.get<string>('MP_POINT_TERMINAL_ID');
     this._qrExternalPosId = config.get<string>('MP_QR_EXTERNAL_POS_ID');
 

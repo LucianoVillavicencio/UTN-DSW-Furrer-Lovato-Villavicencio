@@ -42,7 +42,6 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
 
   return (
     <div className="mt-2 space-y-2.5 rounded-xl border border-border/70 bg-surface/60 p-3.5 animate-fadeIn">
-      {/* Strength Progress Bar Header */}
       <div className="flex items-center justify-between text-xs font-body">
         <span className="text-text-muted">Fortaleza de la contraseña:</span>
         <span className={`font-semibold tracking-wide ${strength.textColor}`}>
@@ -50,7 +49,6 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
         </span>
       </div>
 
-      {/* Bar Segments */}
       <div className="grid grid-cols-5 gap-1.5">
         {[1, 2, 3, 4, 5].map((level) => (
           <div
@@ -62,7 +60,6 @@ const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) => {
         ))}
       </div>
 
-      {/* Criteria Checklist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-[11px] font-body text-text-muted">
         {checks.map((c) => (
           <div key={c.label} className="flex items-center gap-1.5">

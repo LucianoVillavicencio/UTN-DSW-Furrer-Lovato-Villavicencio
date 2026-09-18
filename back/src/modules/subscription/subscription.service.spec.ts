@@ -890,9 +890,9 @@ describe('subscriptionService', () => {
       expect(live.planId).toBe(4);
       expect(live.scheduledPlanId).toBeNull();
       expect(live.endDate).toBe('2026-03-31');
-      // Final-review Important finding: planDurationId still pointed at the
-      // OLD plan's duration row after a lateral move, even though the
-      // subscription now claims a different plan.
+      // planDurationId still pointed at the OLD plan's duration row after a
+      // lateral move, even though the subscription now claims a different
+      // plan.
       expect(live.planDurationId).toBeNull();
       // soldPrice must be rewritten to the new plan's regular monthly price:
       // leaving the old multi-month total in place with planDurationId now

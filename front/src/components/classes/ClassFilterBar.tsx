@@ -19,7 +19,6 @@ const ClassFilterBar = ({
   return (
     <div className="mb-10 rounded-2xl border border-border bg-surface/80 p-6 shadow-xl backdrop-blur-md">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Search Input */}
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
           <input
@@ -39,7 +38,6 @@ const ClassFilterBar = ({
           )}
         </div>
 
-        {/* Category Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted mr-2">
             <Filter className="h-3.5 w-3.5" /> Filtrar:

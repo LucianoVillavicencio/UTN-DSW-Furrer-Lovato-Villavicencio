@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-// accent(green) default  | neutral(chips Rating)
 type BadgeVariant = 'accent' | 'neutral';
 
 interface BadgeProps {

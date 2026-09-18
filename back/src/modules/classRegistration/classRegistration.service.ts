@@ -108,8 +108,6 @@ export class ClassRegistrationService implements OnModuleInit {
     }
   }
 
-  // Members
-
   private async activeRegistrationsOf(userId: number) {
     return this.classRegistrationRepository.find({
       where: {

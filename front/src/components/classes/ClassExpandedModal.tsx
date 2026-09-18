@@ -56,7 +56,6 @@ const ClassExpandedModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-surface p-6 sm:p-8 shadow-2xl">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute right-5 top-5 rounded-full p-2 text-text-muted hover:bg-background hover:text-text transition-colors"
@@ -64,7 +63,6 @@ const ClassExpandedModal = ({
           <X className="h-5 w-5" />
         </button>
 
-        {/* Class Header */}
         <div className="flex items-center gap-3">
           <span className="rounded-2xl bg-primary/10 p-3.5 text-primary">
             {renderCategoryIcon(activeExpandedClass.typeClass?.name, 'h-7 w-7')}
@@ -79,14 +77,12 @@ const ClassExpandedModal = ({
           </div>
         </div>
 
-        {/* Instructor info */}
         <p className="mt-3 text-xs font-semibold text-text-muted flex items-center gap-2">
           <UserIcon className="h-4 w-4 text-primary" /> Prof.{' '}
           {activeExpandedClass.trainer?.name}{' '}
           {activeExpandedClass.trainer?.surname}
         </p>
 
-        {/* WEEKLY SCHEDULE OF THIS CLASS */}
         <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -111,7 +107,6 @@ const ClassExpandedModal = ({
           </div>
         </div>
 
-        {/* Feedback alert */}
         {actionFeedback && (
           <div className="mt-4">
             <FormAlert
@@ -121,7 +116,6 @@ const ClassExpandedModal = ({
           </div>
         )}
 
-        {/* WEEKLY HOURS */}
         <ClassHourGrid
           hours={hoursForActiveClass}
           selectedHour={selectedHour}
@@ -129,7 +123,6 @@ const ClassExpandedModal = ({
           isEnrolledInHour={isEnrolledInHour}
         />
 
-        {/* SELECTED HOUR SUMMARY & ENROLL ACTION */}
         {selectedHour && (
           <SelectedHourSummary
             selectedHour={selectedHour}
