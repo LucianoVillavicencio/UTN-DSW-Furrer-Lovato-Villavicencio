@@ -17,7 +17,7 @@ const FacilitiesGallery = () => {
         <div id="facilities-heading">
           <SectionTitle
             badge="Instalaciones"
-            title="Mirá dónde vas a entrenar"
+            title="Tu lugar de entrenamiento"
             subtitle="Sala de musculación, zona de cardio y salón de clases, tal como los vas a encontrar."
           />
         </div>

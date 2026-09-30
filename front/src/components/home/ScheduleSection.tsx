@@ -55,7 +55,7 @@ const ScheduleSection = ({
     <section
       id={LANDING_ANCHORS.schedule}
       aria-labelledby="schedule-heading"
-      className="bg-bg-secondary py-20"
+      className="bg-background py-20"
     >
       <Container>
         <div id="schedule-heading">
