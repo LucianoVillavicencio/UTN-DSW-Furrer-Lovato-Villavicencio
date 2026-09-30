@@ -50,7 +50,7 @@ export const VALUE_PROPS: ValueProp[] = [
   { icon: BadgePercent, label: '0% de costo de matrícula inicial' },
   {
     icon: Clock,
-    label: 'Lunes a viernes de 06 a 23 hs · sábados de 08 a 20 hs',
+    label: 'Lunes a viernes de 06 a 23 hs',
   },
   { icon: CalendarCheck, label: 'Reservá tus clases desde el celular' },
   {
