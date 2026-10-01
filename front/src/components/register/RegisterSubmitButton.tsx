@@ -14,7 +14,7 @@ const RegisterSubmitButton = ({
     <Button
       type="submit"
       variant="primary"
-      size="lg"
+      size="md"
       className="w-full mt-2 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       disabled={isLoading || disabled}
     >
