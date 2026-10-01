@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import InputField from '../common/InputField';
 import PasswordField from '../common/PasswordField';
@@ -192,12 +192,12 @@ const LoginForm = ({ onSuccess, onIncompleteProfile }: LoginFormProps) => {
 
       <p className="text-center font-body text-sm text-text-muted pt-2">
         ¿No tienes una cuenta aún?{' '}
-        <a
-          href="/register"
-          className="font-semibold text-primary hover:text-primary-hover transition-colors"
+        <Link
+          to="/register"
+          className="font-semibold text-primary transition-colors hover:text-primary-hover"
         >
           Regístrate gratis
-        </a>
+        </Link>
       </p>
     </form>
   );
