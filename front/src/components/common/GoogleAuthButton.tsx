@@ -242,7 +242,7 @@ const GoogleAuthButton = ({
             theme="outline"
             shape="pill"
             size="large"
-            width="400"
+            width="320"
             text={text}
           />
         </div>
