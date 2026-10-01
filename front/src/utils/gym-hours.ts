@@ -1,14 +1,33 @@
-// Gym opening hours. Edit here and the badge updates everywhere.
-export const GYM_SCHEDULE = {
+// Gym opening hours. Edit here and the hero badge (light + text) updates.
+
+interface DayHours {
+  open: number; // first full hour open, e.g. 6 → opens 06:00
+  close: number; // closed from this hour on, e.g. 23 → 22:59 is still open
+}
+
+const WEEKDAY: DayHours = { open: 6, close: 23 };
+const SATURDAY: DayHours = { open: 8, close: 20 };
+
+export const GYM_SCHEDULE: {
+  timeZone: string;
+  hours: Partial<Record<number, DayHours>>;
+  label: string;
+} = {
   // Times are always evaluated in Rosario's time zone, so a visitor browsing
   // from another country still sees whether the gym is open *there*.
   timeZone: 'America/Argentina/Buenos_Aires',
-  // 0 = Sunday, 1 = Monday ... 6 = Saturday
-  days: [1, 2, 3, 4, 5],
-  openHour: 6, // opens at 06:00
-  closeHour: 23, // closed from 23:00 on (22:59 still counts as open)
-  label: 'Lunes a viernes 06:00–23:00 hs',
-} as const;
+  // Key = weekday: 0 = Sunday, 1 = Monday ... 6 = Saturday.
+  // A day that is not listed (Sunday) counts as closed all day.
+  hours: {
+    1: WEEKDAY,
+    2: WEEKDAY,
+    3: WEEKDAY,
+    4: WEEKDAY,
+    5: WEEKDAY,
+    6: SATURDAY,
+  },
+  label: 'Lun a vie 6 a 23 hs · Sáb 8 a 20 hs',
+};
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -26,11 +45,8 @@ export const isGymOpen = (date: Date = new Date()): boolean => {
 
   const weekday = parts.find((p) => p.type === 'weekday')?.value ?? '';
   const hour = Number(parts.find((p) => p.type === 'hour')?.value);
-  const day = WEEKDAYS.indexOf(weekday);
+  const today = GYM_SCHEDULE.hours[WEEKDAYS.indexOf(weekday)];
 
-  return (
-    (GYM_SCHEDULE.days as readonly number[]).includes(day) &&
-    hour >= GYM_SCHEDULE.openHour &&
-    hour < GYM_SCHEDULE.closeHour
-  );
+  if (!today) return false; // closed all day (Sunday)
+  return hour >= today.open && hour < today.close;
 };
