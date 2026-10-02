@@ -34,8 +34,7 @@ type ButtonProps = ButtonAsButton | ButtonAsLink;
 const variantStyles: Record<ButtonVariant, string> = {
   // Record ensures it is either primary or secondary—nothing more, nothing less.
   primary: 'bg-primary text-background hover:bg-primary-hover',
-  secondary:
-    'bg-transparent text-text border border-border-button hover:border-primary hover:text-primary',
+  secondary:'bg-transparent text-text border border-border-button hover:border-primary hover:text-primary',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -45,7 +44,7 @@ const sizeStyles: Record<ButtonSize, string> = {
 };
 
 const baseStyles =
-  'inline-flex items-center justify-center rounded-full font-body font-semibold transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 ease-in-out cursor-pointer';
+  'inline-flex items-center justify-center rounded-full font-body font-semibold transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5 ease-in-out cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 // button component .. rounded-full shadow-md hover:shadow-xl hover:-translate-y-1.5 duration-500 ease-in-out
 
