@@ -70,7 +70,7 @@ const HeroSection = ({
         */}
         <div className="w-full px-4 pt-12 pb-10 sm:px-6 lg:ml-auto lg:max-w-180 lg:py-16 lg:pr-12 lg:pl-8 xl:pr-16">
           <a
-            href={`#${LANDING_ANCHORS.location}`}
+            href={`/#${LANDING_ANCHORS.location}`}
             className="inline-flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <Badge variant="neutral2" icon={MapPin}>
@@ -97,13 +97,10 @@ const HeroSection = ({
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a
-              href={`#${LANDING_ANCHORS.freePass}`}
-              className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-body font-semibold text-background shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Reclamar pase gratis de 1 día
-            </a>
-            <Button href="/membership" variant="secondary">
+            <Button href={`/#${LANDING_ANCHORS.freePass}`} variant="primary" size="lg">
+                Reclamar día gratis
+            </Button>
+            <Button href="/membership" variant="secondary" size="lg">
               Ver planes y precios
             </Button>
           </div>
