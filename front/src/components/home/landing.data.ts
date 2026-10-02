@@ -83,15 +83,16 @@ export interface FacilityPhoto {
 // sector tabs until there are real photographs for each sector.
 export const FACILITY_PHOTOS: FacilityPhoto[] = [
   {
-    src: '/images/strength-zone.jpg',
+    src: '/images/fuerzaFLG.jpg',
     alt: 'Sala de musculación con peso libre',
   },
+  { src: '/images/comedorFLG.jpg', alt: 'Comedor' },
   {
-    src: '/images/cardio-zone.jpg',
-    alt: 'Zona de cardio con cintas y elípticos',
+    src: '/images/spinningFLG.jpg',
+    alt: 'Zona de spinning',
   },
-  { src: '/images/group-studio.jpg', alt: 'Salón de clases grupales' },
-  { src: '/images/nutrition-bar.jpg', alt: 'Barra de nutrición e hidratación' },
+  { src: '/images/yogaFLG.jpg', alt: 'Salón de yoga' },
+
 ];
 
 export interface AppFeature {
