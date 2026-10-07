@@ -1,7 +1,8 @@
 // Generic typed table used by every admin list (payments, classes, turnos,
 // trainers, plans, users). Callers describe columns as a header plus a cell
 // renderer; the table handles the loading row, the empty message and
-// optional clickable rows, which get a trailing "Ver ›" cue and keyboard access.
+// optional clickable rows, which get a trailing "Ver ›" cue and keyboard
+// access.
 
 import type { ReactNode } from 'react';
 import { ChevronRight, Loader2, Inbox } from 'lucide-react';
@@ -81,11 +82,13 @@ function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 // A clickable row acts as a button, so it also takes focus and
-                // answers Enter/Space like one.
+                // answers Enter/Space like one — but only for keys pressed on
+                // the row itself, not on a control inside one of its cells.
                 tabIndex={onRowClick ? 0 : undefined}
                 onKeyDown={
                   onRowClick
                     ? (e) => {
+                        if (e.target !== e.currentTarget) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           onRowClick(row);

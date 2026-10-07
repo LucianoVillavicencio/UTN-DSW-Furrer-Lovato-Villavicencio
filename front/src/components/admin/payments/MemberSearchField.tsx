@@ -102,14 +102,14 @@ const MemberSearchField = ({ onSelect }: MemberSearchFieldProps) => {
                     setResults([]);
                     setSearchValue('');
                   }}
-                  className="group flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-text hover:bg-surface-hover"
+                  className="group flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-text hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                 >
                   <span>
                     {u.name} {u.surname} — {u.email}
                   </span>
                   <span className="flex shrink-0 items-center gap-3 text-text-muted">
                     DNI {u.dni ?? 'Sin DNI'}
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold transition-colors group-hover:text-primary">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold transition-colors group-hover:text-primary group-focus-visible:text-primary">
                       Elegir
                       <ChevronRight
                         aria-hidden="true"

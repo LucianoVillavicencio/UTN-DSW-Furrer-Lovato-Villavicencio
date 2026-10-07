@@ -55,4 +55,37 @@ describe('DataTable', () => {
     fireEvent.keyDown(row, { key: 'Enter' });
     expect(onRowClick).toHaveBeenCalledWith(rows[0]);
   });
+
+  it('opens a row with the space bar', () => {
+    const onRowClick = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(r) => r.id}
+        onRowClick={onRowClick}
+      />,
+    );
+    const row = screen.getByText('Ana').closest('tr');
+    if (!row) throw new Error('row not rendered');
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
+
+  it('ignores keys pressed on a control inside the row', () => {
+    const onRowClick = vi.fn();
+    const withButton: DataTableColumn<Row>[] = [
+      { header: 'Acción', cell: () => <button type="button">Editar</button> },
+    ];
+    render(
+      <DataTable
+        columns={withButton}
+        rows={rows}
+        rowKey={(r) => r.id}
+        onRowClick={onRowClick}
+      />,
+    );
+    fireEvent.keyDown(screen.getByText('Editar'), { key: 'Enter' });
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
 });
