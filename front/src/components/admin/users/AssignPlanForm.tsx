@@ -1,3 +1,7 @@
+// Small form inside UserDetailPanel to assign a plan to a member: pick one of
+// the active plans and the member's current subscription is replaced by one
+// on that plan. Calls `onAssigned` so the panel can refresh.
+
 import { useEffect, useState } from 'react';
 import Button from '../../common/Button';
 import FormAlert from '../../common/FormAlert';
@@ -11,8 +15,6 @@ interface AssignPlanFormProps {
   onAssigned: () => void | Promise<void>;
 }
 
-// Shared by the Users panel and the new-member wizard: an admin picks a plan
-// and the member's active subscription is replaced by one on that plan.
 const AssignPlanForm = ({ userId, onAssigned }: AssignPlanFormProps) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');

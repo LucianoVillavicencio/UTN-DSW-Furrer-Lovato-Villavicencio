@@ -1,3 +1,7 @@
+// Shows a new member's username and generated password with copy buttons and
+// an on-demand print to the Point terminal. This is the only moment the plain
+// password exists, so the wizard keeps this card visible on every step.
+
 import { useState } from 'react';
 import { Check, Copy, KeyRound, Printer } from 'lucide-react';
 import FormAlert from '../../common/FormAlert';

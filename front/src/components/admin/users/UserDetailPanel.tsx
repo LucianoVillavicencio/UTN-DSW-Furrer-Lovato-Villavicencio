@@ -1,3 +1,8 @@
+// Member detail modal opened from UsersSection. Edits the member's data and
+// manages their subscriptions (assign plan, pause/unpause, cancel, refund),
+// class enrollment and payments (history plus manual payment). The danger
+// zone deletes or restores the account.
+
 import { useEffect, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import Button from '../../common/Button';

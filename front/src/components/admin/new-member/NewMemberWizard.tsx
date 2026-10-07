@@ -1,3 +1,7 @@
+// Front-desk onboarding wizard opened from UsersSection: member data, charge
+// (plan + payment), class, summary. Each step saves through its own endpoint
+// as the admin advances, so an abandoned wizard keeps what was already saved.
+
 import { useState } from 'react';
 import Button from '../../common/Button';
 import FormAlert from '../../common/FormAlert';

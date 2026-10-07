@@ -1,3 +1,7 @@
+// Refund dialog for one subscription, opened from UserDetailPanel. Fetches a
+// refund quote, shows the breakdown (paid, months used, refund amount) and
+// lets the admin confirm the refund or pause the subscription instead.
+
 import { useEffect, useState } from 'react';
 import Card from '../../common/Card';
 import Button from '../../common/Button';

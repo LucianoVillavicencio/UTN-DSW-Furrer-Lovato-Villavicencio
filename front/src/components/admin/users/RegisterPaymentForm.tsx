@@ -1,3 +1,8 @@
+// Manual payment form inside UserDetailPanel: pick one of the member's
+// subscriptions, enter amount, months and payment method, and record it.
+// Without `presetUser` it first lets the admin search the member. Shows any
+// print-slip warning the backend returns.
+
 import { useEffect, useState } from 'react';
 import Button from '../../common/Button';
 import InputField from '../../common/InputField';

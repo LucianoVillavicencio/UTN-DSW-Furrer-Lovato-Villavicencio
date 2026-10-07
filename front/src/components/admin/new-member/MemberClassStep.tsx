@@ -1,3 +1,7 @@
+// Class step of NewMemberWizard: enrolls the new member in a class and time
+// slot through ClassHourSelect. If the assigned plan includes no classes it
+// only shows a notice so the step can be skipped.
+
 import { useState } from 'react';
 import Button from '../../common/Button';
 import FormAlert from '../../common/FormAlert';

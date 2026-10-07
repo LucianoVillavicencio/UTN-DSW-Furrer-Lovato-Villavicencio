@@ -1,3 +1,7 @@
+// "Usuarios" tab of the admin dashboard. Searches members by name, DNI or
+// email, opens UserDetailPanel for the selected member and launches
+// NewMemberWizard to register a walk-in member at the counter.
+
 import { useState } from 'react';
 import { Search, UserPlus, Users } from 'lucide-react';
 import Button from '../../common/Button';

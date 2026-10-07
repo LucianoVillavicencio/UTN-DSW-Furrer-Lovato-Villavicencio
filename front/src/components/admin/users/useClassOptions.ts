@@ -1,3 +1,7 @@
+// Hook that loads all classes and turnos and groups them into selectable
+// "class + start time" options for ClassHourSelect. Also exports
+// classOptionKey, the stable string key that identifies each option.
+
 import { useEffect, useState } from 'react';
 import { getClass } from '../../../services/class.service';
 import { getClassSession } from '../../../services/classSession.service';

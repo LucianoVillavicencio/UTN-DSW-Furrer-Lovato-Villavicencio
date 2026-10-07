@@ -1,3 +1,7 @@
+// Pure logic for NewMemberWizard, kept free of React: form shape and
+// defaults, step order, validation that mirrors the API, the create-user
+// payload and which credentials to show. Unit-tested in new-member-wizard.test.ts.
+
 import type { AdminCreateUserPayload, AdminCreatedUser } from '../../../services/user.service';
 
 // dni is a string because an empty number input reads back as NaN, which

@@ -1,3 +1,7 @@
+// Side rail of NewMemberWizard, visible on every step once the member exists.
+// Shows who is being onboarded and, when the system generated the password,
+// the MemberCredentialsCard so the credentials can't be missed.
+
 import MemberCredentialsCard from './MemberCredentialsCard';
 import { formatPriceDisplay } from '../../../lib/currency';
 import type { ChargeSummary } from '../payments/plan-charge';

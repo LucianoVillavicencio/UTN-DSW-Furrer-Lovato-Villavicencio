@@ -1,3 +1,7 @@
+// Last step of NewMemberWizard: recap of the created member and of the charge
+// (plan, term and amount), or a notice that no charge was recorded and the
+// member has no active subscription yet.
+
 import { formatPriceDisplay } from '../../../lib/currency';
 import type { ChargeSummary } from '../payments/plan-charge';
 import type { User } from '../../../types/user';

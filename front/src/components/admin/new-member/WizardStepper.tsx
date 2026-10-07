@@ -1,3 +1,7 @@
+// Progress indicator at the top of NewMemberWizard: "Paso N de 4" label,
+// progress bar and the step list with done / current / pending markers.
+// Purely presentational; the steps come from WIZARD_STEPS.
+
 import { Check } from 'lucide-react';
 import { WIZARD_STEPS, type WizardStep } from './new-member-wizard';
 

@@ -1,3 +1,7 @@
+// Class-enrollment block inside UserDetailPanel. Shows the member's current
+// classes and lets the admin enroll them or swap a class/time in person,
+// skipping the monthly change limit (the plan's class allowance still applies).
+
 import { useEffect, useState } from 'react';
 import Button from '../../common/Button';
 import FormAlert from '../../common/FormAlert';

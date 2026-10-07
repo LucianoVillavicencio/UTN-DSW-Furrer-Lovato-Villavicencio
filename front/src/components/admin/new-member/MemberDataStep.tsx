@@ -1,3 +1,7 @@
+// First step of NewMemberWizard: controlled form for the new member's DNI,
+// name and surname plus optional phone, email and password. Validation runs
+// in the wizard through findNewMemberFormError.
+
 import InputField from '../../common/InputField';
 import type { NewMemberForm } from './new-member-wizard';
 

@@ -1,8 +1,10 @@
+// Pure text helpers for MembershipActionsDialog, kept free of React/DOM so
+// they run under plain Vitest: the refund breakdown shown before confirming
+// and the backend's reason for a $0 refund. Unit-tested in
+// membership-actions.test.ts.
+
 import { formatPriceDisplay } from '../../../lib/currency';
 import type { RefundQuote } from '../../../types/refund';
-
-// Pure logic behind MembershipActionsDialog.tsx — no React/DOM imports, so it
-// can be unit tested under plain Vitest (node), same split as trainer-form.ts.
 
 // Renders the Spanish breakdown the dialog shows BEFORE the admin confirms
 // the refund: total paid, months used, the regular monthly rate, and the

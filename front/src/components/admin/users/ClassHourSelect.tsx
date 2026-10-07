@@ -1,3 +1,7 @@
+// Dropdown of "class — weekdays time" options built by useClassOptions.
+// Shared by UserClassSection and the wizard's MemberClassStep; each option's
+// value is its classOptionKey.
+
 import { classOptionKey, type ClassOption } from './useClassOptions';
 import { formatTimeOfDay, formatWeekdayList } from '../../../lib/weekday';
 
