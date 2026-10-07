@@ -45,6 +45,12 @@ export const EMPTY_TRAINER_FORM: Trainer = {
   workSchedule: [],
 };
 
+// The DNI uses a text input: a number input adds a spinner and accepts "e",
+// "-" and decimals. Keeps digits only, at most 8, and maps an empty field to
+// 0 — the "no DNI yet" value findTrainerFormError rejects.
+export const parseDniInput = (raw: string): number =>
+  Number(raw.replace(/\D/g, '').slice(0, 8));
+
 // User-facing, so Spanish. Mirrors WEEKDAY_NAMES in the backend's
 // trainer.rules.ts: the admin should see the same wording either way.
 const WEEKDAY_NAMES: Record<number, string> = {

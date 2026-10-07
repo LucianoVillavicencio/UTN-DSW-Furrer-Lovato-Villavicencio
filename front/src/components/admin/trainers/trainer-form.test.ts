@@ -3,6 +3,7 @@ import {
   EMPTY_TRAINER_FORM,
   EMPTY_TRAINER_PHOTO_STATE,
   findTrainerFormError,
+  parseDniInput,
   pickTrainerPhoto,
   removeTrainerPhoto,
 } from './trainer-form';
@@ -88,5 +89,23 @@ describe('trainer photo state', () => {
   it('clearing the file picker (no Quitar involved) leaves removal untouched', () => {
     const afterPick = pickTrainerPhoto(EMPTY_TRAINER_PHOTO_STATE, null);
     expect(afterPick).toEqual({ pendingFile: null, shouldRemovePhoto: false });
+  });
+});
+
+describe('parseDniInput', () => {
+  it('keeps a plain DNI', () => {
+    expect(parseDniInput('30111222')).toBe(30111222);
+  });
+
+  it('drops dots, spaces and letters', () => {
+    expect(parseDniInput('30.111 222a')).toBe(30111222);
+  });
+
+  it('caps the value at 8 digits', () => {
+    expect(parseDniInput('301112229')).toBe(30111222);
+  });
+
+  it('maps an empty field to 0, the "no DNI yet" value', () => {
+    expect(parseDniInput('')).toBe(0);
   });
 });

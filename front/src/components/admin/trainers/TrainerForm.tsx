@@ -15,6 +15,7 @@ import {
   EMPTY_TRAINER_FORM,
   EMPTY_TRAINER_PHOTO_STATE,
   findTrainerFormError,
+  parseDniInput,
   pickTrainerPhoto,
   removeTrainerPhoto,
 } from './trainer-form';
@@ -89,10 +90,15 @@ const TrainerForm = ({ trainer, save, reload, onClose }: TrainerFormProps) => {
         <FormAlert type="error" message={formError} />
         <InputField
           label="DNI"
-          type="number"
-          value={form.dni || ''}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Ej: 30111222"
+          value={form.dni ? String(form.dni) : ''}
           disabled={!isCreating}
-          onChange={(e) => setForm({ ...form, dni: Number(e.target.value) })}
+          onChange={(e) =>
+            setForm({ ...form, dni: parseDniInput(e.target.value) })
+          }
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <InputField
