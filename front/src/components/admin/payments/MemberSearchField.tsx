@@ -3,7 +3,7 @@
 // Usuarios tab's RegisterPaymentForm.
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import Button from '../../common/Button';
 import InputField from '../../common/InputField';
 import FormAlert from '../../common/FormAlert';
@@ -81,7 +81,8 @@ const MemberSearchField = ({ onSelect }: MemberSearchFieldProps) => {
         <Button
           onClick={handleSearch}
           disabled={isSearching}
-          size="sm"
+          size="icon"
+          aria-label="Buscar socio"
           className="shrink-0"
         >
           <Search className="h-4 w-4" />
@@ -89,26 +90,38 @@ const MemberSearchField = ({ onSelect }: MemberSearchFieldProps) => {
       </div>
       <FormAlert type="error" message={searchError} />
       {results.length > 0 && (
-        <ul className="divide-y divide-border rounded-xl border border-border">
-          {results.map((u) => (
-            <li key={u.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  onSelect(u);
-                  setResults([]);
-                  setSearchValue('');
-                }}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-text hover:bg-surface"
-              >
-                <span>
-                  {u.name} {u.surname} — {u.email}
-                </span>
-                <span className="text-text-muted">DNI {u.dni ?? 'Sin DNI'}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-2">
+          <p className="text-xs text-text-muted">Elegí un socio de la lista.</p>
+          <ul className="divide-y divide-border rounded-xl border border-border">
+            {results.map((u) => (
+              <li key={u.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(u);
+                    setResults([]);
+                    setSearchValue('');
+                  }}
+                  className="group flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-text hover:bg-surface-hover"
+                >
+                  <span>
+                    {u.name} {u.surname} — {u.email}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3 text-text-muted">
+                    DNI {u.dni ?? 'Sin DNI'}
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold transition-colors group-hover:text-primary">
+                      Elegir
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                      />
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
