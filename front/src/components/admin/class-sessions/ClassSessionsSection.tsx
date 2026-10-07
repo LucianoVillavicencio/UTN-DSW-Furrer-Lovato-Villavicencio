@@ -1,3 +1,8 @@
+// "Turnos" tab of the admin dashboard: the weekly schedule of class slots.
+// Lists turnos (optionally including deleted ones), opens ClassSessionForm in
+// a Modal to create or edit them and confirms delete/restore. All API work
+// lives in useClassSessions.
+
 import { useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, CalendarClock } from 'lucide-react';
 import Button from '../../common/Button';

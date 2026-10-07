@@ -1,3 +1,7 @@
+// Password form that unlocks OwnerAnalyticsPanel. It only collects the
+// password and passes it to `onUnlock`; the field clears itself after a
+// failed attempt and never offers browser autocomplete.
+
 import { useState } from 'react';
 import Card from '../../common/Card';
 import Button from '../../common/Button';

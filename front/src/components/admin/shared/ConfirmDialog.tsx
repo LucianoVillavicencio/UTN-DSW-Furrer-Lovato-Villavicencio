@@ -1,3 +1,8 @@
+// Generic yes/no confirmation dialog shown before destructive admin actions
+// (delete, restore, cancel) and also reused by the member dashboard. Safe to
+// stack on top of a Modal: it captures Escape itself so only the confirmation
+// closes, and it ignores cancel while `isLoading` is true.
+
 import { useEffect, useRef } from 'react';
 import Card from '../../common/Card';
 import Button from '../../common/Button';

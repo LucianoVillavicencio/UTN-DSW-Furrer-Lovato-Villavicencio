@@ -1,3 +1,7 @@
+// KPI tile (label, large value, optional caption) shared by ResumenTab's
+// counts and OwnerAnalyticsPanel's financial tiles so both look the same.
+// Shows "…" while loading and "—" when the value is missing.
+
 import type { ReactNode } from 'react';
 import Card from '../../common/Card';
 

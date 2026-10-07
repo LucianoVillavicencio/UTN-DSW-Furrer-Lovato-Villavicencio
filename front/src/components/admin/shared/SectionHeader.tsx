@@ -1,3 +1,7 @@
+// Header at the top of every admin tab: icon chip, title, optional one-line
+// description and a right-aligned slot for the section's actions (e.g. the
+// "new" button or the show-deleted toggle).
+
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 

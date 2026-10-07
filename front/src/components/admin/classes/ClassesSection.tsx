@@ -1,3 +1,8 @@
+// "Clases" tab of the admin dashboard. Lists classes (optionally including
+// soft-deleted ones) and lets the admin create, edit, delete and restore
+// them, choosing the class type and the trainer. A new class type can also be
+// added inline from the same form.
+
 import { useEffect, useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, Dumbbell } from 'lucide-react';
 import Button from '../../common/Button';

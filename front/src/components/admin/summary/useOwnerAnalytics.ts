@@ -1,3 +1,7 @@
+// Hook behind OwnerAnalyticsPanel. Keeps the owner password in memory only,
+// requests the analytics overview with it, and exposes unlock / reload / lock
+// plus the loading, error and granularity state the panel renders.
+
 import { useState } from 'react';
 import { getAnalyticsOverview } from '../../../services/analytics.service';
 import type { AnalyticsOverview } from '../../../types/analytics';

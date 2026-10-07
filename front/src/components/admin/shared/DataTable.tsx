@@ -1,3 +1,8 @@
+// Generic typed table used by every admin list (payments, classes, turnos,
+// trainers, plans, users). Callers describe columns as a header plus a cell
+// renderer; the table handles the loading row, the empty message and
+// optional clickable rows.
+
 import type { ReactNode } from 'react';
 import { Loader2, Inbox } from 'lucide-react';
 

@@ -1,3 +1,8 @@
+// Owner-only financial panel inside the Resumen tab. While locked it shows
+// OwnerPasswordPrompt; once unlocked it shows active subscriptions, estimated
+// MRR, the revenue chart and the by-plan / by-method breakdowns. State and
+// fetching live in useOwnerAnalytics.
+
 import Card from '../../common/Card';
 import Button from '../../common/Button';
 import FormAlert from '../../common/FormAlert';

@@ -1,3 +1,8 @@
+// Overlay dialog that hosts the admin create/edit forms, the member detail
+// panel and the new-member wizard. Closes on Escape or on a backdrop click
+// that started on the backdrop. Sizes: 'md' for regular forms, 'xl' for the
+// wizard's desk-width layout.
+
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import Card from '../../common/Card';

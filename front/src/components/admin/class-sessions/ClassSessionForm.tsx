@@ -1,3 +1,7 @@
+// Controlled form for turnos, rendered by ClassSessionsSection. Creating picks
+// a class, several weekdays and several start times (one turno per
+// combination) plus the capacity; editing moves a single existing slot.
+
 import { Plus, X } from 'lucide-react';
 import InputField from '../../common/InputField';
 import FormAlert from '../../common/FormAlert';

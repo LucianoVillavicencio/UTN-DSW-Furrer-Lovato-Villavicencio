@@ -1,5 +1,8 @@
-// Pure formatting helpers for the owner analytics panel. User-facing, so
-// Spanish — matches the rest of the admin UI.
+// Pure formatting helpers for the owner analytics panel: short Spanish period
+// labels for the revenue chart and NaN-safe percentages for the breakdown
+// bars. User-facing, so Spanish — matches the rest of the admin UI.
+// Unit-tested in analytics-format.test.ts.
+
 
 const MESES_CORTOS = [
   'ene', 'feb', 'mar', 'abr', 'may', 'jun',

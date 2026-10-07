@@ -1,3 +1,8 @@
+// Presentational charts for OwnerAnalyticsPanel: RevenueChart (hand-built SVG
+// bar chart with a hover/focus tooltip) and BreakdownList (horizontal bars
+// with amount and percentage). Data comes in through props; nothing here
+// fetches.
+
 import { useState } from 'react';
 import { periodLabel, shareOf } from './analytics-format';
 import { formatPriceDisplay } from '../../../lib/currency';

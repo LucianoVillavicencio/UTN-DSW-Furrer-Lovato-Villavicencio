@@ -1,3 +1,7 @@
+// Hook with all of the Turnos tab's API work: loads the turnos and the class
+// options, and runs create / update / delete / restore. `save` returns a
+// user-facing error message (or null) instead of throwing.
+
 import { useEffect, useState } from 'react';
 import {
   getClassSession,

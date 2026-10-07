@@ -1,3 +1,7 @@
+// "Resumen" tab of the admin dashboard. Loads the plan, class, trainer and
+// member counts in parallel and shows them as StatCards (a failed count shows
+// "—", never 0), followed by the password-protected OwnerAnalyticsPanel.
+
 import { useEffect, useState } from 'react';
 import { getPlans } from '../../../services/plan.service';
 import { getClass } from '../../../services/class.service';
