@@ -1,19 +1,21 @@
 // Overlay dialog that hosts the admin create/edit forms, the member detail
 // panel and the new-member wizard. Closes on Escape or on a backdrop click
-// that started on the backdrop. Sizes: 'md' for regular forms, 'xl' for the
-// wizard's desk-width layout.
+// that started on the backdrop. Sizes: 'md' for regular forms, 'lg' for the
+// member detail panel, 'xl' for the wizard's desk-width layout.
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import Card from '../../common/Card';
 
-type ModalSize = 'md' | 'xl';
+type ModalSize = 'md' | 'lg' | 'xl';
 
-// 'md' is what every modal in the app was before the size prop existed; only
-// the new-member wizard asks for 'xl', which is a desk-width working surface
+// 'md' is what every modal in the app was before the size prop existed; 'lg'
+// is the member detail panel, which stacks four sections of forms; only the
+// new-member wizard asks for 'xl', which is a desk-width working surface
 // rather than a dialog.
 const sizeStyles: Record<ModalSize, string> = {
   md: 'max-w-lg',
+  lg: 'max-w-3xl',
   xl: 'max-w-5xl',
 };
 

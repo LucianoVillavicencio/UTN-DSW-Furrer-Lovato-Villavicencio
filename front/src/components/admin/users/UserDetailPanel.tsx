@@ -197,7 +197,11 @@ const UserDetailPanel = ({
   };
 
   return (
-    <Modal title={`${user.name} ${user.surname}`} onClose={onClose}>
+    <Modal
+      title={`${user.name} ${user.surname}`}
+      onClose={onClose}
+      size="lg"
+    >
       <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
         {/* Profile */}
         <section>
@@ -231,20 +235,22 @@ const UserDetailPanel = ({
                 onChange={(e) => setForm({ ...form, surname: e.target.value })}
               />
             </div>
-            <InputField
-              label="Email"
-              type="email"
-              placeholder={
-                hasPlaceholderEmail ? 'Sin email — creado en el gimnasio' : ''
-              }
-              value={form.email ?? ''}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-            <InputField
-              label="Teléfono"
-              value={form.phone ?? ''}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <InputField
+                label="Email"
+                type="email"
+                placeholder={
+                  hasPlaceholderEmail ? 'Sin email — creado en el gimnasio' : ''
+                }
+                value={form.email ?? ''}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <InputField
+                label="Teléfono"
+                value={form.phone ?? ''}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
             <div>
               <label className="mb-1.5 block font-body text-xs sm:text-sm font-medium text-text">
                 Rol
@@ -266,13 +272,23 @@ const UserDetailPanel = ({
                 </p>
               )}
             </div>
-            <Button
-              onClick={handleSave}
-              disabled={!isDirty || isSaving}
-              size="sm"
-            >
-              {isSaving ? 'Guardando...' : 'Guardar cambios'}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={!isDirty || isSaving}
+                size="sm"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onClose}
+                disabled={isSaving}
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         </section>
 
