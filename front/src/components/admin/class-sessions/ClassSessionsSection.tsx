@@ -1,7 +1,7 @@
 // "Turnos" tab of the admin dashboard: the weekly schedule of class slots.
-// Lists turnos (optionally including deleted ones), opens ClassSessionForm in
-// a Modal to create or edit them and confirms delete/restore. All API work
-// lives in useClassSessions.
+// Lists turnos 10 per page (optionally including deleted ones), opens
+// ClassSessionForm in a Modal to create or edit them and confirms
+// delete/restore. All API work lives in useClassSessions.
 
 import { useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, CalendarClock } from 'lucide-react';
@@ -11,6 +11,9 @@ import DataTable, { type DataTableColumn } from '../shared/DataTable';
 import Modal from '../shared/Modal';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import SectionHeader from '../shared/SectionHeader';
+import PaginationFooter from '../shared/PaginationFooter';
+import { usePagination } from '../shared/usePagination';
+import Checkbox from '../../common/CheckBox';
 import ClassSessionForm from './ClassSessionForm';
 import {
   emptyClassSessionForm,
@@ -19,6 +22,8 @@ import {
 import { useClassSessions } from './useClassSessions';
 import type { ClassSession } from '../../../types/classSession';
 import { formatTimeOfDay, weekdayLabel } from '../../../lib/weekday';
+
+const PAGE_SIZE = 10;
 
 // Editing moves one slot, so the lists the create grid fills hold exactly one
 // value each.
@@ -43,6 +48,7 @@ const ClassSessionsSection = () => {
     save,
     removeOrRestore,
   } = useClassSessions(showDeleted);
+  const pagination = usePagination(sessions, PAGE_SIZE);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editing, setEditing] = useState<ClassSession | null>(null);
@@ -130,15 +136,14 @@ const ClassSessionsSection = () => {
         icon={CalendarClock}
         description="Horarios semanales de cada clase."
       >
-        <label className="flex items-center gap-2 text-sm text-text-muted">
-          <input
-            type="checkbox"
-            checked={showDeleted}
-            onChange={(e) => setShowDeleted(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          Mostrar eliminados
-        </label>
+        <Checkbox
+          label="Mostrar eliminados"
+          checked={showDeleted}
+          onChange={(e) => {
+            setShowDeleted(e.target.checked);
+            pagination.resetPage();
+          }}
+        />
         <Button
           size="sm"
           onClick={() => {
@@ -163,7 +168,7 @@ const ClassSessionsSection = () => {
 
       <DataTable
         columns={columns}
-        rows={sessions}
+        rows={pagination.pageRows}
         rowKey={(s) => s.id ?? `${s.classId}-${s.weekday}-${s.startTime}`}
         isLoading={isLoading}
         emptyMessage={
@@ -172,6 +177,17 @@ const ClassSessionsSection = () => {
             : 'Todavía no hay turnos cargados. Sin turnos, la página de clases no puede ofrecer inscripciones.'
         }
       />
+      {!isLoading && pagination.total > 0 && (
+        <PaginationFooter
+          from={pagination.from}
+          to={pagination.to}
+          total={pagination.total}
+          hasPrevious={pagination.hasPrevious}
+          hasNext={pagination.hasNext}
+          onPrevious={pagination.goPrevious}
+          onNext={pagination.goNext}
+        />
+      )}
 
       {(isCreating || editing) && (
         <Modal
