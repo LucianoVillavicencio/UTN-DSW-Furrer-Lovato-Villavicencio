@@ -1,3 +1,8 @@
+// Pure charge helpers shared by the charge form, RegisterPaymentForm and the
+// new-member wizard: payment and charge method lists, the terms a plan offers,
+// price per term and the ChargeSummary the wizard displays. Unit-tested in
+// plan-charge.test.ts.
+
 import { parsePriceInput } from '../../../lib/currency';
 import type { DurationMonths, Plan, PlanDuration } from '../../../types/plan';
 import type { PlanChangeQuote } from '../../../types/plan-change';

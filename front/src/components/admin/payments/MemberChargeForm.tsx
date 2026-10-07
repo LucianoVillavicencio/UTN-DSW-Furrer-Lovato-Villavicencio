@@ -1,3 +1,8 @@
+// Charge form for one selected member, used by ChargePanel and by the
+// new-member wizard: plan, term, amount and method (cash, transfer, Point card
+// terminal or QR). Point/QR orders show live status in PendingOrderView; the
+// logic lives in useMemberCharge.
+
 import Button from '../../common/Button';
 import InputField from '../../common/InputField';
 import FormAlert from '../../common/FormAlert';

@@ -1,3 +1,7 @@
+// Counter charge flow: find a member with MemberSearchField, then charge them
+// with MemberChargeForm. The form is keyed by member, so picking another one
+// starts clean; `onCharged` lets the host section refresh its payments table.
+
 import { useState } from 'react';
 import MemberSearchField from './MemberSearchField';
 import MemberChargeForm from './MemberChargeForm';

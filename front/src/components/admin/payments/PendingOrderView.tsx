@@ -1,3 +1,7 @@
+// Live status of a Point/QR charge order in MemberChargeForm: status text,
+// amount, QR instructions and the new membership end date once paid. Offers
+// "Cancelar cobro" while pending and "Nuevo cobro" once finished.
+
 import Button from '../../common/Button';
 import { statusLabel } from './charge-panel';
 import { formatDateOnly } from '../../../lib/date';

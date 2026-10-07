@@ -1,3 +1,7 @@
+// Member search box (by DNI, email or name) with a clickable result list.
+// Calls `onSelect` with the chosen user; used by ChargePanel and by the
+// Usuarios tab's RegisterPaymentForm.
+
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import Button from '../../common/Button';

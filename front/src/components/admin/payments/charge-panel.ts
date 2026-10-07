@@ -1,3 +1,7 @@
+// Pure helpers for Point/QR charge orders: poll interval, when to stop
+// polling (mirrors the backend's expiry rule), the Spanish status label shown
+// to the admin and local-date formatting. Unit-tested in charge-panel.test.ts.
+
 import type { Payment } from '../../../types/payment';
 
 // Mirrors the backend's poll cadence for the front-desk charge panel — see

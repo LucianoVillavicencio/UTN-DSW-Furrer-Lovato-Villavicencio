@@ -1,3 +1,7 @@
+// "Pagos presenciales" tab of the admin dashboard. Top: ChargePanel to charge
+// a member at the counter. Bottom: paginated history of all payments (date,
+// member, amount, method, who registered it), reloaded after each charge.
+
 import { useEffect, useState } from 'react';
 import { Receipt } from 'lucide-react';
 import Button from '../../common/Button';

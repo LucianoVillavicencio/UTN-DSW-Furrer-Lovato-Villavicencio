@@ -1,3 +1,8 @@
+// Hook with all of MemberChargeForm's logic: loads plans, the member's current
+// subscription and plan durations, resolves the price for the chosen term,
+// and submits either an immediate payment (cash family) or a Point/QR charge
+// order that it polls until paid, cancelled or expired.
+
 import { useEffect, useRef, useState } from 'react';
 import { getPlans, getPlanDurations } from '../../../services/plan.service';
 import { getSubscriptionsByUser } from '../../../services/subscription.service';

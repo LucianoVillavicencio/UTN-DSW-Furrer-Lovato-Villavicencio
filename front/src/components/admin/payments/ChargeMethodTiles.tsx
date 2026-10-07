@@ -1,3 +1,7 @@
+// Selectable tiles for the charge method (efectivo, transferencia, Point, QR)
+// in MemberChargeForm. Each tile can be disabled on its own with a tooltip
+// saying why, e.g. when Point or QR isn't configured for this deploy.
+
 import { Banknote, CreditCard, QrCode } from 'lucide-react';
 import { CHARGE_METHODS, type ChargeMethod } from './plan-charge';
 
