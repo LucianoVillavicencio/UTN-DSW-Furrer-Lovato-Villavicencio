@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import InputField from '../common/InputField';
 import PasswordField from '../common/PasswordField';
@@ -8,6 +8,7 @@ import GoogleAuthButton from '../common/GoogleAuthButton';
 import LoginSubmitButton from './LoginSubmitButton';
 import { useAuth } from '../../context/useAuth';
 import { returnPathFrom, type FromLocation } from '../../routes/redirects';
+import Checkbox from '../common/CheckBox';
 
 // Simple RFC 5322 regex for client-side email format validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -153,17 +154,13 @@ const LoginForm = ({ onSuccess, onIncompleteProfile }: LoginFormProps) => {
         error={passwordError}
       />
 
-      <div className="flex items-center justify-between text-sm pt-1">
-        <label className="flex items-center gap-2 cursor-pointer select-none text-text-muted hover:text-text transition-colors">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            disabled={isLoading}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background disabled:opacity-50 accent-primary"
-          />
-          <span className="font-body text-xs sm:text-sm">Recordarme</span>
-        </label>
+      <div className="flex items-center justify-between text-sm pt-1 ">
+        <Checkbox
+          checked={rememberMe}
+          disabled={isLoading}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          label="Recordarme"
+        />
         <a
           href="/forgot-password"
           className="font-body text-xs sm:text-sm text-primary hover:text-primary-hover font-semibold transition-colors"
@@ -175,12 +172,12 @@ const LoginForm = ({ onSuccess, onIncompleteProfile }: LoginFormProps) => {
       <LoginSubmitButton isLoading={isLoading} />
 
       {/* Divider */}
-      <div className="relative my-3 flex items-center justify-center">
+      <div className="relative mt-2 mb-5 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border"></div>
         </div>
         <span className="relative bg-surface px-3 text-xs uppercase tracking-wider text-text-muted font-body">
-          o bien
+          O bien
         </span>
       </div>
 
@@ -195,12 +192,12 @@ const LoginForm = ({ onSuccess, onIncompleteProfile }: LoginFormProps) => {
 
       <p className="text-center font-body text-sm text-text-muted pt-2">
         ¿No tienes una cuenta aún?{' '}
-        <a
-          href="/register"
-          className="font-semibold text-primary hover:text-primary-hover transition-colors"
+        <Link
+          to="/register"
+          className="font-semibold text-primary transition-colors hover:text-primary-hover"
         >
           Regístrate gratis
-        </a>
+        </Link>
       </p>
     </form>
   );

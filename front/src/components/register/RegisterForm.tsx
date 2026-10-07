@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import FormAlert from '../common/FormAlert';
 import GoogleAuthButton from '../common/GoogleAuthButton';
 import RegisterFieldsGroup from './RegisterFieldsGroup';
 import RegisterSubmitButton from './RegisterSubmitButton';
 import { useAuth } from '../../context/useAuth';
+import Checkbox from '../common/CheckBox';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -218,39 +219,41 @@ const RegisterForm = ({
       />
 
       {/* Terms & Conditions Checkbox */}
-      <div className="flex items-start gap-2.5 pt-1">
-        <input
-          id="accept-terms"
-          name="acceptTerms"
-          type="checkbox"
-          checked={acceptTerms}
-          disabled={isLoading}
-          onChange={(e) => setAcceptTerms(e.target.checked)}
-          className="w-4 h-4 mt-0.5 rounded border-border bg-surface text-primary focus:ring-primary focus:ring-offset-background cursor-pointer accent-primary shrink-0 disabled:opacity-50"
-        />
-        <label
-          htmlFor="accept-terms"
-          className="text-xs text-text-muted leading-snug cursor-pointer select-none"
-        >
-          Acepto los{' '}
-          <a href="/terms" className="text-primary hover:underline font-medium">
-            términos y condiciones
-          </a>{' '}
-          y la{' '}
-          <a
-            href="/privacy"
-            className="text-primary hover:underline font-medium"
-          >
-            política de privacidad
-          </a>
-          .
-        </label>
-      </div>
+      <Checkbox
+        id="accept-terms"
+        checked={acceptTerms}
+        disabled={isLoading}
+        onChange={(e) => setAcceptTerms(e.target.checked)}
+        className="pt-1 text-xs"
+        label={
+          <>
+            Acepto los{' '}
+            <Link
+              to="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              términos y condiciones
+            </Link>{' '}
+            y la{' '}
+            <Link
+              to="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              política de privacidad
+            </Link>
+            .
+          </>
+        }
+      />
 
       <RegisterSubmitButton isLoading={isLoading} />
 
       {/* Divider */}
-      <div className="relative my-3 flex items-center justify-center">
+      <div className="relative mt-2 mb-5 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border"></div>
         </div>
@@ -261,6 +264,7 @@ const RegisterForm = ({
 
       <GoogleAuthButton
         label="Registrarse con Google"
+        text="signup_with"
         disabled={isLoading}
         onError={(errMsg) => setError(errMsg)}
         onSuccess={onSuccess}
@@ -269,12 +273,12 @@ const RegisterForm = ({
 
       <p className="text-center font-body text-sm text-text-muted pt-1">
         ¿Ya tienes una cuenta?{' '}
-        <a
-          href="/login"
-          className="font-semibold text-primary hover:text-primary-hover transition-colors"
+        <Link
+          to="/login"
+          className="font-semibold text-primary transition-colors hover:text-primary-hover"
         >
           Inicia sesión aquí
-        </a>
+        </Link>
       </p>
     </form>
   );

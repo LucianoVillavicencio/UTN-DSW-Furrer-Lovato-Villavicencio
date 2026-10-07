@@ -17,6 +17,7 @@ const RETURN_TIMEOUT_MS = 5_000;
 
 interface GoogleAuthButtonProps {
   label?: string;
+  text?: 'continue_with' | 'signup_with' | 'signin_with';
   disabled?: boolean;
   onSuccess?: () => void;
   onError?: (error: string) => void;
@@ -29,6 +30,7 @@ interface GoogleAuthButtonProps {
 
 const GoogleAuthButton = ({
   label = 'Continuar con Google',
+  text = 'continue_with',
   disabled = false,
   onSuccess,
   onError,
@@ -188,7 +190,7 @@ const GoogleAuthButton = ({
             setLocalError(msg);
             onError?.(msg);
           }}
-          className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-primary/40 py-3 px-4 font-body text-sm font-semibold text-text shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
+          className="w-full flex items-center justify-center gap-3 rounded-full border border-border bg-surface hover:bg-surface-hover hover:border-primary/40 py-3 px-4 font-body text-sm font-semibold text-text shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
         >
           <svg
             className="h-5 w-5 shrink-0 transition-transform group-hover:scale-105"
@@ -208,7 +210,7 @@ const GoogleAuthButton = ({
             />
             <path
               fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
           <span>{label}</span>
@@ -225,7 +227,7 @@ const GoogleAuthButton = ({
   return (
     <div className="w-full flex flex-col items-center justify-center gap-2">
       {loading ? (
-        <div className="w-full flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface text-sm text-text-muted font-body gap-2">
+        <div className="w-full flex items-center justify-center py-3 px-4 rounded-full border border-border bg-surface text-sm text-text-muted font-body gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span>Iniciando sesión con Google...</span>
         </div>
@@ -238,9 +240,10 @@ const GoogleAuthButton = ({
             onError={handleGoogleError}
             click_listener={handleGoogleClick}
             theme="outline"
+            shape="pill"
             size="large"
             width="320"
-            text="continue_with"
+            text={text}
           />
         </div>
       )}

@@ -28,7 +28,7 @@ const CoachesSection = ({
     <section
       id={LANDING_ANCHORS.coaches}
       aria-labelledby="coaches-heading"
-      className="bg-background py-20"
+      className="bg-bg-secondary py-20"
     >
       <Container>
         <div id="coaches-heading">

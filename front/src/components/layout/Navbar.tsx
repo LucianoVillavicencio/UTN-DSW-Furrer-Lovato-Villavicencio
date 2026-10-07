@@ -7,6 +7,7 @@ import {
   LogOut,
   User as UserIcon,
   ShieldCheck,
+  LogIn,
 } from 'lucide-react';
 import Container from '../common/Container';
 import Button from '../common/Button';
@@ -26,18 +27,6 @@ const publicLinks: NavLink[] = [
   { label: 'Planes', href: '/membership' },
   { label: 'Sobre nosotros', href: '/about' },
   { label: 'Contacto', href: '/contact' },
-];
-
-// On the landing page the same labels scroll to sections rather than
-// navigating. They are not used on any other route, where the ids do not
-// exist and every one of them would be a dead link.
-const landingLinks: NavLink[] = [
-  { label: 'Instalaciones', href: `#${LANDING_ANCHORS.facilities}` },
-  { label: 'Clases', href: `#${LANDING_ANCHORS.disciplines}` },
-  { label: 'Horarios', href: `#${LANDING_ANCHORS.schedule}` },
-  { label: 'Entrenadores', href: `#${LANDING_ANCHORS.coaches}` },
-  { label: 'Planes', href: `#${LANDING_ANCHORS.plans}` },
-  { label: 'Cómo llegar', href: `#${LANDING_ANCHORS.location}` },
 ];
 
 // Navigation for a signed-in member.
@@ -68,9 +57,7 @@ const Navbar = () => {
   const isLanding = pathname === '/';
 
   let navLinks = publicLinks;
-  if (isLanding) {
-    navLinks = landingLinks;
-  } else if (isAdmin) {
+  if (isAdmin) {
     navLinks = adminLinks;
   } else if (isAuthenticated) {
     navLinks = userLinks;
@@ -152,7 +139,10 @@ const Navbar = () => {
           ) : (
             <div className="flex items-center gap-3">
               <Button href="/login" variant="secondary" size="sm">
-                Mi cuenta
+                <span className="inline-flex items-center gap-1.5">
+                  <LogIn className="size-4 shrink-0" aria-hidden="true" />
+                  Ingresar
+                </span>
               </Button>
               {isLanding ? (
                 <a
@@ -249,7 +239,7 @@ const Navbar = () => {
                   size="sm"
                   className="w-full"
                 >
-                  Mi cuenta
+                  Ingresar
                 </Button>
                 {isLanding ? (
                   <a

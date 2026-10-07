@@ -61,7 +61,7 @@ const DisciplinesSection = ({
     <section
       id={LANDING_ANCHORS.disciplines}
       aria-labelledby="disciplines-heading"
-      className="bg-background py-20"
+      className="bg-bg-secondary py-20"
     >
       <Container>
         <div id="disciplines-heading">

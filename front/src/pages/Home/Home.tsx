@@ -5,8 +5,6 @@ import AppPromoSection from '../../components/home/AppPromoSection';
 import CoachesSection from '../../components/home/CoachesSection';
 import DisciplinesSection from '../../components/home/DisciplinesSection';
 import FacilitiesGallery from '../../components/home/FacilitiesGallery';
-import FaqAccordion from '../../components/home/FaqAccordion';
-import FinalCtaBanner from '../../components/home/FinalCtaBanner';
 import GlobalOverlays from '../../components/home/GlobalOverlays';
 import HeroSection from '../../components/home/HeroSection';
 import LeadMagnetSection from '../../components/home/LeadMagnetSection';
@@ -45,9 +43,9 @@ function Home() {
           errors={errors}
           isLoading={isLoading}
         />
-        <ValuePropsTicker />
-        <LeadMagnetSection />
-        <DisciplinesSection
+        <ValuePropsTicker />       
+        
+         <DisciplinesSection
           classes={classes}
           typeClasses={typeClasses}
           sessions={sessions}
@@ -55,6 +53,7 @@ function Home() {
           errors={errors}
           onShowSchedule={showScheduleFor}
         />
+
         <ScheduleSection
           sessions={sessions}
           isLoading={isLoading}
@@ -62,21 +61,25 @@ function Home() {
           focusedClassId={focusedClassId}
           onClearFocus={() => setFocusedClassId(null)}
         />
-        <FacilitiesGallery />
+
         <CoachesSection
           trainers={trainers}
           isLoading={isLoading}
           error={errors.trainers}
         />
+
+        <FacilitiesGallery />
+
         <PricingSection
           plans={plans}
           isLoading={isLoading}
           error={errors.plans}
         />
         <AppPromoSection />
-        <FaqAccordion />
+  
+        <LeadMagnetSection />
         <LocationContactSection />
-        <FinalCtaBanner />
+        
       </main>
 
       <Footer />

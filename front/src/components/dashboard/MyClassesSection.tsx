@@ -3,7 +3,7 @@ import { Loader2, AlertCircle, CalendarDays, Clock } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
-import ConfirmDialog from '../admin/ConfirmDialog';
+import ConfirmDialog from '../admin/shared/ConfirmDialog';
 import {
   getMyEnrollments,
   cancelEnrollment,
