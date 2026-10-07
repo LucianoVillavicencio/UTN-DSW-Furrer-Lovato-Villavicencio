@@ -1,14 +1,28 @@
 // Controlled form for turnos, rendered by ClassSessionsSection. Creating picks
-// a class, several weekdays and several start times (one turno per
-// combination) plus the capacity; editing moves a single existing slot.
+// a class, several weekdays and several start times from an hourly chip grid
+// (one turno per combination) plus the capacity; editing moves a single
+// existing slot. The hour logic lives in class-session-form.ts.
 
-import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import InputField from '../../common/InputField';
 import FormAlert from '../../common/FormAlert';
 import Button from '../../common/Button';
 import type { Class } from '../../../types/class';
 import { WEEKDAYS } from '../../../lib/weekday';
-import type { ClassSessionFormState } from './class-session-form';
+import {
+  addCustomTime,
+  timeChips,
+  toggleTime,
+  type ClassSessionFormState,
+} from './class-session-form';
+
+const chipClassName = (isPicked: boolean): string =>
+  `rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+    isPicked
+      ? 'border-primary bg-primary/10 text-primary'
+      : 'border-border text-text-muted hover:text-text'
+  }`;
 
 interface ClassSessionFormProps {
   form: ClassSessionFormState;
@@ -45,14 +59,20 @@ const ClassSessionForm = ({
     });
   };
 
-  const setTime = (index: number, value: string) => {
+  const [customTime, setCustomTime] = useState('');
+
+  const pickTime = (time: string) =>
+    onChange({ ...form, times: toggleTime(form.times, time, isEditing) });
+
+  const addTime = () => {
     onChange({
       ...form,
-      times: form.times.map((t, i) => (i === index ? value : t)),
+      times: addCustomTime(form.times, customTime, isEditing),
     });
+    setCustomTime('');
   };
 
-  const slotCount = form.weekdays.length * form.times.filter((t) => t).length;
+  const slotCount = form.weekdays.length * form.times.length;
 
   return (
     <div className="space-y-4">
@@ -91,11 +111,7 @@ const ClassSessionForm = ({
                 type="button"
                 onClick={() => toggleWeekday(day.value)}
                 aria-pressed={isPicked}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isPicked
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-text-muted hover:text-text'
-                }`}
+                className={chipClassName(isPicked)}
               >
                 {day.short}
               </button>
@@ -105,49 +121,43 @@ const ClassSessionForm = ({
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="font-body text-xs sm:text-sm font-medium text-text">
-            {isEditing ? 'Hora de inicio' : 'Horarios'}
-          </span>
-          {!isEditing && (
-            <button
-              type="button"
-              onClick={() => onChange({ ...form, times: [...form.times, ''] })}
-              className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
-            >
-              <Plus className="h-3 w-3" />
-              Agregar horario
-            </button>
-          )}
+        <span className="font-body text-xs sm:text-sm font-medium text-text">
+          {isEditing ? 'Hora de inicio' : 'Horarios'}
+        </span>
+        <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-5">
+          {timeChips(form.times).map((time) => {
+            const isPicked = form.times.includes(time);
+            return (
+              <button
+                key={time}
+                type="button"
+                onClick={() => pickTime(time)}
+                aria-pressed={isPicked}
+                className={`${chipClassName(isPicked)} tabular-nums`}
+              >
+                {time}
+              </button>
+            );
+          })}
         </div>
-
-        <ul className="space-y-2">
-          {form.times.map((time, index) => (
-            <li key={index} className="flex items-center gap-2">
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(index, e.target.value)}
-                className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-              {!isEditing && form.times.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      ...form,
-                      times: form.times.filter((_, i) => i !== index),
-                    })
-                  }
-                  aria-label="Quitar horario"
-                  className="shrink-0 rounded-lg p-1.5 text-text-muted hover:text-red-400"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            type="time"
+            value={customTime}
+            aria-label="Otro horario"
+            onChange={(e) => setCustomTime(e.target.value)}
+            className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <button
+            type="button"
+            onClick={addTime}
+            disabled={!customTime}
+            className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover disabled:opacity-50"
+          >
+            <Plus className="h-3 w-3" />
+            Otro horario
+          </button>
+        </div>
       </div>
 
       <InputField

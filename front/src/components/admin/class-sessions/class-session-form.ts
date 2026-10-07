@@ -16,6 +16,45 @@ export interface ClassSessionFormState {
 export const emptyClassSessionForm: ClassSessionFormState = {
   classId: 0,
   weekdays: [],
-  times: [''],
+  times: [],
   maxCapacity: '20',
+};
+
+// Hourly class starts across opening hours (the last class starts at 21:00).
+// Off-the-hour starts such as 18:30 come in through "Otro horario" and then
+// show up among these chips too.
+export const PRESET_TIMES: string[] = Array.from(
+  { length: 15 },
+  (_, i) => `${String(7 + i).padStart(2, '0')}:00`,
+);
+
+const isTimeOfDay = (value: string): boolean => /^\d{2}:\d{2}$/.test(value);
+
+// 'HH:MM' sorts chronologically as plain strings.
+const sortedUnique = (times: string[]): string[] => [...new Set(times)].sort();
+
+export const timeChips = (selected: string[]): string[] =>
+  sortedUnique([...PRESET_TIMES, ...selected]);
+
+// isSingle: editing moves one existing slot, so a pick replaces the hour
+// instead of adding a second one.
+export const toggleTime = (
+  times: string[],
+  time: string,
+  isSingle: boolean,
+): string[] => {
+  if (isSingle) return [time];
+  return times.includes(time)
+    ? times.filter((t) => t !== time)
+    : sortedUnique([...times, time]);
+};
+
+export const addCustomTime = (
+  times: string[],
+  time: string,
+  isSingle: boolean,
+): string[] => {
+  if (!isTimeOfDay(time)) return times;
+  if (isSingle) return [time];
+  return sortedUnique([...times, time]);
 };
