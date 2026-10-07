@@ -16,13 +16,13 @@ import Container from '../../components/common/Container';
 import DashboardTabs, {
   type DashboardTab,
 } from '../../components/dashboard/DashboardTabs';
-import ResumenTab from '../../components/admin/ResumenTab';
-import ClassesSection from '../../components/admin/ClassesSection';
-import ClassSessionsSection from '../../components/admin/ClassSessionsSection';
-import TrainersSection from '../../components/admin/TrainersSection';
-import PlansSection from '../../components/admin/PlansSection';
-import UsersSection from '../../components/admin/UsersSection';
-import AdminPaymentsSection from '../../components/admin/AdminPaymentsSection';
+import ResumenTab from '../../components/admin/summary/ResumenTab';
+import ClassesSection from '../../components/admin/classes/ClassesSection';
+import ClassSessionsSection from '../../components/admin/class-sessions/ClassSessionsSection';
+import TrainersSection from '../../components/admin/trainers/TrainersSection';
+import PlansSection from '../../components/admin/plans/PlansSection';
+import UsersSection from '../../components/admin/users/UsersSection';
+import AdminPaymentsSection from '../../components/admin/payments/AdminPaymentsSection';
 
 const TABS: DashboardTab[] = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
