@@ -3,7 +3,7 @@
 // NewMemberWizard to register a walk-in member at the counter.
 
 import { useState } from 'react';
-import { Search, UserPlus, Users } from 'lucide-react';
+import { MousePointerClick, Search, UserPlus, Users } from 'lucide-react';
 import Button from '../../common/Button';
 import InputField from '../../common/InputField';
 import FormAlert from '../../common/FormAlert';
@@ -157,14 +157,23 @@ const UsersSection = () => {
       <FormAlert type="error" message={searchError} />
 
       {hasSearched && (
-        <DataTable
-          columns={columns}
-          rows={results}
-          rowKey={(u) => u.id}
-          isLoading={isSearching}
-          emptyMessage="No se encontraron usuarios con ese criterio."
-          onRowClick={setSelectedUser}
-        />
+        <div className="space-y-2">
+          {results.length > 0 && (
+            <p className="flex items-center gap-1.5 text-xs text-text-muted">
+              <MousePointerClick className="h-3.5 w-3.5" />
+              Hacé clic en un socio para ver y editar su ficha.
+            </p>
+          )}
+          <DataTable
+            columns={columns}
+            rows={results}
+            rowKey={(u) => u.id}
+            isLoading={isSearching}
+            emptyMessage="No se encontraron usuarios con ese criterio."
+            onRowClick={setSelectedUser}
+            rowActionLabel="Ver ficha"
+          />
+        </div>
       )}
 
       {selectedUser && currentAdmin && (
