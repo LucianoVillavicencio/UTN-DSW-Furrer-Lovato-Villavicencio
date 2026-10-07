@@ -1,6 +1,7 @@
-// "Entrenadores" tab of the admin dashboard. Lists trainers with their photo
-// (optionally including deleted ones), opens TrainerForm to create or edit
-// one, and confirms deletion. Loading and saving live in useAdminTrainers.
+// "Entrenadores" tab of the admin dashboard. Lists trainers with their photo,
+// 5 per page (optionally including deleted ones), opens TrainerForm to create
+// or edit one, and confirms deletion. Loading and saving live in
+// useAdminTrainers.
 
 import { useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, Users } from 'lucide-react';
@@ -9,10 +10,15 @@ import FormAlert from '../../common/FormAlert';
 import DataTable, { type DataTableColumn } from '../shared/DataTable';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import SectionHeader from '../shared/SectionHeader';
+import PaginationFooter from '../shared/PaginationFooter';
+import { usePagination } from '../shared/usePagination';
+import Checkbox from '../../common/CheckBox';
 import TrainerForm from './TrainerForm';
 import { useAdminTrainers } from './useAdminTrainers';
 import { resolveMediaUrl } from '../../../lib/mediaUrl';
 import type { Trainer } from '../../../types/trainer';
+
+const PAGE_SIZE = 5;
 
 const TrainersSection = () => {
   const [showDeleted, setShowDeleted] = useState(false);
@@ -26,6 +32,7 @@ const TrainersSection = () => {
     save,
     remove,
   } = useAdminTrainers(showDeleted);
+  const pagination = usePagination(trainers, PAGE_SIZE);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editing, setEditing] = useState<Trainer | null>(null);
@@ -118,20 +125,15 @@ const TrainersSection = () => {
 
   return (
     <div className="space-y-4">
-      <SectionHeader
-        title="Entrenadores"
-        icon={Users}
-        description="Staff que dicta las clases del gimnasio."
-      >
-        <label className="flex items-center gap-2 text-sm text-text-muted">
-          <input
-            type="checkbox"
-            checked={showDeleted}
-            onChange={(e) => setShowDeleted(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          Mostrar eliminados
-        </label>
+      <SectionHeader title="Entrenadores" icon={Users}>
+        <Checkbox
+          label="Mostrar eliminados"
+          checked={showDeleted}
+          onChange={(e) => {
+            setShowDeleted(e.target.checked);
+            pagination.resetPage();
+          }}
+        />
         <Button
           size="sm"
           onClick={() => setIsCreating(true)}
@@ -146,7 +148,7 @@ const TrainersSection = () => {
 
       <DataTable
         columns={columns}
-        rows={trainers}
+        rows={pagination.pageRows}
         rowKey={(t) => t.dni}
         isLoading={isLoading}
         emptyMessage={
@@ -155,6 +157,17 @@ const TrainersSection = () => {
             : 'Todavía no hay entrenadores cargados.'
         }
       />
+      {!isLoading && pagination.total > 0 && (
+        <PaginationFooter
+          from={pagination.from}
+          to={pagination.to}
+          total={pagination.total}
+          hasPrevious={pagination.hasPrevious}
+          hasNext={pagination.hasNext}
+          onPrevious={pagination.goPrevious}
+          onNext={pagination.goNext}
+        />
+      )}
 
       {(isCreating || editing) && (
         <TrainerForm
