@@ -4,9 +4,9 @@
 
 import { useEffect, useState } from 'react';
 import { Receipt } from 'lucide-react';
-import Button from '../../common/Button';
 import Card from '../../common/Card';
 import DataTable, { type DataTableColumn } from '../shared/DataTable';
+import PaginationFooter from '../shared/PaginationFooter';
 import ChargePanel from './ChargePanel';
 import SectionHeader from '../shared/SectionHeader';
 import { getPayments } from '../../../services/payment.service';
@@ -108,29 +108,15 @@ const AdminPaymentsSection = () => {
             isLoading={isLoading}
             emptyMessage="Todavía no hay pagos registrados."
           />
-          <div className="mt-3 flex items-center justify-between">
-            <p className="text-xs text-text-muted">
-              Mostrando {from}-{to} de {page.total}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!hasPrevious}
-                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!hasNext}
-                onClick={() => setOffset(offset + PAGE_SIZE)}
-              >
-                Siguiente
-              </Button>
-            </div>
-          </div>
+          <PaginationFooter
+            from={from}
+            to={to}
+            total={page.total}
+            hasPrevious={hasPrevious}
+            hasNext={hasNext}
+            onPrevious={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+            onNext={() => setOffset(offset + PAGE_SIZE)}
+          />
         </div>
       </div>
     </div>
