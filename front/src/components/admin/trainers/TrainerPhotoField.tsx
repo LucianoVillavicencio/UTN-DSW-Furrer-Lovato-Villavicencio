@@ -1,3 +1,7 @@
+// Photo picker for TrainerForm with a live preview. Checks type (JPG, PNG,
+// WEBP) and size (max 2 MB) before anything is uploaded; it only reports the
+// picked file or the removal to the parent, which does the actual upload.
+
 import { useRef, useState } from 'react';
 import { ImageUp, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '../../../lib/mediaUrl';

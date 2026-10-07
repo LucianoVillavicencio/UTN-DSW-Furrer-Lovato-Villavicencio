@@ -1,3 +1,7 @@
+// Pure logic for TrainerForm, kept free of React: empty form values, the
+// photo pick/remove state (the two intents can never both be set), weekday
+// names and validation that mirrors the API. Unit-tested in trainer-form.test.ts.
+
 import type { Trainer } from '../../../types/trainer';
 
 // pendingFile (a newly picked photo) and shouldRemovePhoto (the admin

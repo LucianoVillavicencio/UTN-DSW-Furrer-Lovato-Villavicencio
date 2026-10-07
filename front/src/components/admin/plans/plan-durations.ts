@@ -1,3 +1,7 @@
+// Pure helpers for PlanDurationsField: the allowed terms (3/6/12 months),
+// which ones a plan can still add, validation that mirrors the API and the
+// form-to-payload conversion. Unit-tested in plan-durations.test.ts.
+
 import { parsePriceInput } from '../../../lib/currency';
 import type { DurationMonths, PlanDuration } from '../../../types/plan';
 

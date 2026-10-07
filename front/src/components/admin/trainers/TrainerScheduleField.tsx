@@ -1,3 +1,7 @@
+// Editor for a trainer's weekly work shifts inside TrainerForm: one row per
+// shift with weekday, start time and end time, plus add/remove buttons. New
+// rows default to the first weekday that has no shift yet.
+
 import { Plus, Trash2 } from 'lucide-react';
 import { WEEKDAYS } from '../../../lib/weekday';
 

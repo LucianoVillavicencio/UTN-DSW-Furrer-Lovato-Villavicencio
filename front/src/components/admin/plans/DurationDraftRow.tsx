@@ -1,3 +1,7 @@
+// Input row for adding one duration to a plan: month count (only terms not
+// yet priced), number of days and price with a live formatted preview. Used
+// only by PlanDurationsField, which owns the state and the save.
+
 import InputField from '../../common/InputField';
 import Button from '../../common/Button';
 import { formatPriceDisplay, parsePriceInput } from '../../../lib/currency';

@@ -1,3 +1,8 @@
+// Part of the plan edit form that manages a plan's optional longer terms
+// (3, 6 or 12 months) and their prices. Loads the plan's durations, adds new
+// ones through DurationDraftRow and deletes existing ones, saving each change
+// to the API immediately.
+
 import { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import FormAlert from '../../common/FormAlert';

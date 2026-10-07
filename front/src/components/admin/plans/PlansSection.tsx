@@ -1,3 +1,8 @@
+// "Planes" tab of the admin dashboard. Lists membership plans (optionally
+// including deleted ones) and lets the admin create, edit, delete and restore
+// them: price, days, class allowance (none / fixed / unlimited), feature list
+// and the highlighted flag. Longer-term prices are edited in PlanDurationsField.
+
 import { useEffect, useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, X, Check, CreditCard } from 'lucide-react';
 import Button from '../../common/Button';

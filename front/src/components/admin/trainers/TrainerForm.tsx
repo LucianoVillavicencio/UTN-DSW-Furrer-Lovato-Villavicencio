@@ -1,3 +1,8 @@
+// Create/edit trainer modal. Combines the basic fields with the photo,
+// certifications and work-schedule sub-fields, validates with
+// findTrainerFormError, saves the trainer and then uploads or deletes the
+// photo as a separate request.
+
 import { useState } from 'react';
 import Modal from '../shared/Modal';
 import InputField from '../../common/InputField';

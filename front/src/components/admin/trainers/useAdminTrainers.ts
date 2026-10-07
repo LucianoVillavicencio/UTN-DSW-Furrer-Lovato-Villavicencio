@@ -1,3 +1,7 @@
+// Hook behind TrainersSection: loads the trainer list (with or without deleted
+// ones) and exposes reload, save (create/update) and remove, plus the loading
+// and error state the section displays.
+
 import { useEffect, useState } from 'react';
 import {
   createTrainer,

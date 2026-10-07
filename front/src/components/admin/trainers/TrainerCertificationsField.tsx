@@ -1,3 +1,7 @@
+// Chip list editor for a trainer's certifications inside TrainerForm. Type a
+// certification and press Enter or the add button to append it; each chip
+// has a remove button, and blank or duplicate entries are ignored.
+
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import InputField from '../../common/InputField';

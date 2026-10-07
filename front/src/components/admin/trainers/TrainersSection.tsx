@@ -1,3 +1,7 @@
+// "Entrenadores" tab of the admin dashboard. Lists trainers with their photo
+// (optionally including deleted ones), opens TrainerForm to create or edit
+// one, and confirms deletion. Loading and saving live in useAdminTrainers.
+
 import { useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, Users } from 'lucide-react';
 import Button from '../../common/Button';
