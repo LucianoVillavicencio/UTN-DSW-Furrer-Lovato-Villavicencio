@@ -1,7 +1,7 @@
-// "Clases" tab of the admin dashboard. Lists classes (optionally including
-// soft-deleted ones) and lets the admin create, edit, delete and restore
-// them, choosing the class type and the trainer. A new class type can also be
-// added inline from the same form.
+// "Clases" tab of the admin dashboard. Lists classes 10 per page (optionally
+// including soft-deleted ones) and lets the admin create, edit, delete and
+// restore them, choosing the class type and the trainer. A new class type can
+// also be added inline from the same form.
 
 import { useEffect, useState } from 'react';
 import { Pencil, Trash2, RotateCcw, Plus, Dumbbell } from 'lucide-react';
@@ -12,6 +12,9 @@ import DataTable, { type DataTableColumn } from '../shared/DataTable';
 import Modal from '../shared/Modal';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import SectionHeader from '../shared/SectionHeader';
+import PaginationFooter from '../shared/PaginationFooter';
+import { usePagination } from '../shared/usePagination';
+import Checkbox from '../../common/CheckBox';
 import {
   getClass,
   getDeletedClasses,
@@ -36,8 +39,11 @@ const emptyForm: Class = {
   trainerDni: 0,
 };
 
+const PAGE_SIZE = 10;
+
 const ClassesSection = () => {
   const [classes, setClasses] = useState<Class[]>([]);
+  const pagination = usePagination(classes, PAGE_SIZE);
   const [types, setTypes] = useState<TypeClass[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -261,15 +267,14 @@ const ClassesSection = () => {
         icon={Dumbbell}
         description="Disciplinas que ofrece el gimnasio."
       >
-        <label className="flex items-center gap-2 text-sm text-text-muted">
-          <input
-            type="checkbox"
-            checked={showDeleted}
-            onChange={(e) => setShowDeleted(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          Mostrar eliminadas
-        </label>
+        <Checkbox
+          label="Mostrar eliminadas"
+          checked={showDeleted}
+          onChange={(e) => {
+            setShowDeleted(e.target.checked);
+            pagination.resetPage();
+          }}
+        />
         <Button
           size="sm"
           onClick={openCreate}
@@ -290,7 +295,7 @@ const ClassesSection = () => {
 
       <DataTable
         columns={columns}
-        rows={classes}
+        rows={pagination.pageRows}
         rowKey={(c) => c.id ?? c.name}
         isLoading={isLoading}
         emptyMessage={
@@ -299,6 +304,17 @@ const ClassesSection = () => {
             : 'Todavía no hay clases cargadas.'
         }
       />
+      {!isLoading && pagination.total > 0 && (
+        <PaginationFooter
+          from={pagination.from}
+          to={pagination.to}
+          total={pagination.total}
+          hasPrevious={pagination.hasPrevious}
+          hasNext={pagination.hasNext}
+          onPrevious={pagination.goPrevious}
+          onNext={pagination.goNext}
+        />
+      )}
 
       {(isCreating || editing) && (
         <Modal
