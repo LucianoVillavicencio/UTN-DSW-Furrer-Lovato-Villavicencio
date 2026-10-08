@@ -52,6 +52,7 @@ const MyClassesSection = () => {
       })
       .finally(() => setHasLoaded(true));
 
+  // Loads the member's enrolled classes once on mount.
   useEffect(() => {
     void fetchMine();
   }, []);

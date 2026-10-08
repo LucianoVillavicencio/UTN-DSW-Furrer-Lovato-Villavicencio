@@ -42,6 +42,7 @@ const MembershipActionsDialog = ({
   // so the initial useState values above already cover the loading/no-error
   // starting point; every setState here happens from this effect's own
   // .then/.catch/.finally, not synchronously in the effect body.
+  // Fetches the refund quote for the subscription on mount, ignoring stale responses.
   useEffect(() => {
     let cancelled = false;
     getRefundQuote(subscriptionId)

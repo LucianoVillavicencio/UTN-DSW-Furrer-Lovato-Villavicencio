@@ -6,6 +6,7 @@ const SHOW_AFTER_PX = 600;
 const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
 
+  // Shows the button once the page is scrolled past a threshold.
   useEffect(() => {
     const onScroll = () => setIsVisible(window.scrollY > SHOW_AFTER_PX);
     onScroll();

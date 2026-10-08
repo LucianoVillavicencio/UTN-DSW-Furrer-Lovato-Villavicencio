@@ -6,6 +6,7 @@ import PageHeader from '../../components/common/PageHeader';
 import ContactSection from '../../components/contact/ContactSection';
 
 function Contact() {
+  // Scrolls to the top of the page on mount.
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

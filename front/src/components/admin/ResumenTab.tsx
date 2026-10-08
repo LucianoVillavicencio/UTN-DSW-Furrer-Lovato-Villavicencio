@@ -24,6 +24,7 @@ const ResumenTab = () => {
 
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
+  // Loads the plan, class, trainer and user counts for the summary on mount.
   useEffect(() => {
     void Promise.allSettled([getPlans(), getClass(), getTrainers(), getUsers()]).then(
       ([plansRes, classesRes, trainersRes, usersRes]) => {

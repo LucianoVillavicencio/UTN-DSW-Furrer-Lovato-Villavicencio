@@ -21,6 +21,7 @@ const AssignPlanForm = ({ userId, onAssigned }: AssignPlanFormProps) => {
 
   // Every setState lives in an async callback, so the effect below only starts
   // the request instead of updating state while React renders.
+  // Loads the available (non-deleted) plans once on mount.
   useEffect(() => {
     void getPlans()
       .then((data) => setPlans(data.filter((p) => !p.deleted)))

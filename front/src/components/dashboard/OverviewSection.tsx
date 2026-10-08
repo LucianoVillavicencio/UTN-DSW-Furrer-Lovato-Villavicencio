@@ -21,6 +21,7 @@ const OverviewSection = ({ onNavigate }: OverviewSectionProps) => {
   const [lastPayment, setLastPayment] = useState<Payment | null>(null);
   const [isLoadingPayment, setIsLoadingPayment] = useState(true);
 
+  // Loads the member's subscription and last payment once on mount.
   useEffect(() => {
     getMySubscription()
       .then(setSubscription)

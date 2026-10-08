@@ -26,6 +26,7 @@ const Modal = ({ title, onClose, children, size = 'md' }: ModalProps) => {
   // Closing only when the press STARTED on the backdrop fixes it.
   const pressStartedOnBackdrop = useRef(false);
 
+  // Closes the modal on Escape while it is mounted.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();

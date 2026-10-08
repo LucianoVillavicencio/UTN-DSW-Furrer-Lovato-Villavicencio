@@ -107,6 +107,7 @@ export const useMemberCharge = (
   const pollingRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
 
+  // Tracks mount state and stops any payment polling on unmount.
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -122,6 +123,7 @@ export const useMemberCharge = (
   // the request instead of updating state while React renders. Plans are not
   // scoped to anything the admin can change mid-flight, so no staleness guard
   // is needed here.
+  // Loads the available plans once on mount.
   useEffect(() => {
     void getPlans()
       .then((data) => {
@@ -146,6 +148,7 @@ export const useMemberCharge = (
   // admin has since picked a plan by hand. A response that lands after the
   // admin has moved to another member must not write anything — that race is
   // what used to leave the old form stuck on a spinner forever.
+  // Loads the selected member's active subscription, ignoring stale responses.
   useEffect(() => {
     if (!selectedUser) return;
     let isCurrent = true;
@@ -179,6 +182,7 @@ export const useMemberCharge = (
   // plan, both read as "nothing to quote" and must not fetch. A response
   // that lands after the admin moved on to another plan or member is
   // dropped, same isCurrent guard as every other fetch in this hook.
+  // Fetches the plan-change quote when the chosen plan differs from the current one.
   useEffect(() => {
     if (!selectedUser || !isPlanChangeCandidate(planId, currentPlanId)) {
       // Resets synchronously — no request is in flight here to gate this on,
@@ -234,6 +238,7 @@ export const useMemberCharge = (
   // from the member's payment history — see hasAutoRenewedToday. Same
   // staleness guard as the effect above; a response that lands after the admin
   // has moved to another member must not write anything.
+  // Loads the selected member's payment history, ignoring stale responses.
   useEffect(() => {
     if (!selectedUser) return;
     let isCurrent = true;
@@ -254,6 +259,7 @@ export const useMemberCharge = (
 
   // Durations belong to the plan, so they reload on the plan and reset the
   // term — a 6-month term left over from another plan would resolve to null.
+  // Resets the term and reloads the durations when the selected plan changes.
   useEffect(() => {
     // Resets synchronously on every plan change, including planId becoming
     // empty — a 6-month term left over from another plan would otherwise
@@ -299,6 +305,7 @@ export const useMemberCharge = (
   // react-hooks/set-state-in-effect here needs a data layer, not a local
   // edit, so the warning is accepted the same way the other sites carrying
   // it are.
+  // Syncs the amount field text with the resolved price.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAmountText(resolvedPrice != null ? formatPriceDisplay(resolvedPrice) : '');

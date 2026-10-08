@@ -104,6 +104,7 @@ const UserDetailPanel = ({
         );
       });
 
+  // Loads the user's history whenever the user changes.
   useEffect(() => {
     void fetchHistory(user.id);
   }, [user.id]);

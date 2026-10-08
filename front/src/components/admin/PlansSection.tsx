@@ -89,6 +89,7 @@ const PlansSection = () => {
       })
       .finally(() => setLoadedFilter(deleted));
 
+  // Reloads the plan list whenever the "show deleted" filter changes.
   useEffect(() => {
     void fetchPlans(showDeleted);
   }, [showDeleted]);

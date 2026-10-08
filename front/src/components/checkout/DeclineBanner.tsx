@@ -14,6 +14,7 @@ const DeclineBanner = ({ result }: DeclineBannerProps) => {
   const bannerRef = useRef<HTMLDivElement>(null);
   const isPending = result.status === 'in_process';
 
+  // Moves focus to the banner whenever a new payment result arrives.
   useEffect(() => {
     bannerRef.current?.focus();
   }, [result]);

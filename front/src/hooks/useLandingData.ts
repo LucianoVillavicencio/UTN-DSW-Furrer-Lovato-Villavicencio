@@ -61,6 +61,7 @@ export const useLandingData = (): LandingData => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  // Loads the landing page data (classes, sessions, trainers, plans) once on mount.
   useEffect(() => {
     let isMounted = true;
 

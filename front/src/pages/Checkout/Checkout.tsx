@@ -49,6 +49,7 @@ function Checkout() {
       .finally(() => setIsLoading(false));
   }, [planId, months, mode, setSummary, setError, setIsLoading]);
 
+  // Loads the order summary, or redirects to the plans page if no plan is selected.
   useEffect(() => {
     // A checkout with no plan has nothing to sell; send them back to pick one
     // rather than rendering an empty summary.
@@ -59,6 +60,7 @@ function Checkout() {
     loadSummary();
   }, [planId, months, mode, loadSummary, navigate]);
 
+  // Redirects authenticated users to the wallet checkout, or to complete their profile first.
   useEffect(() => {
     if (!isAuthenticated) return;
     if (!isProfileComplete) {

@@ -39,6 +39,7 @@ export const useClassOptions = (): {
 
   // Every setState lives in an async callback, so the effect below only starts
   // the requests instead of updating state while React renders.
+  // Loads classes and sessions on mount to build the selectable options.
   useEffect(() => {
     void Promise.all([getClass(), getClassSession()])
       .then(([classes, sessions]) => {

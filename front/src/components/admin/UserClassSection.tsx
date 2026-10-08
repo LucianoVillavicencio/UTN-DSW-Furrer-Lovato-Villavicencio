@@ -50,6 +50,7 @@ const UserClassSection = ({ userId }: UserClassSectionProps) => {
 
   // Every setState lives in an async callback, so the effect below only
   // starts the requests instead of updating state while React renders.
+  // Loads the user's class enrollments whenever the user changes.
   useEffect(() => {
     void load();
   }, [userId]);

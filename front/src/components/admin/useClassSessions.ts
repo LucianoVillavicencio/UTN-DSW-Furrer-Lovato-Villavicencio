@@ -62,6 +62,7 @@ export const useClassSessions = (showDeleted: boolean) => {
       })
       .finally(() => setLoadedFilter(deleted));
 
+  // Reloads the class sessions whenever the "show deleted" filter changes.
   useEffect(() => {
     void fetchSessions(showDeleted);
   }, [showDeleted]);

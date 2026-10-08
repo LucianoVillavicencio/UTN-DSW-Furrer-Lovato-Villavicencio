@@ -34,6 +34,7 @@ const PlanDurationsField = ({ planId }: PlanDurationsFieldProps) => {
 
   // Every setState lives in an async callback, so the effect below only starts
   // the request instead of updating state while React renders.
+  // Loads the plan's durations on mount and when the plan changes.
   useEffect(() => {
     void getPlanDurations(planId)
       .then((data) => {

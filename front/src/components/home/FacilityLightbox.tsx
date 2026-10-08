@@ -19,6 +19,7 @@ const FacilityLightbox = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocusTo = useRef<HTMLElement | null>(null);
 
+  // Manages focus and body scroll lock while the lightbox is open, restoring them on close.
   useEffect(() => {
     // Remember who opened the dialog so focus can go back there on close;
     // otherwise focus falls to <body> and keyboard users lose their place.

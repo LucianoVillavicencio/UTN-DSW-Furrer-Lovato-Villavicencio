@@ -47,6 +47,7 @@ const RegisterPaymentForm = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [printWarning, setPrintWarning] = useState<string | null>(null);
 
+  // Loads the selected member's subscriptions, ignoring stale responses.
   useEffect(() => {
     if (!selectedUser) return;
     const userId = selectedUser.id;

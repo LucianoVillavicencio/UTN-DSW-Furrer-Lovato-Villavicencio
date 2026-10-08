@@ -44,6 +44,7 @@ const GoogleAuthButton = ({
   // onError arrives as an inline arrow from the form, so it changes on every
   // render; the ref keeps the timers from holding a stale version.
   const onErrorRef = useRef(onError);
+  // Keeps the error-callback ref up to date with the latest prop.
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
@@ -93,6 +94,7 @@ const GoogleAuthButton = ({
     );
   };
 
+  // Listens to window blur/focus to detect Google's popup opening and closing without a credential.
   useEffect(() => {
     const handleBlur = () => {
       if (awaitingRef.current) blurredRef.current = true;

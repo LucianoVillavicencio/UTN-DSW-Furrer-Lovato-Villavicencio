@@ -56,6 +56,7 @@ const PaymentsSection = () => {
   // Every setState below lives in an async callback, so this effect only
   // starts the requests; Promise.allSettled lets one failing source leave the
   // others intact, following PlanSection.tsx's fetchPlans pattern.
+  // Loads payments, saved card and subscription once on mount.
   useEffect(() => {
     Promise.allSettled([
       getMyPayments(),

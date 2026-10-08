@@ -17,6 +17,7 @@ const GlobalOverlays = () => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMobileBar, setShowMobileBar] = useState(false);
 
+  // Shows the tooltip after a delay on mount.
   useEffect(() => {
     const timer = window.setTimeout(
       () => setShowTooltip(true),
@@ -25,6 +26,7 @@ const GlobalOverlays = () => {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // Shows the mobile bar once the page is scrolled past a threshold.
   useEffect(() => {
     const onScroll = () =>
       setShowMobileBar(window.scrollY > MOBILE_BAR_AFTER_PX);
