@@ -4,10 +4,14 @@ import { JwtModule, JwtModuleOptions, JwtSignOptions } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserModule } from '../modules/user/user.module';
+import { MailModule } from '../common/mail/mail.module';
+import { PasswordResetController } from './password-reset.controller';
+import { PasswordResetService } from './password-reset.service';
 
 @Module({
   imports: [
     UserModule,
+    MailModule,
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],
@@ -23,7 +27,7 @@ import { UserModule } from '../modules/user/user.module';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService],
+  controllers: [AuthController, PasswordResetController],
+  providers: [AuthService, PasswordResetService],
 })
 export class AuthModule {}

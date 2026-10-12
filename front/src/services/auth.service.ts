@@ -167,6 +167,43 @@ export const changePassword = async (
   }
 };
 
+// The backend answers the same message whether or not the email has an
+// account, so whatever comes back is shown as-is.
+export const requestPasswordReset = async (email: string): Promise<string> => {
+  try {
+    const { data } = await api.post<{ message: string }>(
+      '/auth/forgot-password',
+      { email: email.trim() },
+    );
+    return data.message;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo enviar el enlace de recuperación.'),
+      { cause: error },
+    );
+  }
+};
+
+// Uses the token from the emailed link. Does not log the member in: they go
+// back to /login with the new password.
+export const resetPassword = async (
+  token: string,
+  newPassword: string,
+): Promise<string> => {
+  try {
+    const { data } = await api.post<{ message: string }>(
+      '/auth/reset-password',
+      { token, newPassword },
+    );
+    return data.message;
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(error, 'No se pudo restablecer la contraseña.'),
+      { cause: error },
+    );
+  }
+};
+
 export const logoutUser = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
