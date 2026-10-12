@@ -14,7 +14,7 @@ export class PasswordResetController {
   @Post('forgot-password')
   @HttpCode(200)
   @Throttle({ auth: { limit: AUTH_THROTTLE.limit, ttl: AUTH_THROTTLE.ttl } }) // Lo limita a 5 intentos por minuto
-  @SkipThrottle(SKIP_CONTACT_THROTTLE) // 
+  @SkipThrottle(SKIP_CONTACT_THROTTLE)
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.passwordResetService.requestReset(dto.email);
   }

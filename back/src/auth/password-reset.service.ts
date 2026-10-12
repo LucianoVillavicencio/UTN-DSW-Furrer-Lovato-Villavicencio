@@ -12,7 +12,6 @@ export const GENERIC_RESET_REQUEST_MESSAGE =
 export const INVALID_RESET_TOKEN_MESSAGE =
   'El enlace para restablecer la contraseña no es válido o ya venció. Pide uno nuevo.';
 
-
 @Injectable()
 export class PasswordResetService {
   private readonly logger = new Logger(PasswordResetService.name);
@@ -23,7 +22,6 @@ export class PasswordResetService {
     private readonly mailService: MailService,
     private readonly config: ConfigService,
   ) {}
-
 
   async requestReset(email: string) {
     const user = await this.userService.findUserByEmailWithPassword(email);
@@ -52,7 +50,6 @@ export class PasswordResetService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-
     const unverified: unknown = this.jwtService.decode(token);
     const sub =
       unverified && typeof unverified === 'object' && 'sub' in unverified
