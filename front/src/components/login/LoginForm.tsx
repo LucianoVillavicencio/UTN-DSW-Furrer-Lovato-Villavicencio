@@ -161,12 +161,12 @@ const LoginForm = ({ onSuccess, onIncompleteProfile }: LoginFormProps) => {
           onChange={(e) => setRememberMe(e.target.checked)}
           label="Recordarme"
         />
-        <a
-          href="/forgot-password"
+        <Link
+          to="/forgot-password"
           className="font-body text-xs sm:text-sm text-primary hover:text-primary-hover font-semibold transition-colors"
         >
           ¿Olvidaste tu contraseña?
-        </a>
+        </Link>
       </div>
 
       <LoginSubmitButton isLoading={isLoading} />
