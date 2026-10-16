@@ -87,6 +87,32 @@ describe('POST /api/v1/mercadopago/webhook', () => {
     );
   });
 
+  // Regression guard: the controller used to normalize a missing data.id/
+  // x-request-id to '' before checking the signature, which made
+  // buildSignatureManifest hash a stray empty segment MP never actually
+  // signed — a notification genuinely missing one of these fields (real MP
+  // behavior on some topics, e.g. merchant_order) could never verify, on
+  // this attempt or any of MP's retries of the same notification.
+  it('accepts a notification that genuinely omits data.id and x-request-id', async () => {
+    const ts = String(Date.now());
+    const manifest = `ts:${ts};`;
+    const v1 = createHmac('sha256', SECRET).update(manifest).digest('hex');
+    const header = `ts=${ts},v1=${v1}`;
+
+    const response = await request(app.getHttpServer() as App)
+      .post('/api/v1/mercadopago/webhook')
+      .query({ type: 'merchant_order' })
+      .set('x-signature', header)
+      .send({})
+      .expect(200);
+
+    expect(response.body).toEqual({ received: true });
+    expect(webhookService.handleNotification).toHaveBeenCalledWith(
+      '',
+      'merchant_order',
+    );
+  });
+
   it('rejects with 401 when the webhook secret is not configured', async () => {
     const unconfiguredApp = await buildAuthzApp(WebhookController, [
       { provide: MercadoPagoConfig, useValue: { webhookSecret: undefined } },

@@ -842,6 +842,14 @@ describe('subscriptionService', () => {
       expect(live.scheduledPlanId).toBe(1);
       expect(live.planId).toBe(2); // current plan untouched
       expect(live.endDate).toBe('2026-03-31');
+      // Regression guard: a scheduled downgrade used to leave
+      // changedFromSubscriptionId null, so assessChange's already_changed
+      // block never fired and the member could reschedule (or switch)
+      // indefinitely in the same term.
+      expect(
+        (live as { changedFromSubscriptionId?: number })
+          .changedFromSubscriptionId,
+      ).toBe(10);
       jest.useRealTimers();
     });
 
@@ -892,6 +900,13 @@ describe('subscriptionService', () => {
       // month when planDurationId is null) by however many months the old
       // term covered.
       expect(live.soldPrice).toBe(13500);
+      // Regression guard: a lateral move used to leave
+      // changedFromSubscriptionId null, letting a member swap plans
+      // repeatedly in the same term instead of being locked to one change.
+      expect(
+        (live as { changedFromSubscriptionId?: number })
+          .changedFromSubscriptionId,
+      ).toBe(10);
       jest.useRealTimers();
     });
 
@@ -962,6 +977,141 @@ describe('subscriptionService', () => {
       );
       expect(live.scheduledPlanId).toBeNull();
       jest.useRealTimers();
+    });
+  });
+
+  // Regression coverage: these two admin-facing routes used to write a
+  // Subscription row straight from the DTO with none of the invariants
+  // every other write path in this file enforces (activate, renew,
+  // replaceActiveSubscription, changePlan all cancel/supersede whatever the
+  // user already had before opening a new ACTIVE row) — so two ACTIVE rows
+  // for the same user could coexist, silently corrupting everything
+  // downstream that assumes "at most one ACTIVE subscription per user"
+  // (findActiveForUser, findChangeContext, activate, renew...).
+  describe('createSubscription', () => {
+    const dto = {
+      userId: 42,
+      planId: 1,
+      startDate: '2026-01-01',
+      endDate: '2026-01-31',
+    };
+
+    it('creates an ACTIVE subscription when the user has no other active one', async () => {
+      subscriptionRepository.findOne.mockResolvedValue(null);
+
+      await service.createSubscription(dto);
+
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          state: SubscriptionState.ACTIVE,
+        }),
+      );
+    });
+
+    it('refuses to create a second ACTIVE subscription for a user who already has one', async () => {
+      subscriptionRepository.findOne.mockResolvedValue({
+        id: 99,
+        userId: 42,
+        state: SubscriptionState.ACTIVE,
+      });
+
+      await expect(service.createSubscription(dto)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('allows creating a non-ACTIVE subscription even when the user already has an active one', async () => {
+      subscriptionRepository.findOne.mockResolvedValue({
+        id: 99,
+        userId: 42,
+        state: SubscriptionState.ACTIVE,
+      });
+
+      await service.createSubscription({
+        ...dto,
+        state: SubscriptionState.PENDING,
+      });
+
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ state: SubscriptionState.PENDING }),
+      );
+    });
+  });
+
+  describe('updateSubscription', () => {
+    const existingRow = {
+      id: 10,
+      userId: 42,
+      planId: 1,
+      state: SubscriptionState.PENDING,
+      startDate: '2026-01-01',
+      endDate: '2026-01-31',
+    };
+    const activatingDto = {
+      id: 10,
+      userId: 42,
+      planId: 1,
+      startDate: '2026-01-01',
+      endDate: '2026-01-31',
+      state: SubscriptionState.ACTIVE,
+    };
+
+    it('updates a subscription to ACTIVE when the user has no other active row', async () => {
+      subscriptionRepository.findOne
+        .mockResolvedValueOnce(existingRow) // findSubscription
+        .mockResolvedValueOnce(null); // no other active row
+
+      await service.updateSubscription(activatingDto);
+
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ state: SubscriptionState.ACTIVE }),
+      );
+    });
+
+    it('refuses to activate a subscription when the user already has a different active row', async () => {
+      subscriptionRepository.findOne
+        .mockResolvedValueOnce(existingRow) // findSubscription
+        .mockResolvedValueOnce({
+          id: 55,
+          userId: 42,
+          state: SubscriptionState.ACTIVE,
+        }); // a DIFFERENT row, already active
+
+      await expect(service.updateSubscription(activatingDto)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(subscriptionRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('excludes the row being updated from the other-active check', async () => {
+      // Re-saving an already-ACTIVE row (e.g. an admin editing its endDate)
+      // must not trip over the row's own ACTIVE state.
+      subscriptionRepository.findOne
+        .mockResolvedValueOnce({
+          ...existingRow,
+          state: SubscriptionState.ACTIVE,
+        }) // findSubscription
+        .mockResolvedValueOnce(null); // Not(10) correctly excludes itself
+
+      await service.updateSubscription(activatingDto);
+
+      expect(subscriptionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ state: SubscriptionState.ACTIVE }),
+      );
+    });
+
+    it('does not check for another active row when the update does not activate the subscription', async () => {
+      subscriptionRepository.findOne.mockResolvedValueOnce(existingRow); // findSubscription only
+
+      await service.updateSubscription({
+        ...activatingDto,
+        state: SubscriptionState.PENDING,
+      });
+
+      expect(subscriptionRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(subscriptionRepository.save).toHaveBeenCalled();
     });
   });
 

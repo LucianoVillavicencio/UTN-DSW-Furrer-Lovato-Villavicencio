@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 // Define the button types
 
 type ButtonVariant = 'primary' | 'secondary';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 // Props that a button can accept
 
@@ -41,6 +41,9 @@ const sizeStyles: Record<ButtonSize, string> = {
   sm: 'px-4 py-2 text-sm',
   md: 'px-6 py-3 text-base',
   lg: 'px-8 py-4 text-lg',
+  // Square and exactly as tall as an InputField of size 'sm' (py-2.5 + a
+  // text-sm line + border = 42px), so it lines up beside one in a search row.
+  icon: 'size-10.5 p-0',
 };
 
 const baseStyles =

@@ -371,7 +371,11 @@ describe('ChargeOrderService.createCharge', () => {
     );
   });
 
-  it('skips the busy-point check for an online order', async () => {
+  it('scopes the online busy check by userId and method, not collectionPointId', async () => {
+    // An online checkout has no collection point to lock, but two
+    // near-simultaneous checkouts for the same member are exactly the race
+    // this table exists to prevent for the front desk too — so it gets an
+    // analogous lock, scoped to (userId, method) instead.
     await buildService();
 
     await service.createCharge({
@@ -381,7 +385,40 @@ describe('ChargeOrderService.createCharge', () => {
       adminId: null,
     });
 
-    expect(manager.createQueryBuilder).not.toHaveBeenCalled();
+    expect(manager.createQueryBuilder).toHaveBeenCalledWith(
+      ChargeOrder,
+      expect.any(String),
+    );
+    expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+    expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(String), {
+      userId: params.userId,
+    });
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.any(String), {
+      method: 'online',
+    });
+  });
+
+  it('refuses a second online order for the same member while one is pending', async () => {
+    await buildService({
+      id: 1,
+      userId: params.userId,
+      method: 'online',
+      status: ChargeOrderStatus.PENDING,
+    });
+
+    await expect(
+      service.createCharge({
+        ...params,
+        method: 'online',
+        collectionPointId: null,
+        adminId: null,
+      }),
+    ).rejects.toThrow(
+      new ConflictException(
+        'Ya tenés un cobro en curso. Esperá a que se confirme antes de volver a intentar.',
+      ),
+    );
+    expect(manager.save).not.toHaveBeenCalled();
   });
 
   it('still enforces the busy-point check for a point order', async () => {

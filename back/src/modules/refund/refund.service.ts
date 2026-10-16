@@ -8,7 +8,6 @@ import { subscriptionService } from '../subscription/subscription.service';
 import { MercadoPagoClient } from '../mercadopago/mercadopago.client';
 import { MailService } from '../../common/mail/mail.service';
 import { SubscriptionState } from '../subscription/enum/subscription-state.enum';
-import { PaymentState } from '../payment/enum/payment-state.enum';
 import { Payment } from '../payment/entity/payment.entity';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { monthsUsed, refundAmount } from './refund.rules';
@@ -127,11 +126,22 @@ export class RefundService {
     subscription.autoRenew = false;
     await this.subscriptionService.save(subscription);
 
-    payment.refundedAmount = amount;
-    payment.refundedAt = refundedAt;
-    payment.refundedById = adminId;
-    payment.state = PaymentState.REFUNDED;
-    const savedPayment = await this.paymentService.save(payment);
+    // claimRefund, not a plain save: the refundedAt check above reads a
+    // snapshot, not a lock, so two near-simultaneous calls for the same
+    // payment can both pass it and both reach here having already called
+    // Mercado Pago — harmless at MP's end (the refund-${payment.id}
+    // idempotency key never double-refunds), but a plain save() would still
+    // let the loser overwrite the winner's audit fields and send a second
+    // confirmation email. claimRefund's WHERE guard decides which caller
+    // actually wins; a null return means this one lost the race.
+    const savedPayment = await this.paymentService.claimRefund(payment.id, {
+      refundedAmount: amount,
+      refundedAt,
+      refundedById: adminId,
+    });
+    if (!savedPayment) {
+      throw new ConflictException('Este pago ya fue reembolsado.');
+    }
 
     await this.mailService.sendRefundConfirmation({
       to: subscription.user.email,

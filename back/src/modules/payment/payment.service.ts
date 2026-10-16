@@ -132,49 +132,78 @@ export class PaymentService {
         }
       : resolveTerm(plan, input.months, durations);
 
-    const { payment, subscription } = await this.dataSource.transaction(
-      async (manager) => {
-        const subscription =
-          await this.subscriptionService.replaceActiveSubscription(manager, {
-            userId: input.userId,
-            planId: input.planId,
-            term,
-            // Per the spec's R6: on a prorated row soldPrice is the new
-            // plan's regular monthly price — the member's ongoing value —
-            // not the difference collected, which lives on the Payment row
-            // (`amount` below). Recording the discounted amount here would
-            // report this member's MRR contribution at the one-time
-            // proration instead of what they actually pay from here on.
-            soldPrice: isPlanChange ? Number(plan.price) : input.amount,
-            ...(isPlanChange
-              ? {
-                  endDate: input.endDateOverride!,
-                  changedFromSubscriptionId: input.changeFromSubscriptionId!,
-                }
-              : {}),
+    let payment: Payment;
+    let subscription: Subscription;
+    try {
+      ({ payment, subscription } = await this.dataSource.transaction(
+        async (manager) => {
+          const subscription =
+            await this.subscriptionService.replaceActiveSubscription(manager, {
+              userId: input.userId,
+              planId: input.planId,
+              term,
+              // Per the spec's R6: on a prorated row soldPrice is the new
+              // plan's regular monthly price — the member's ongoing value —
+              // not the difference collected, which lives on the Payment
+              // row (`amount` below). Recording the discounted amount here
+              // would report this member's MRR contribution at the
+              // one-time proration instead of what they actually pay from
+              // here on.
+              soldPrice: isPlanChange ? Number(plan.price) : input.amount,
+              ...(isPlanChange
+                ? {
+                    endDate: input.endDateOverride!,
+                    changedFromSubscriptionId: input.changeFromSubscriptionId!,
+                  }
+                : {}),
+            });
+
+          const payment = manager.create(Payment, {
+            subscriptionId: subscription.id,
+            mpPaymentId: input.mpPaymentId,
+            amount: input.amount,
+            payMethod: input.payMethod,
+            date: new Date(),
+            state: PaymentState.COMPLETED,
+            registeredById: input.registeredById ?? null,
+            mpOrderId: input.mpOrderId ?? null,
+            // 0 on a plan change: a prorated adjustment is not a purchase of
+            // N months, and 1 would overstate it the moment anything reads
+            // this.
+            termMonths: term.months,
+            // Same convention as createFromMercadoPago: the plan's monthly
+            // list price, not the discounted amount.
+            monthlyPriceAtPurchase: plan.price,
+            deleted: false,
           });
 
-        const payment = manager.create(Payment, {
-          subscriptionId: subscription.id,
-          mpPaymentId: input.mpPaymentId,
-          amount: input.amount,
-          payMethod: input.payMethod,
-          date: new Date(),
-          state: PaymentState.COMPLETED,
-          registeredById: input.registeredById ?? null,
-          mpOrderId: input.mpOrderId ?? null,
-          // 0 on a plan change: a prorated adjustment is not a purchase of N
-          // months, and 1 would overstate it the moment anything reads this.
-          termMonths: term.months,
-          // Same convention as createFromMercadoPago: the plan's monthly list
-          // price, not the discounted amount.
-          monthlyPriceAtPurchase: plan.price,
-          deleted: false,
-        });
-
-        return { payment: await manager.save(payment), subscription };
-      },
-    );
+          return { payment: await manager.save(payment), subscription };
+        },
+      ));
+    } catch (error) {
+      // Same race createFromMercadoPago documents and recovers from: two
+      // near-simultaneous deliveries for the same mpPaymentId (a webhook
+      // retry racing CheckoutService.settle(), or two overlapping webhook
+      // retries) can both pass the findByMpPaymentId fast-path check above
+      // before either commits, and the loser hits the DB's UNIQUE constraint
+      // on mpPaymentId. Unlike createFromMercadoPago's identical race, the
+      // subscription mutation here runs in the SAME transaction as the
+      // payment write, so the loser's whole transaction — including
+      // replaceActiveSubscription's cancel-then-create — rolls back cleanly,
+      // and the winner's already-committed row is what the caller (a webhook
+      // retry, or CheckoutService.settle()) should be handed back instead of
+      // an ugly 500.
+      if (this.isDuplicateKeyError(error)) {
+        const existingPayment = await this.findByMpPaymentId(input.mpPaymentId);
+        if (existingPayment) {
+          return {
+            payment: existingPayment,
+            subscription: existingPayment.subscription,
+          };
+        }
+      }
+      throw error;
+    }
 
     // replaceActiveSubscription returns manager.save(created) — a plain
     // save(), which TypeORM never runs eager relations for (those only load
@@ -524,14 +553,37 @@ export class PaymentService {
     return await this.paymentRepository.save(newPayment);
   }
 
-  // Thin passthrough so RefundService (RefundModule) can persist the refund
-  // fields (refundedAmount/refundedAt/refundedById/state) it sets directly
-  // on the entity, without RefundModule reaching into this repository
-  // itself. No business logic here on purpose — same pattern as
-  // subscriptionService.save() in subscription.service.ts, which
-  // pause.service.ts uses the same way.
-  async save(payment: Payment) {
-    return this.paymentRepository.save(payment);
+  // Lets RefundService (RefundModule) persist a refund without reaching into
+  // this repository itself, and — unlike a plain save() — closes the race
+  // its own refundedAt check cannot: that check reads a snapshot, not a
+  // lock, so two near-simultaneous refund attempts for the same payment can
+  // both pass it before either writes. The WHERE guard here re-checks
+  // refundedAt IS NULL in the same statement as the write, so only the first
+  // caller's UPDATE actually matches a row; the second gets `affected: 0`
+  // back and, via the null return, knows to stop instead of overwriting the
+  // winner's audit fields or sending a second confirmation email.
+  async claimRefund(
+    paymentId: number,
+    fields: { refundedAmount: number; refundedAt: Date; refundedById: number },
+  ): Promise<Payment | null> {
+    const result = await this.paymentRepository
+      .createQueryBuilder()
+      .update(Payment)
+      .set({
+        refundedAmount: fields.refundedAmount,
+        refundedAt: fields.refundedAt,
+        refundedById: fields.refundedById,
+        state: PaymentState.REFUNDED,
+      })
+      .where('id = :id', { id: paymentId })
+      .andWhere('refundedAt IS NULL')
+      .execute();
+
+    if (!result.affected) {
+      return null;
+    }
+
+    return this.paymentRepository.findOne({ where: { id: paymentId } });
   }
 
   async findPayment(id: number) {

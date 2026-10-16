@@ -3,7 +3,7 @@ import { Receipt, Loader2, CreditCard } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import FormAlert from '../common/FormAlert';
-import ConfirmDialog from '../admin/ConfirmDialog';
+import ConfirmDialog from '../admin/shared/ConfirmDialog';
 import CardForm from '../checkout/CardForm';
 import RenewalPrompt from './RenewalPrompt';
 import { formatCardLabel, cardExpiryWarning } from './saved-card';

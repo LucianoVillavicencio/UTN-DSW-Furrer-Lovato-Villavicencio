@@ -7,7 +7,7 @@ import { SubscriptionState } from '../subscription/enum/subscription-state.enum'
 describe('RefundService', () => {
   let paymentService: {
     findCurrentTermPayment: jest.Mock;
-    save: jest.Mock;
+    claimRefund: jest.Mock;
   };
   let subscriptionService: {
     findSubscription: jest.Mock;
@@ -59,7 +59,24 @@ describe('RefundService', () => {
   beforeEach(() => {
     paymentService = {
       findCurrentTermPayment: jest.fn(),
-      save: jest.fn().mockImplementation((p) => Promise.resolve(p)),
+      // Mirrors the real claimRefund's success shape: the caller only reads
+      // `state` and the refund fields off the result, never the id, so a
+      // fixed id here is fine.
+      claimRefund: jest.fn().mockImplementation(
+        (
+          _paymentId: number,
+          fields: {
+            refundedAmount: number;
+            refundedAt: Date;
+            refundedById: number;
+          },
+        ) =>
+          Promise.resolve({
+            id: 55,
+            ...fields,
+            state: PaymentState.REFUNDED,
+          }),
+      ),
     };
     subscriptionService = {
       findSubscription: jest.fn(),
@@ -99,7 +116,7 @@ describe('RefundService', () => {
 
       expect(result.refundAmount).toBe(70000);
       expect(result.monthsUsed).toBe(3);
-      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(paymentService.claimRefund).not.toHaveBeenCalled();
       expect(subscriptionService.save).not.toHaveBeenCalled();
       expect(mercadoPagoClient.refundPayment).not.toHaveBeenCalled();
       expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
@@ -179,12 +196,9 @@ describe('RefundService', () => {
         70000,
         'refund-55',
       );
-      expect(paymentService.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          state: PaymentState.REFUNDED,
-          refundedAmount: 70000,
-          refundedById: 900,
-        }),
+      expect(paymentService.claimRefund).toHaveBeenCalledWith(
+        55,
+        expect.objectContaining({ refundedAmount: 70000, refundedById: 900 }),
       );
       expect(result.state).toBe(PaymentState.REFUNDED);
     });
@@ -258,11 +272,9 @@ describe('RefundService', () => {
       await service.issue(7, 900);
 
       expect(mercadoPagoClient.refundPayment).not.toHaveBeenCalled();
-      expect(paymentService.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          state: PaymentState.REFUNDED,
-          refundedAmount: 70000,
-        }),
+      expect(paymentService.claimRefund).toHaveBeenCalledWith(
+        55,
+        expect.objectContaining({ refundedAmount: 70000 }),
       );
       expect(subscriptionService.save).toHaveBeenCalled();
     });
@@ -284,7 +296,7 @@ describe('RefundService', () => {
 
       // Nothing marked REFUNDED, nothing cancelled, no email — the worst
       // outcome (money never moved but access was cut) must be unreachable.
-      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(paymentService.claimRefund).not.toHaveBeenCalled();
       expect(subscriptionService.save).not.toHaveBeenCalled();
       expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
     });
@@ -311,7 +323,7 @@ describe('RefundService', () => {
       // local write is left unresolved, which is the safer half of the
       // partial-failure to have unresolved.
       expect(mercadoPagoClient.refundPayment).toHaveBeenCalled();
-      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(paymentService.claimRefund).not.toHaveBeenCalled();
       expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
     });
 
@@ -329,7 +341,7 @@ describe('RefundService', () => {
 
       await expect(service.issue(7, 900)).rejects.toThrow('DB is down');
 
-      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(paymentService.claimRefund).not.toHaveBeenCalled();
       expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
     });
 
@@ -358,11 +370,12 @@ describe('RefundService', () => {
       await service.issue(7, 900);
 
       expect(subscriptionService.save).toHaveBeenCalled();
-      expect(paymentService.save).toHaveBeenCalled();
+      expect(paymentService.claimRefund).toHaveBeenCalled();
       const subscriptionSaveOrder =
         subscriptionService.save.mock.invocationCallOrder[0];
-      const paymentSaveOrder = paymentService.save.mock.invocationCallOrder[0];
-      expect(subscriptionSaveOrder).toBeLessThan(paymentSaveOrder);
+      const paymentClaimOrder =
+        paymentService.claimRefund.mock.invocationCallOrder[0];
+      expect(subscriptionSaveOrder).toBeLessThan(paymentClaimOrder);
     });
 
     it('refuses to refund a payment that was already refunded', async () => {
@@ -375,7 +388,31 @@ describe('RefundService', () => {
 
       await expect(service.issue(7, 900)).rejects.toThrow(ConflictException);
       expect(mercadoPagoClient.refundPayment).not.toHaveBeenCalled();
-      expect(paymentService.save).not.toHaveBeenCalled();
+      expect(paymentService.claimRefund).not.toHaveBeenCalled();
+    });
+
+    // Regression guard: the refundedAt check above reads a snapshot from
+    // findCurrentTermPayment, not a lock. Two near-simultaneous calls for
+    // the same payment can both pass it and both call Mercado Pago — this
+    // is the actual race, simulated here by making claimRefund itself
+    // report "someone else already won" via its null return, exactly as it
+    // would once the first caller's atomic UPDATE has already landed.
+    it('stops and sends no email when a concurrent request already claimed the refund', async () => {
+      subscriptionService.findSubscription.mockResolvedValue(
+        buildSubscription(),
+      );
+      paymentService.findCurrentTermPayment.mockResolvedValue(
+        buildPayment({ mpPaymentId: 'mp-pay-1' }),
+      );
+      paymentService.claimRefund.mockResolvedValue(null);
+
+      await expect(service.issue(7, 900)).rejects.toThrow(ConflictException);
+
+      // The MP call still happened — safe, since MP's own idempotency key
+      // never double-refunds the same payment — but the local bookkeeping
+      // must not proceed as if this call were the winner.
+      expect(mercadoPagoClient.refundPayment).toHaveBeenCalled();
+      expect(mailService.sendRefundConfirmation).not.toHaveBeenCalled();
     });
 
     it('emails the member a refund confirmation', async () => {
@@ -407,11 +444,9 @@ describe('RefundService', () => {
       await service.issue(7, 900);
 
       expect(mercadoPagoClient.refundPayment).not.toHaveBeenCalled();
-      expect(paymentService.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          state: PaymentState.REFUNDED,
-          refundedAmount: 0,
-        }),
+      expect(paymentService.claimRefund).toHaveBeenCalledWith(
+        55,
+        expect.objectContaining({ refundedAmount: 0 }),
       );
       expect(subscriptionService.save).toHaveBeenCalledWith(
         expect.objectContaining({ state: SubscriptionState.CANCELLED }),

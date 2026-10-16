@@ -17,6 +17,14 @@ import { CompleteProfileDto } from './dto/complete-profile-dto';
 import { ChangePasswordDto } from './dto/change-password-dto';
 import { isProfileComplete } from '../modules/user/user.rules';
 
+// A constant, pre-computed bcrypt hash (same cost as registration) with no
+// real password behind it — see login()'s own comment on why every attempt
+// compares against something, even when the account does not exist.
+const NO_SUCH_ACCOUNT_HASH = bcrypt.hashSync(
+  'no-account-exists-for-this-timing-safe-placeholder',
+  10,
+);
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -59,15 +67,22 @@ export class AuthService {
     const genericFailure = () =>
       new UnauthorizedException('Credenciales invalidas');
 
-    if (!user || user.deleted || !user.password) {
-      throw genericFailure();
-    }
-
+    // bcrypt.compare always runs, against a real password hash or a constant
+    // dummy one, so this branch pays the same cost either way. Without this,
+    // a missing account, a soft-deleted one, or a Google-only account with no
+    // password replies measurably faster than a real password-based login —
+    // an attacker who can time responses could use that gap to enumerate
+    // which emails have a real account ahead of a credential-stuffing run.
+    const passwordHash =
+      user && !user.deleted && user.password
+        ? user.password
+        : NO_SUCH_ACCOUNT_HASH;
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
-      user.password,
+      passwordHash,
     );
-    if (!isPasswordValid) {
+
+    if (!user || user.deleted || !user.password || !isPasswordValid) {
       throw genericFailure();
     }
 

@@ -20,8 +20,11 @@ export interface ParsedSignatureHeader {
 
 export interface VerifyWebhookSignatureInput {
   signatureHeader: string;
-  requestId: string;
-  dataId: string;
+  // string | undefined, not string: a genuinely absent field must reach
+  // buildSignatureManifest as undefined, not as '', or its "skip an absent
+  // segment" behavior can never fire — see that function's own comment.
+  requestId: string | undefined;
+  dataId: string | undefined;
 }
 
 /**

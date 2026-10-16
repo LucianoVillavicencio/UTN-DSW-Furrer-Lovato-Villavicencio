@@ -167,21 +167,20 @@ export class ChargeOrderService {
 
     // The busy check and the insert MUST run as one atomic unit: two
     // near-simultaneous createCharge calls for the same collectionPointId (a
-    // double-tap at the counter, two admin sessions) could otherwise both
-    // pass the check before either saves, arming two live orders on one
-    // physical point — exactly the failure this table exists to prevent.
-    // setLock('pessimistic_write') takes a row lock on any matching order,
-    // so a concurrent second transaction blocks on this SELECT until the
-    // first one commits or rolls back, rather than racing past the check.
-    // Same manager.transaction(...) pattern as
+    // double-tap at the counter, two admin sessions) — or, for an online
+    // checkout, two calls for the same member (a double-click, a retried
+    // request) — could otherwise both pass the check before either saves,
+    // arming two live orders that each go on to charge Mercado Pago for
+    // real. setLock('pessimistic_write') takes a row lock on any matching
+    // order, so a concurrent second transaction blocks on this SELECT until
+    // the first one commits or rolls back, rather than racing past the
+    // check. Same manager.transaction(...) pattern as
     // SavedCardService.saveForUser's deactivate-then-insert pair.
     return this.chargeOrderRepository.manager.transaction(async (manager) => {
-      // The busy-point lock protects a shared physical collection point from
-      // two live orders. An online order has none, so there is nothing to
-      // lock — and taking the lock with a null key would serialise every
-      // online checkout behind a single row.
+      const pendingState: string = ChargeOrderStatus.PENDING;
       if (method !== 'online') {
-        const pendingState: string = ChargeOrderStatus.PENDING;
+        // The busy-point lock protects a shared physical collection point
+        // from two live orders.
         const busyOrder = await manager
           .createQueryBuilder(ChargeOrder, 'chargeOrder')
           .setLock('pessimistic_write')
@@ -193,6 +192,24 @@ export class ChargeOrderService {
         if (busyOrder) {
           throw new ConflictException(
             'Ya hay un cobro en curso en este punto de cobro.',
+          );
+        }
+      } else {
+        // Online has no collection point to lock, but the same
+        // double-submission risk exists per member. Locked on (userId,
+        // method) rather than userId alone, so a legitimate PENDING
+        // front-desk order for this same member never blocks their own
+        // online checkout.
+        const busyOnlineOrder = await manager
+          .createQueryBuilder(ChargeOrder, 'chargeOrder')
+          .setLock('pessimistic_write')
+          .where('chargeOrder.userId = :userId', { userId })
+          .andWhere('chargeOrder.method = :method', { method })
+          .andWhere('chargeOrder.status = :status', { status: pendingState })
+          .getOne();
+        if (busyOnlineOrder) {
+          throw new ConflictException(
+            'Ya tenés un cobro en curso. Esperá a que se confirme antes de volver a intentar.',
           );
         }
       }
