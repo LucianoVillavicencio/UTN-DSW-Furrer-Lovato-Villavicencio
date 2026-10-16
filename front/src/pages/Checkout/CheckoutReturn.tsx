@@ -23,6 +23,7 @@ function CheckoutReturn() {
 
   const [settled, setSettled] = useState<CheckoutStatus | null>(null);
 
+  // Polls the payment status for the returned reference until it settles.
   useEffect(() => {
     // No usable reference: there is nothing to poll, so the member sees the
     // same "still confirming" card as a payment that never settles — never

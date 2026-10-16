@@ -69,6 +69,7 @@ const PlanSection = () => {
       })
       .finally(() => setIsLoading(false));
 
+  // Loads the plans once on mount.
   useEffect(() => {
     void fetchPlans();
   }, []);

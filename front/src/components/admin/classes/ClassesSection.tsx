@@ -99,6 +99,7 @@ const ClassesSection = () => {
       })
       .finally(() => setLoadedFilter(deleted));
 
+  // Reloads the class list whenever the "show deleted" filter changes.
   useEffect(() => {
     void fetchClasses(showDeleted);
   }, [showDeleted]);

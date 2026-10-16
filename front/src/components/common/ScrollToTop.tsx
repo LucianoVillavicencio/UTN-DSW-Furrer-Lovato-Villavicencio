@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 export const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
 
+  // Scrolls to the URL anchor, or to the top, on every navigation.
   useEffect(() => {
     // URL with an anchor (/#pase-gratis): scroll to that section.
     // scroll-padding-top in index.css keeps it clear of the sticky navbar.

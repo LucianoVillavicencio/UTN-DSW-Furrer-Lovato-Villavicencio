@@ -23,6 +23,7 @@ export function usePlanChangeQuotes(
   // refires the effect — forever.
   const idsKey = ids.join(',');
 
+  // Fetches plan-change quotes whenever the candidate plans or subscription change.
   useEffect(() => {
     if (!hasSubscription || ids.length === 0) {
       // Resets synchronously — no request is in flight here to gate this on,

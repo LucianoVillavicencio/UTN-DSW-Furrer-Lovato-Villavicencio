@@ -94,6 +94,7 @@ function CheckoutWallet() {
   const termsAccepted = acceptedTerms && acceptedRules;
   const canPay = termsAccepted && !isPaying;
 
+  // Loads the checkout summary, or redirects to the plans page if no plan is selected.
   useEffect(() => {
     if (!planId) {
       navigate('/membership', { replace: true });

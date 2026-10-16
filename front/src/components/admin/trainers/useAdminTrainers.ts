@@ -38,6 +38,7 @@ export const useAdminTrainers = (showDeleted: boolean) => {
       })
       .finally(() => setLoadedFilter(deleted));
 
+  // Reloads the trainer list whenever the "show deleted" filter changes.
   useEffect(() => {
     void fetchTrainers(showDeleted);
   }, [showDeleted]);

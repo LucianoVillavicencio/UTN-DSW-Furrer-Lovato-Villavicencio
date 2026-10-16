@@ -80,6 +80,7 @@ const PaymentForm = ({
   // Updated in an effect, not during render — mutating a ref while rendering
   // is what React's own lint rule (react-hooks/refs) flags, since it can
   // desync from what was actually committed to the screen.
+  // Keeps the ref pointing at the latest callbacks after every render.
   useEffect(() => {
     latest.current = { onCardToken, onWalletSubmit, onError, submitBlockedMessage };
   });

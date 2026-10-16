@@ -246,6 +246,32 @@ export class UserService {
     return safeUser;
   }
 
+  // Password-reset flow (PasswordResetService). The hash is part of the reset
+  // token's signing secret, so it has to be loaded even though the column is
+  // select: false.
+  async findUserByIdWithPassword(id: number) {
+    return await this.usersRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        deleted: true,
+      },
+    });
+  }
+
+  // Sets a new password without asking for the current one: the caller has
+  // already proven ownership of the email through a reset token. Clears
+  // mustChangePassword for the same reason updateProfile does.
+  async resetPassword(id: number, newPassword: string) {
+    await this.usersRepository.update(id, {
+      password: await bcrypt.hash(newPassword, 10),
+      mustChangePassword: false,
+    });
+  }
+
   // Admin-side edit (Users panel). Unlike the updateUsers/UsersDto pair that
   // PUT /user used before that route was deleted, it never touches password,
   // so there is no risk of storing an unhashed value.

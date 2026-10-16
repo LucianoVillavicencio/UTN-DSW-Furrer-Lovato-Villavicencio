@@ -8,6 +8,7 @@ import { isGymOpen } from '../utils/gym-hours';
 export const useIsGymOpen = (): boolean => {
   const [isOpen, setIsOpen] = useState(() => isGymOpen());
  
+  // Re-evaluates whether the gym is open every minute.
   useEffect(() => {
     const id = window.setInterval(() => setIsOpen(isGymOpen()), 60_000);
     return () => window.clearInterval(id);

@@ -54,6 +54,7 @@ const AdminPaymentsSection = () => {
       })
       .finally(() => setIsLoading(false));
 
+  // Loads the payments page whenever the pagination offset changes.
   useEffect(() => {
     void fetchPayments(offset);
   }, [offset]);

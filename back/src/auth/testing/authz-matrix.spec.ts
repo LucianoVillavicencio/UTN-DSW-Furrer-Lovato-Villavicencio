@@ -4,6 +4,8 @@ import { App } from 'supertest/types';
 
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
+import { PasswordResetController } from '../password-reset.controller';
+import { PasswordResetService } from '../password-reset.service';
 import { AnalyticsController } from '../../modules/analytics/analytics.controller';
 import { AnalyticsService } from '../../modules/analytics/analytics.service';
 import { OwnerPasswordGuard } from '../../modules/analytics/analytics.guard';
@@ -195,6 +197,47 @@ describe('AuthController authorization', () => {
 
   it('opens POST /auth/change-password to any logged-in caller', async () => {
     await anyLoggedIn(app, 'post', '/api/v1/auth/change-password');
+  });
+});
+
+describe('PasswordResetController authorization', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await buildAuthzApp(PasswordResetController, [
+      {
+        provide: PasswordResetService,
+        useValue: {
+          requestReset: jest.fn().mockResolvedValue({}),
+          resetPassword: jest.fn().mockResolvedValue({}),
+        },
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // Both answer 200 rather than Nest's default 201 for a POST. The handlers
+  // read fields off the dto, so a body is needed.
+  const opensToEveryone = async (path: string, body: Body) => {
+    await call(app, 'post', path, ANONYMOUS, body).expect(200);
+    await call(app, 'post', path, tokenFor('member'), body).expect(200);
+    await call(app, 'post', path, tokenFor('admin'), body).expect(200);
+  };
+
+  it('opens POST /auth/forgot-password to everyone', async () => {
+    await opensToEveryone('/api/v1/auth/forgot-password', {
+      email: 'rosa@gmail.com',
+    });
+  });
+
+  it('opens POST /auth/reset-password to everyone', async () => {
+    await opensToEveryone('/api/v1/auth/reset-password', {
+      token: 't',
+      newPassword: 'nueva1234',
+    });
   });
 });
 

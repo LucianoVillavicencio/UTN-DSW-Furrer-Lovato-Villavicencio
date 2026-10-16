@@ -35,6 +35,15 @@ export class MailService {
     return `${day}/${month}/${year}`;
   }
 
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   async sendContactNotification(data: {
     name: string;
     surname: string;
@@ -58,6 +67,119 @@ export class MailService {
       });
     } catch (error) {
       this.logger.error(`Error al enviar el email de contacto`, error);
+    }
+  }
+
+  async sendPasswordReset(data: {
+    to: string;
+    name: string;
+    resetUrl: string;
+    expiresInMinutes: number;
+  }): Promise<void> {
+    try {
+      const text = `Hola ${data.name},\n\nRecibimos una solicitud para restablecer la contraseña de tu cuenta de FLG.\n\nPara elegir una nueva, ingresa a este enlace (vence en ${data.expiresInMinutes} minutos y se puede usar una sola vez):\n${data.resetUrl}\n\nSi no fuiste tú, ignora este correo: tu contraseña actual sigue funcionando.\n\nEl equipo de FLG.`;
+
+      // Email clients ignore <style> blocks and most modern CSS, so the layout
+      // is tables with inline styles. Colors follow the site's palette
+      // (front/src/index.css). The name is member-typed, hence the escape.
+      const name = this.escapeHtml(data.name);
+      const url = this.escapeHtml(data.resetUrl);
+      const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Restablecer tu contraseña</title>
+</head>
+<body style="margin:0;padding:0;background-color:#050505;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Elige una nueva contraseña para tu cuenta de FLG. El enlace vence en ${data.expiresInMinutes} minutos.
+  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#050505" style="background-color:#050505;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+          <tr>
+            <td align="center" style="padding-bottom:24px;font-family:Poppins,Arial,sans-serif;font-size:26px;font-weight:800;letter-spacing:1px;color:#ffffff;">
+              FL<span style="color:#22c55e;">G</span>
+            </td>
+          </tr>
+          <tr>
+            <td bgcolor="#0a0a0a" style="background-color:#0a0a0a;border:1px solid #262626;border-radius:16px;border-top:4px solid #22c55e;padding:40px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom:20px;">
+                    <div style="width:56px;height:56px;line-height:56px;border-radius:14px;background-color:#0f2a19;border:1px solid #1d5e35;font-size:26px;text-align:center;">&#128273;</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-family:Poppins,Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;padding-bottom:8px;">
+                    Restablece tu contraseña
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-family:Inter,Arial,sans-serif;font-size:15px;line-height:24px;color:#a3a3a3;padding-bottom:28px;">
+                    Hola <strong style="color:#ffffff;">${name}</strong>, recibimos una solicitud para restablecer la contraseña de tu cuenta de FLG.
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td bgcolor="#22c55e" style="border-radius:10px;background-color:#22c55e;">
+                          <a href="${url}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:Poppins,Arial,sans-serif;font-size:15px;font-weight:600;color:#050505;text-decoration:none;border-radius:10px;">
+                            Elegir nueva contraseña
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color:#141414;border:1px solid #262626;border-radius:10px;padding:14px 16px;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:20px;color:#a3a3a3;">
+                    &#9201;&nbsp; El enlace vence en <strong style="color:#ffffff;">${data.expiresInMinutes} minutos</strong> y se puede usar una sola vez.
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top:24px;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:20px;color:#a3a3a3;">
+                    Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+                    <a href="${url}" target="_blank" style="color:#22c55e;word-break:break-all;">${url}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top:24px;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td style="padding-top:20px;border-top:1px solid #262626;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:20px;color:#737373;">
+                    Si no fuiste tú, ignora este correo: tu contraseña actual sigue funcionando.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding-top:24px;font-family:Inter,Arial,sans-serif;font-size:12px;line-height:18px;color:#525252;">
+              El equipo de FLG &middot; Este es un correo automático, no respondas a este mensaje.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+      await this.transporter.sendMail({
+        from: `FLG <${process.env.GMAIL_USER}>`,
+        to: data.to,
+        subject: `Restablecer tu contraseña — FLG`,
+        text,
+        html,
+      });
+    } catch (error) {
+      this.logger.error(`Error al enviar el email de recuperación`, error);
     }
   }
 

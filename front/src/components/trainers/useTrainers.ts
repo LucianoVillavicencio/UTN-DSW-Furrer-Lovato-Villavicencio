@@ -9,6 +9,7 @@ export const useTrainers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Loads the trainers once on mount.
   useEffect(() => {
     const fetchTrainers = async () => {
       setIsLoading(true);
