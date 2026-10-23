@@ -1,3 +1,4 @@
+//Procesa los avisos de MP
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   MercadoPagoClient,

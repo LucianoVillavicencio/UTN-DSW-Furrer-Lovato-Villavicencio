@@ -1,3 +1,4 @@
+//Unico cliente que habla con MP
 import { Injectable, Logger } from '@nestjs/common';
 import MpSdkConfig, {
   CardToken,
