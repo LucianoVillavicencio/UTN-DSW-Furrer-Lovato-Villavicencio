@@ -33,7 +33,7 @@ function Trainers() {
           subtitle="Reservá una consulta con uno de nuestros entrenadores expertos y empezá tu transformación hoy."
           primaryButton={{
             label: 'Ver planes de entrenamiento',
-            href: '/plans',
+            href: '/membership',
           }}
         />
       </main>
