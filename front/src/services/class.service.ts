@@ -6,6 +6,20 @@ import { getApiErrorMessage } from './api-error';
 // the JWT Authorization header and the interceptor clears the session on a 401.
 // GET is public on the backend; POST/PUT/DELETE/PATCH require the ADMIN role.
 
+// GET /class returns each class with its joined `typeClass` and `trainer`
+// objects, and the edit form starts from that object. The backend validates
+// the body with forbidNonWhitelisted, so sending those relations back makes
+// PUT /class fail with "property typeClass should not exist". Only the ids
+// are writable.
+export const toClassPayload = (clase: Class) => ({
+  id: clase.id,
+  name: clase.name,
+  description: clase.description,
+  typeClassId: clase.typeClassId,
+  trainerDni: clase.trainerDni,
+  deleted: clase.deleted,
+});
+
 export const getClass = async (): Promise<Class[]> => {
   try {
     const { data } = await api.get<Class[]>('/class');
@@ -43,7 +57,7 @@ export const getDeletedClasses = async (): Promise<Class[]> => {
 
 export const createClass = async (clase: Class): Promise<Class> => {
   try {
-    const { data } = await api.post<Class>('/class', clase);
+    const { data } = await api.post<Class>('/class', toClassPayload(clase));
     return data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Error al crear clase'), {
@@ -54,7 +68,7 @@ export const createClass = async (clase: Class): Promise<Class> => {
 
 export const updateClass = async (clase: Class): Promise<Class> => {
   try {
-    const { data } = await api.put<Class>('/class', clase);
+    const { data } = await api.put<Class>('/class', toClassPayload(clase));
     return data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Error al actualizar clase'), {
